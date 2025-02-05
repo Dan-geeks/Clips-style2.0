@@ -1,0 +1,142 @@
+{
+  "project_info": {
+    "project_number": "337048471338",
+    "project_id": "lotus-76761",
+    "storage_bucket": "lotus-76761.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:337048471338:android:ce5cba3640361a75130053",
+        "android_client_info": {
+          "package_name": "com.example.clipsandstyles2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "337048471338-vchq26jb5j98749u9fll5g62vac3afrv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.clipsandstyles2",
+            "certificate_hash": "08579e29e237d8c0415a4e6df50f9ede9fa7e781"
+          }
+        },
+        {
+          "client_id": "337048471338-nq18frb2aa6h29jtk3c8i5638dnitjl2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO8Ybg93oqoQKuLd4wWPkI-Av_Qv0IMAI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "337048471338-nq18frb2aa6h29jtk3c8i5638dnitjl2.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "337048471338-dcittpv3bvpb7hnnqpdgif04r5l4jif8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.clipsandstyles2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:337048471338:android:12b5c3629bf5cc0d130053",
+        "android_client_info": {
+          "package_name": "com.example.clipsstylesapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "337048471338-arq0sunns0mdpsl11p7l3ftb9dqaqciv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.clipsstylesapp",
+            "certificate_hash": "08579e29e237d8c0415a4e6df50f9ede9fa7e781"
+          }
+        },
+        {
+          "client_id": "337048471338-nq18frb2aa6h29jtk3c8i5638dnitjl2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO8Ybg93oqoQKuLd4wWPkI-Av_Qv0IMAI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "337048471338-nq18frb2aa6h29jtk3c8i5638dnitjl2.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "337048471338-dcittpv3bvpb7hnnqpdgif04r5l4jif8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.clipsandstyles2"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:337048471338:android:3c1354d9277b3464130053",
+        "android_client_info": {
+          "package_name": "com.example.lotus"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "337048471338-cpoceq61r7hfsl0ojbccb8nc6hofltfc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lotus",
+            "certificate_hash": "08579e29e237d8c0415a4e6df50f9ede9fa7e781"
+          }
+        },
+        {
+          "client_id": "337048471338-nq18frb2aa6h29jtk3c8i5638dnitjl2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO8Ybg93oqoQKuLd4wWPkI-Av_Qv0IMAI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "337048471338-nq18frb2aa6h29jtk3c8i5638dnitjl2.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "337048471338-dcittpv3bvpb7hnnqpdgif04r5l4jif8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.clipsandstyles2"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
