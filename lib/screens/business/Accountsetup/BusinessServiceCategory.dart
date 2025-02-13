@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'BusinessPricing.dart';
+import 'package:collection/collection.dart';
+
+import 'BusinessPricing.dart'; // Make sure PricingPage is defined there
 
 class ServiceCategoriesPage extends StatefulWidget {
   @override
@@ -8,52 +10,115 @@ class ServiceCategoriesPage extends StatefulWidget {
 }
 
 class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
+  // Define your base list of services per mapped category.
   final Map<String, List<String>> serviceCategories = {
     'Barbershop': [
-      'Beard trimming', 'Kid\'s Haircut', 'Men\'s haircut', 'Haircut + Beard',
-      'Scalp treatment', 'Full facial', 'Half facial', 'Hair coloring',
-      'Facial Massage', 'Men\'s Facial'
+      'Beard trimming',
+      'Kid\'s Haircut',
+      'Men\'s haircut',
+      'Haircut + Beard',
+      'Scalp treatment',
+      'Full facial',
+      'Half facial',
+      'Hair coloring',
+      'Facial Massage',
+      'Men\'s Facial'
     ],
     'Eyebrows': [
-      'Brow lamination', 'Eyebrow shaping', 'Eyebrow tinting', 'Eyelash extension',
-      'Eyelash Tinting', 'Henna Brows', 'Lash Lift and Tint', 'Powder brows'
+      'Brow lamination',
+      'Eyebrow shaping',
+      'Eyebrow tinting',
+      'Eyelash extension',
+      'Eyelash Tinting',
+      'Henna Brows',
+      'Lash Lift and Tint',
+      'Powder brows'
     ],
     'Nails': [
-      'Acrylic nails', 'Dip powder nails', 'Manicure', 'Pedicure',
-      'Gel nail extension', 'Gel nails', 'Manicure and pedicure',
-      'Men\'s manicure', 'Men\'s pedicure', 'Nail art', 'Nail extension', 'Nail polish'
+      'Acrylic nails',
+      'Dip powder nails',
+      'Manicure',
+      'Pedicure',
+      'Gel nail extension',
+      'Gel nails',
+      'Manicure and pedicure',
+      'Men\'s manicure',
+      'Men\'s pedicure',
+      'Nail art',
+      'Nail extension',
+      'Nail polish'
     ],
     'Spa': [
-      'Acupuncture', 'Aromatherapy massage', 'Back massage', 'Couples massage',
-      'Foot massage', 'Full body massage', 'Hand massage', 'Head massage',
-      'Hot stone massage', 'Korean massage', 'Lomi lomi massage', 'Oil massage',
-      'Prenatal massage', 'Relaxing massage', 'Spa massage', 'Sports massage',
-      'Wood massage', 'Trigger point massage', 'Swedish massage'
+      'Acupuncture',
+      'Aromatherapy massage',
+      'Back massage',
+      'Couples massage',
+      'Foot massage',
+      'Full body massage',
+      'Hand massage',
+      'Head massage',
+      'Hot stone massage',
+      'Korean massage',
+      'Lomi lomi massage',
+      'Oil massage',
+      'Prenatal massage',
+      'Relaxing massage',
+      'Spa massage',
+      'Sports massage',
+      'Wood massage',
+      'Trigger point massage',
+      'Swedish massage'
     ],
     'Salons': [
-      'Afro hair', 'Blow dry', 'Bridal hair', 'Hair braiding', 'Hair coloring',
-      'Hair extension', 'Hair loss treatment', 'Hair treatment', 'Hair twists',
-      'Hair weaves', 'Locs', 'Permanent hair straightening', 'Wig installation'
+      'Afro hair',
+      'Blow dry',
+      'Bridal hair',
+      'Hair braiding',
+      'Hair coloring',
+      'Hair extension',
+      'Hair loss treatment',
+      'Hair treatment',
+      'Hair twists',
+      'Hair weaves',
+      'Locs',
+      'Permanent hair straightening',
+      'Wig installation'
     ],
     'Make up': [
-      'Bridal makeup', 'Makeup services', 'Permanent makeup'
+      'Bridal makeup',
+      'Makeup services',
+      'Permanent makeup'
     ],
     'Tattoo and piercing': [
-      'Body piercing', 'Ear piercing', 'Lip blushing', 'Henna tattoos',
-      'Nose Piercing', 'Tattooing', 'Tattoo removal'
+      'Body piercing',
+      'Ear piercing',
+      'Lip blushing',
+      'Henna tattoos',
+      'Nose Piercing',
+      'Tattooing',
+      'Tattoo removal'
     ],
     'Dreadlocks': [
-      'Dreadlock Installation - Crochet', 'Dreadlock Installation - Twist and Rip',
-      'Dreadlock Installation - Backcombing', 'Dreadlock Installation - Interlocking',
-      'Maintenance and Retwisting - Tightening', 'Maintenance and Retwisting - Palm Rolling',
-      'Maintenance and Retwisting - Interlocking', 'Dreadlock Extensions - Synthetic',
-      'Dreadlock Extensions - Natural Hair', 'Dreadlock Coloring - Dyes',
-      'Dreadlock Coloring - Highlights', 'Dreadlock Coloring - Bleaching',
-      'Dreadlock Styling - Updos', 'Dreadlock Styling - Braiding',
-      'Dreadlock Styling - Accessories', 'Dreadlock Detox'
+      'Dreadlock Installation - Crochet',
+      'Dreadlock Installation - Twist and Rip',
+      'Dreadlock Installation - Backcombing',
+      'Dreadlock Installation - Interlocking',
+      'Maintenance and Retwisting - Tightening',
+      'Maintenance and Retwisting - Palm Rolling',
+      'Maintenance and Retwisting - Interlocking',
+      'Dreadlock Extensions - Synthetic',
+      'Dreadlock Extensions - Natural Hair',
+      'Dreadlock Coloring - Dyes',
+      'Dreadlock Coloring - Highlights',
+      'Dreadlock Coloring - Bleaching',
+      'Dreadlock Styling - Updos',
+      'Dreadlock Styling - Braiding',
+      'Dreadlock Styling - Accessories',
+      'Dreadlock Detox'
     ],
   };
 
+  // Your mapping from original to mapped names.
   final Map<String, String> categoryMappings = {
     'Barbering': 'Barbershop',
     'Salons': 'Salons',
@@ -67,6 +132,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
 
   String searchQuery = '';
   bool _isInitialized = false;
+  // List of mapped category names that are selected.
   List<String> categoriesToDisplay = [];
   String selectedCategory = '';
   late Box appBox;
@@ -75,6 +141,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
   @override
   void initState() {
     super.initState();
+    // Delay initialization until after the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _initializeHive();
@@ -88,26 +155,30 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     _initializeCategories();
   }
 
+  // Loop through the stored categories (businessData['categories']) and for each selected category,
+  // update its name using our mapping and ensure a "services" list is nested in that same category map.
   void _initializeCategories() {
     if (_isInitialized) return;
 
     setState(() {
-      List<String> selectedCategories = [];
-      
       if (businessData != null && businessData!.containsKey('categories')) {
-        final categoryList = businessData!['categories'] as List;
-        for (var category in categoryList) {
+        final List categoryList = businessData!['categories'];
+        for (int i = 0; i < categoryList.length; i++) {
+          var category = categoryList[i];
           if (category['isSelected'] == true) {
-            String? mappedCategory = categoryMappings[category['name']];
+            // Look up the mapped category name.
+            String originalName = category['name'];
+            String? mappedCategory = categoryMappings[originalName];
+            // If mapping exists and we have services defined for that mapped key...
             if (mappedCategory != null && serviceCategories.containsKey(mappedCategory)) {
-              categoriesToDisplay.add(mappedCategory);
-              
-              // Initialize services in businessData if not exists
-              if (!businessData!.containsKey('services')) {
-                businessData!['services'] = {};
+              // Update the stored category name.
+              categoryList[i]['name'] = mappedCategory;
+              if (!categoriesToDisplay.contains(mappedCategory)) {
+                categoriesToDisplay.add(mappedCategory);
               }
-              if (!businessData!['services'].containsKey(mappedCategory)) {
-                businessData!['services'][mappedCategory] = serviceCategories[mappedCategory]!
+              // Initialize nested services for this category if not already present.
+              if (!category.containsKey('services')) {
+                categoryList[i]['services'] = serviceCategories[mappedCategory]!
                     .map((service) => {'name': service, 'isSelected': false})
                     .toList();
               }
@@ -115,249 +186,226 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
           }
         }
       }
-
       if (categoriesToDisplay.isNotEmpty) {
         selectedCategory = categoriesToDisplay[0];
       }
-
       _isInitialized = true;
     });
-    
-    // Save initialized services to Hive
+
+    // Save the updated businessData (with nested services) back to Hive.
     appBox.put('businessData', businessData);
   }
 
-  bool isServiceSelected(String category, String service) {
-    if (businessData == null || 
-        !businessData!.containsKey('services') || 
-        !businessData!['services'].containsKey(category)) {
+  // Looks up the given service in the nested services list of the selected category.
+  bool isServiceSelected(String categoryName, String serviceName) {
+    if (businessData == null || !businessData!.containsKey('categories')) {
       return false;
     }
+    List categoryList = businessData!['categories'];
+    final cat = categoryList.firstWhereOrNull((cat) => cat['name'] == selectedCategory);
 
-    final servicesList = businessData!['services'][category] as List;
-    final serviceData = servicesList.firstWhere(
-      (s) => s['name'] == service,
-      orElse: () => {'isSelected': false}
+    if (cat == null || !cat.containsKey('services')) return false;
+
+    List services = cat['services'];
+    final serviceData = services.firstWhere(
+      (s) => s['name'] == serviceName,
+      orElse: () => {'isSelected': false},
     );
     return serviceData['isSelected'] ?? false;
   }
 
-  Future<void> toggleService(String category, String service, bool value) async {
-    if (businessData == null || !businessData!.containsKey('services')) return;
-
-    setState(() {
-      final servicesList = businessData!['services'][category] as List;
-      final serviceIndex = servicesList.indexWhere((s) => s['name'] == service);
-      
-      if (serviceIndex != -1) {
-        servicesList[serviceIndex]['isSelected'] = value;
-        businessData!['services'][category] = servicesList;
-      }
-    });
-
-    // Save to Hive
-    await appBox.put('businessData', businessData);
+  // Toggle a service’s selected flag by finding it in the nested array for that category.
+  Future<void> toggleService(String categoryName, String serviceName, bool value) async {
+    if (businessData == null || !businessData!.containsKey('categories')) return;
+    List categoryList = businessData!['categories'];
+    final catIndex = categoryList.indexWhere((cat) => cat['name'] == categoryName);
+    if (catIndex == -1) return;
+    var cat = categoryList[catIndex];
+    if (!cat.containsKey('services')) return;
+    List services = cat['services'];
+    final serviceIndex = services.indexWhere((s) => s['name'] == serviceName);
+    if (serviceIndex != -1) {
+      services[serviceIndex]['isSelected'] = value;
+      // Update the services list for the category.
+      categoryList[catIndex]['services'] = services;
+      // Save the updated businessData.
+      await appBox.put('businessData', businessData);
+      setState(() {});
+    }
   }
-Future<void> _showAddServiceDialog() async {
-  final TextEditingController serviceNameController = TextEditingController();
-  final TextEditingController categoryNameController = TextEditingController();
-  String? dialogSelectedCategory = selectedCategory;
-  bool isAddingNewCategory = false;
 
-  await showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text('Add Custom Service'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: serviceNameController,
-                  decoration: InputDecoration(
-                    labelText: 'Service Name',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+  // Shows a dialog for adding a custom service.
+  Future<void> _showAddServiceDialog() async {
+    final TextEditingController serviceNameController = TextEditingController();
+    final TextEditingController categoryNameController = TextEditingController();
+    String? dialogSelectedCategory = selectedCategory;
+    bool isAddingNewCategory = false;
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: Text('Add Custom Service'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: serviceNameController,
+                    decoration: InputDecoration(
+                      labelText: 'Service Name',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: !isAddingNewCategory
-                        ? DropdownButtonFormField<String>(
-                            value: dialogSelectedCategory,
-                            decoration: InputDecoration(
-                              labelText: 'Category',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                  SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: !isAddingNewCategory
+                            ? DropdownButtonFormField<String>(
+                                value: dialogSelectedCategory,
+                                decoration: InputDecoration(
+                                  labelText: 'Category',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                items: categoriesToDisplay.map((String category) {
+                                  return DropdownMenuItem<String>(
+                                    value: category,
+                                    child: Text(category, style: TextStyle(fontSize: 14)),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  setStateDialog(() {
+                                    dialogSelectedCategory = newValue;
+                                  });
+                                },
+                              )
+                            : TextField(
+                                controller: categoryNameController,
+                                decoration: InputDecoration(
+                                  labelText: 'New Category Name',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
                               ),
-                            ),
-                            items: categoriesToDisplay.map((String category) {
-                              return DropdownMenuItem<String>(
-                                value: category,
-                                child: Text(category, style: TextStyle(fontSize: 14)),
-                              );
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                dialogSelectedCategory = newValue;
-                              });
-                            },
-                          )
-                        : TextField(
-                            controller: categoryNameController,
-                            decoration: InputDecoration(
-                              labelText: 'New Category Name',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          ),
-                    ),
-                    SizedBox(width: 8),
-                    IconButton(
-                      icon: Icon(
-                        isAddingNewCategory ? Icons.list : Icons.add,
-                        color: Color(0xFF23461a),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          isAddingNewCategory = !isAddingNewCategory;
-                          if (!isAddingNewCategory) {
-                            categoryNameController.clear();
-                          }
-                        });
-                      },
-                      tooltip: isAddingNewCategory 
-                        ? 'Select existing category' 
-                        : 'Add new category',
-                    ),
-                  ],
+                      SizedBox(width: 8),
+                      IconButton(
+                        icon: Icon(
+                          isAddingNewCategory ? Icons.list : Icons.add,
+                          color: Color(0xFF23461a),
+                        ),
+                        onPressed: () {
+                          setStateDialog(() {
+                            isAddingNewCategory = !isAddingNewCategory;
+                            if (!isAddingNewCategory) {
+                              categoryNameController.clear();
+                            }
+                          });
+                        },
+                        tooltip: isAddingNewCategory 
+                            ? 'Select existing category'
+                            : 'Add new category',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                ElevatedButton(
+                  child: Text('Add Service'),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF23461a),
+                      foregroundColor: Colors.white),
+                  onPressed: () async {
+                    final String serviceName = serviceNameController.text.trim();
+                    if (serviceName.isEmpty) return;
+
+                    String categoryToUse;
+                    if (isAddingNewCategory) {
+                      categoryToUse = categoryNameController.text.trim();
+                      if (categoryToUse.isEmpty) return;
+                      // Add new category (nested structure)
+                      await _addNewCategory(categoryToUse);
+                    } else {
+                      if (dialogSelectedCategory == null) return;
+                      categoryToUse = dialogSelectedCategory!;
+                    }
+
+                    await _addCustomService(categoryToUse, serviceName);
+                    Navigator.of(context).pop();
+                  },
                 ),
               ],
-            ),
-            actions: [
-              TextButton(
-                child: Text('Cancel'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              ElevatedButton(
-                child: Text('Add Service'),
-                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(0xFF23461a),
-                                  foregroundColor: Colors.white
-                                ),
-                onPressed: () async {
-                  final String serviceName = serviceNameController.text.trim();
-                  if (serviceName.isEmpty) return;
-
-                  String categoryToUse;
-                  if (isAddingNewCategory) {
-                    categoryToUse = categoryNameController.text.trim();
-                    if (categoryToUse.isEmpty) return;
-                    
-                    // Add new category to the system
-                    await _addNewCategory(categoryToUse);
-                  } else {
-                    if (dialogSelectedCategory == null) return;
-                    categoryToUse = dialogSelectedCategory!;
-                  }
-
-                  await _addCustomService(categoryToUse, serviceName);
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
-
-Future<void> _addNewCategory(String categoryName) async {
-  if (businessData == null) return;
-
-  // Add to categoriesToDisplay if not exists
-  if (!categoriesToDisplay.contains(categoryName)) {
-    setState(() {
-      categoriesToDisplay.add(categoryName);
-      if (selectedCategory.isEmpty) {
-        selectedCategory = categoryName;
-      }
-    });
+            );
+          },
+        );
+      },
+    );
   }
 
-  // Add to serviceCategories if not exists
-  if (!serviceCategories.containsKey(categoryName)) {
-    serviceCategories[categoryName] = [];
+  // Add a new category by appending a new map with a nested empty services list.
+  Future<void> _addNewCategory(String categoryName) async {
+    if (businessData == null) return;
+
+    // Update categoriesToDisplay and selectedCategory if needed.
+    if (!categoriesToDisplay.contains(categoryName)) {
+      setState(() {
+        categoriesToDisplay.add(categoryName);
+        if (selectedCategory.isEmpty) {
+          selectedCategory = categoryName;
+        }
+      });
+    }
+
+    // Ensure the 'categories' key exists.
+    if (!businessData!.containsKey('categories')) {
+      businessData!['categories'] = [];
+    }
+    final List categoryList = businessData!['categories'];
+    if (!categoryList.any((cat) => cat['name'] == categoryName)) {
+      categoryList.add({
+        'name': categoryName,
+        'isSelected': true,
+        'services': [],
+      });
+    }
+    await appBox.put('businessData', businessData);
   }
 
-  // Add to businessData categories if not exists
-  if (!businessData!.containsKey('categories')) {
-    businessData!['categories'] = [];
-  }
+  // Add a custom service into the nested services list of the given category.
+  Future<void> _addCustomService(String categoryName, String serviceName) async {
+    if (businessData == null) return;
 
-  final categoryList = businessData!['categories'] as List;
-  if (!categoryList.any((cat) => cat['name'] == categoryName)) {
-    categoryList.add({
-      'name': categoryName,
-      'isSelected': true,
-    });
+    // Ensure the category exists in the nested structure.
+    List categoryList = businessData!['categories'];
+    final catIndex = categoryList.indexWhere((cat) => cat['name'] == categoryName);
+    if (catIndex == -1) return;
+    var cat = categoryList[catIndex];
+    if (!cat.containsKey('services')) {
+      cat['services'] = [];
+    }
+    List services = cat['services'];
+    if (!services.any((s) => s['name'] == serviceName)) {
+      services.add({
+        'name': serviceName,
+        'isSelected': true,
+      });
+      categoryList[catIndex]['services'] = services;
+    }
+    await appBox.put('businessData', businessData);
+    setState(() {});
   }
-
-  // Initialize services for the new category
-  if (!businessData!.containsKey('services')) {
-    businessData!['services'] = {};
-  }
-  if (!businessData!['services'].containsKey(categoryName)) {
-    businessData!['services'][categoryName] = [];
-  }
-
-  // Save to Hive
-  await appBox.put('businessData', businessData);
-}
-
-Future<void> _addCustomService(String category, String serviceName) async {
-  if (businessData == null) return;
-
-  // Initialize services if not exists
-  if (!businessData!.containsKey('services')) {
-    businessData!['services'] = {};
-  }
-  
-  if (!businessData!['services'].containsKey(category)) {
-    businessData!['services'][category] = [];
-  }
-
-  // Add to serviceCategories map
-  if (!serviceCategories.containsKey(category)) {
-    serviceCategories[category] = [];
-  }
-  if (!serviceCategories[category]!.contains(serviceName)) {
-    serviceCategories[category]!.add(serviceName);
-  }
-
-  // Add to businessData
-  final servicesList = businessData!['services'][category] as List;
-  if (!servicesList.any((s) => s['name'] == serviceName)) {
-    servicesList.add({
-      'name': serviceName,
-      'isSelected': true,
-    });
-    businessData!['services'][category] = servicesList;
-  }
-
-  // Save to Hive
-  await appBox.put('businessData', businessData);
-
-  // Refresh the UI
-  setState(() {});
-}
 
   @override
   Widget build(BuildContext context) {
@@ -380,51 +428,51 @@ Future<void> _addCustomService(String category, String serviceName) async {
             SizedBox(height: 16),
             _buildCategorySelectionBar(),
             SizedBox(height: 16),
-            Expanded(
-              child: _buildServiceList(),
-            ),
+            Expanded(child: _buildServiceList()),
           ],
         ),
       ),
       bottomNavigationBar: _buildBottomBar(),
     );
   }
+
   Widget _buildNoServicesFound() {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(
-        "Can't find the services you \nare offering?",
-        style: TextStyle(
-          color: Colors.black87,
-          fontSize: 12,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          "Can't find the services you \nare offering?",
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 12,
+          ),
         ),
-      ),
-      Container(
-        height: 45,
-        child: ElevatedButton.icon(
-          onPressed: _showAddServiceDialog,
-          icon: Icon(
-            Icons.add,
-            color: Colors.white,
-            size: 18,
-          ),
-          label: Text(
-            'Add my services',
-            style: TextStyle(fontSize: 14, color: Colors.white),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF23461a),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+        Container(
+          height: 45,
+          child: ElevatedButton.icon(
+            onPressed: _showAddServiceDialog,
+            icon: Icon(
+              Icons.add,
+              color: Colors.white,
+              size: 18,
             ),
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            label: Text(
+              'Add my services',
+              style: TextStyle(fontSize: 14, color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF23461a),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            ),
           ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
+
   Widget _buildProgressBar() {
     return Row(
       children: List.generate(
@@ -504,18 +552,27 @@ Future<void> _addCustomService(String category, String serviceName) async {
     );
   }
 
+  // Instead of reading from the original serviceCategories map,
+  // we now look up the nested services in the selected category from businessData.
   Widget _buildServiceList() {
-    List<String> services = serviceCategories[selectedCategory] ?? [];
-    List<String> filteredServices = services
-        .where((service) => service.toLowerCase().contains(searchQuery.toLowerCase()))
+    List<dynamic> services = [];
+    if (businessData != null && businessData!.containsKey('categories')) {
+      List categoryList = businessData!['categories'];
+      final cat = categoryList.firstWhereOrNull((cat) => cat['name'] == selectedCategory);
+      if (cat != null && cat.containsKey('services')) {
+        services = cat['services'];
+      }
+    }
+    // Filter services based on search query.
+    List filteredServices = services
+        .where((service) =>
+            service['name'].toString().toLowerCase().contains(searchQuery.toLowerCase()))
         .toList();
-
     return ListView.builder(
       itemCount: filteredServices.length,
       itemBuilder: (context, index) {
-        String service = filteredServices[index];
-        bool isSelected = isServiceSelected(selectedCategory, service);
-        
+        String service = filteredServices[index]['name'];
+        bool isSelected = filteredServices[index]['isSelected'] ?? false;
         return Column(
           children: [
             ListTile(
@@ -581,13 +638,9 @@ Future<void> _addCustomService(String category, String serviceName) async {
 
   Future<void> _saveAndContinue() async {
     if (businessData != null) {
-      // Update accountSetupStep
+      // Update the account setup step (or any other field you wish)
       businessData!['accountSetupStep'] = 4;
-      
-      // Save to Hive
       await appBox.put('businessData', businessData);
-      
-      // Navigate to next page
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => PricingPage()),

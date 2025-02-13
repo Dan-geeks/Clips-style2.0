@@ -29,70 +29,79 @@ class _PricingPageState extends State<PricingPage> with PricingValidationMixin {
     _loadData();
   }
 
-  // Loads Hive data and initializes controllers for each service.
-  Future<void> _loadData() async {
-    try {
-      appBox = Hive.box('appBox');
-      businessData = appBox.get('businessData') ?? {};
+  // In _PricingPageState class, update the _loadData() method:
+
+Future<void> _loadData() async {
+  try {
+    appBox = Hive.box('appBox');
+    businessData = appBox.get('businessData') ?? {};
+
+    // Instead of checking for businessData['services'], we now iterate over the nested categories.
+    if (businessData!.containsKey('categories')) {
+      List<dynamic> categoriesList = businessData!['categories'];
       
-      if (businessData!.containsKey('services')) {
-        // Note: Depending on how you stored your data, you may need to filter
-        // for only those services that are selected. Here we assume the keys of
-        // businessData['services'] are the service names.
-        Map<String, dynamic> servicesData = Map<String, dynamic>.from(businessData!['services']);
-        
-        setState(() {
-          // You might want to filter the services here based on the selection flag.
-          // For example, if your data structure is:
-          //   { 'Barbershop': [ { 'name': 'Beard trimming', 'isSelected': true }, ... ] }
-          // then you could flatten the map to only the selected service names.
-          // In this example we assume servicesData.keys are already the names.
-          services = servicesData.keys.toList();
-          
-          // Initialize controllers for each service
-          services.forEach((service) {
-            // Duration controller
-            String? duration = businessData!['durations']?[service];
-            durationControllers[service] = TextEditingController(
-              text: duration ?? '1 hr'
+      setState(() {
+        // Clear the existing services list.
+        services = [];
+
+        // Loop through each category in the nested structure.
+        for (var category in categoriesList) {
+          if (category is Map && category.containsKey('services')) {
+            List<dynamic> serviceList = category['services'];
+            // Add the name of each service where 'isSelected' is true.
+            services.addAll(
+              serviceList
+                .where((service) => service['isSelected'] == true)
+                .map((service) => service['name'] as String)
             );
+          }
+        }
+        
+        // Initialize controllers for each service.
+        services.forEach((service) {
+          // Duration controller
+          String? duration = businessData!['durations']?[service];
+          durationControllers[service] = TextEditingController(
+            text: duration ?? '1 hr'
+          );
 
-            // Price controller for 'Everyone' pricing
-            var servicePricing = businessData!['pricing']?[service];
-            if (servicePricing != null && servicePricing['Everyone'] != null) {
-              priceControllers[service] = TextEditingController(
-                text: servicePricing['Everyone'].toString()
-              );
-            } else {
-              priceControllers[service] = TextEditingController();
-            }
+          // Price controller for 'Everyone' pricing
+          var servicePricing = businessData!['pricing']?[service];
+          if (servicePricing != null && servicePricing['Everyone'] != null) {
+            priceControllers[service] = TextEditingController(
+              text: servicePricing['Everyone'].toString()
+            );
+          } else {
+            priceControllers[service] = TextEditingController();
+          }
 
-            // Initialize age ranges for custom pricing
-            if (servicePricing != null && servicePricing['Customize'] != null) {
-              List<dynamic> ageRanges = servicePricing['Customize'];
-              serviceAgeRanges[service] = ageRanges.map((range) {
-                var ageRange = AgeRangePrice();
-                ageRange.minAgeController.text = range['minAge'].toString();
-                ageRange.maxAgeController.text = range['maxAge'].toString();
-                ageRange.priceController.text = range['price'].toString();
-                return ageRange;
-              }).toList();
-            } else {
-              serviceAgeRanges[service] = [AgeRangePrice()];
-            }
-          });
-
-          // Set the selected audience type and default service.
-          selectedAudienceType = businessData!['audienceType'] ?? 'Everyone';
-          if (services.isNotEmpty) {
-            selectedService = services[0];
+          // Initialize age ranges for custom pricing
+          if (servicePricing != null && servicePricing['Customize'] != null) {
+            List<dynamic> ageRanges = servicePricing['Customize'];
+            serviceAgeRanges[service] = ageRanges.map((range) {
+              var ageRange = AgeRangePrice();
+              ageRange.minAgeController.text = range['minAge'].toString();
+              ageRange.maxAgeController.text = range['maxAge'].toString();
+              ageRange.priceController.text = range['price'].toString();
+              return ageRange;
+            }).toList();
+          } else {
+            serviceAgeRanges[service] = [AgeRangePrice()];
           }
         });
-      }
-    } catch (e) {
-      print('Error loading pricing data: $e');
+
+        // Read audience type and select the first service by default (if any)
+        selectedAudienceType = businessData!['audienceType'] ?? 'Everyone';
+        if (services.isNotEmpty) {
+          selectedService = services[0];
+        }
+      });
     }
+  } catch (e) {
+    print('Error loading pricing data: $e');
   }
+}
+
 
   // Saves pricing and duration information into Hive.
   Future<void> _saveToHive() async {

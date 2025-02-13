@@ -6,8 +6,10 @@ import 'package:intl/intl.dart';
 import 'package:hive/hive.dart';
 // Import the calendar_date_picker2 package.
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
-import 'Businesscatalog.dart';
+import './Businesscatalog/Businesscatalog.dart';
+import 'Businessclient/Businesscient.dart';
 import 'dart:async';
+import './BusinessProfile/BusinessProfile.dart';
 
 class BusinessHomePage extends StatefulWidget {
   @override
@@ -163,12 +165,12 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
     } else if (index == 2) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => BusinessCatalog()),
+        MaterialPageRoute(builder: (context) => BusinessClient()),
       );
     } else if (index == 3) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => BusinessHomePage()),
+        MaterialPageRoute(builder: (context) => BusinessProfile()),
       );
     }
   }

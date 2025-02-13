@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import 'Businesshomepage.dart';
-import './Businesscatalogsalessmmary/Salessummary.dart';
-import  './Businesscatalogsalessmmary/Appointments.dart';
-
-
+import 'package:hive_flutter/hive_flutter.dart';
+import '../Businesshomepage.dart';
+import 'Businesscatalogsalessmmary/Salessummary.dart';
+import 'Businesscatalogsalessmmary/Appointments.dart';
+import 'Subscription/Subscription.dart';
+import 'Subscription/CreateMembership.dart';
+import './BusinessSales/Businesssales.dart';
+import '../Businessclient/Businesscient.dart';
+import '../BusinessProfile/BusinessProfile.dart';
 class BusinessCatalog extends StatefulWidget {
   @override
   _BusinessCatalogState createState() => _BusinessCatalogState();
@@ -56,13 +60,13 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
     if (index == 2) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => BusinessHomePage()),
+        MaterialPageRoute(builder: (context) =>BusinessClient()),
       );
     }
     if (index == 3) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => BusinessHomePage()),
+        MaterialPageRoute(builder: (context) => BusinessProfile()),
       );
     }
   }
@@ -84,7 +88,6 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
               ),
             ),
             SizedBox(width: 8),
-          
           ],
         ),
         centerTitle: true,
@@ -105,36 +108,52 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
             'Sales Summary',
             'See Daily, weekly, monthly and yearly totals of sales made and payment collected',
             onTap: () {
-             Navigator.push(context, 
-              MaterialPageRoute(builder: (context) =>  SalesSummaryScreen()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SalesSummaryScreen()),
+              );
             },
           ),
           _buildCatalogItem(
             'Appointments',
-            'See all of your Appointments booked daily, weekly,monthly and yearly',
+            'See all of your Appointments booked daily, weekly, monthly and yearly',
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AppointmentsScreen ()),
+                MaterialPageRoute(builder: (context) => AppointmentsScreen()),
               );
             },
           ),
           _buildCatalogItem(
             'Subscription',
             'See and edit your subscriptions here',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => BusinessCatalog ()),
-              );
+            onTap: () async {
+              // Access the Hive box
+              Box appBox = Hive.box('appBox');
+              List<dynamic>? membershipsData = appBox.get('memberships');
+
+              // Navigate based on whether membership data exists
+              if (membershipsData != null && membershipsData.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => MembershipPage()),
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => CreateMembershipPage()),
+                );
+              }
             },
           ),
           _buildCatalogItem(
             'Sales',
             'View your sales',
             onTap: () {
-              Navigator.push(context, 
-              MaterialPageRoute(builder: (context) => BusinessCatalog ()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SalesListPage()),
+              );
             },
           ),
           _buildCatalogItem(
@@ -142,11 +161,9 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
             'See your loyalty points',
             onTap: () {
               Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => BusinessCatalog  (),
-  ),
-);
+                context,
+                MaterialPageRoute(builder: (context) => BusinessCatalog()),
+              );
             },
           ),
         ],

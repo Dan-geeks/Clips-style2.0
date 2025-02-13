@@ -3,7 +3,6 @@ import 'package:hive/hive.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'BusinessLocation.dart';
 
 class TeamMembers extends StatefulWidget {
@@ -25,6 +24,7 @@ class _TeamMembersState extends State<TeamMembers> {
   int currentMemberIndex = 0;
   bool _isInitialized = false;
   
+  // This map will hold the available services (by category) that were selected in ServiceCategoriesPage.
   Map<String, List<String>> servicesByCategory = {};
   List<Map<String, dynamic>> teamMembers = [];
   int maxTeamSize = 1;
@@ -46,84 +46,86 @@ class _TeamMembersState extends State<TeamMembers> {
     _loadData();
   }
 
-  
-
-Future<void> _loadData() async {
-  try {
-    appBox = Hive.box('appBox');
-    businessData = appBox.get('businessData') ?? {};
-    
-    // Load team size first
-    int teamSize = businessData?['teamSizeValue'] ?? 1;
-    maxTeamSize = teamSize;
-
-    // Load services by category with correct structure handling
-    if (businessData!.containsKey('services')) {
-      Map<String, dynamic> servicesData = Map<String, dynamic>.from(businessData!['services']);
+  Future<void> _loadData() async {
+    try {
+      appBox = Hive.box('appBox');
+      businessData = appBox.get('businessData') ?? {};
       
-      servicesData.forEach((category, services) {
-        if (services is List) {
-          // Handle case where services is a list of maps
-          servicesByCategory[category] = services
-              .where((service) => service['isSelected'] == true)
-              .map((service) => service['name'].toString())
-              .toList();
-        } else if (services is Map) {
-          // Handle case where services is a map
-          servicesByCategory[category] = [services.toString()];
-        }
-      });
-    }
-    
-    // Debug print to verify loaded services
-    print('Loaded services by category: $servicesByCategory');
-    
-    // Load existing team members or initialize new list
-    if (businessData!.containsKey('teamMembers')) {
-      teamMembers = List<Map<String, dynamic>>.from(businessData!['teamMembers']);
-    } else {
-      teamMembers = [{
-        'firstName': '',
-        'lastName': '',
-        'email': '',
-        'phoneNumber': '',
-        'services': <String, List<String>>{},
-        'profileImageUrl': null,
-      }];
-      businessData!['teamMembers'] = teamMembers;
-      await appBox.put('businessData', businessData);
-    }
+      // Load team size first
+      int teamSize = businessData?['teamSizeValue'] ?? 1;
+      maxTeamSize = teamSize;
 
-    // Load first member data if team members exist
-    if (teamMembers.isNotEmpty) {
-      _loadMemberData(0);
-    }
-    
-    setState(() {
-      _isInitialized = true;
-    });
-  } catch (e) {
-    print('Error loading team data: $e');
-    // Show error to user
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading team data: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      // *** IMPORTANT UPDATE ***
+      // Instead of reading a top-level "services" key, we load the available services
+      // from businessData["categories"]—the same structure used in ServiceCategoriesPage.
+      if (businessData!.containsKey('categories')) {
+        List categoriesData = businessData!['categories'];
+        for (var category in categoriesData) {
+          // If the category is selected and it contains a services list...
+          if (category['isSelected'] == true && category.containsKey('services')) {
+            List catServices = category['services'];
+            // Filter only those services that are marked as selected.
+            List<String> selectedServices = catServices
+                .where((service) => service['isSelected'] == true)
+                .map((service) => service['name'].toString())
+                .toList();
+            if (selectedServices.isNotEmpty) {
+              // Use the updated (mapped) category name as key.
+              servicesByCategory[category['name']] = selectedServices;
+            }
+          }
+        }
+      }
+      
+      // Debug print to verify loaded services
+      print('Loaded services by category: $servicesByCategory');
+      
+      // Load existing team members or initialize new list
+      if (businessData!.containsKey('teamMembers')) {
+        teamMembers = List<Map<String, dynamic>>.from(businessData!['teamMembers']);
+      } else {
+        teamMembers = [{
+          'firstName': '',
+          'lastName': '',
+          'email': '',
+          'phoneNumber': '',
+          'services': <String, List<String>>{},
+          'profileImageUrl': null,
+        }];
+        businessData!['teamMembers'] = teamMembers;
+        await appBox.put('businessData', businessData);
+      }
+
+      // Load first member data if team members exist
+      if (teamMembers.isNotEmpty) {
+        _loadMemberData(0);
+      }
+      
+      setState(() {
+        _isInitialized = true;
+      });
+    } catch (e) {
+      print('Error loading team data: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading team data: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
-}
 
   @override
   void dispose() {
     firstNameController.dispose();
-    phoneNumberController.dispose();
     lastNameController.dispose();
     emailController.dispose();
+    phoneNumberController.dispose();
     super.dispose();
   }
+
   void _loadMemberData(int index) {
     if (index < 0 || index >= teamMembers.length) {
       index = 0;
@@ -142,6 +144,7 @@ Future<void> _loadData() async {
 
   Future<void> _saveCurrentMemberData() async {
     if (currentMemberIndex >= 0 && currentMemberIndex < teamMembers.length) {
+      // Save the team member's chosen services.
       Map<String, List<String>> services = Map<String, List<String>>.from(
         teamMembers[currentMemberIndex]['services'] ?? {}
       );
@@ -182,31 +185,30 @@ Future<void> _loadData() async {
     }
   }
 
-  bool _isServiceSelected(String service, String subService) {
+  // Returns true if the current team member’s services contain the given subService under the specified category.
+  bool _isServiceSelected(String category, String subService) {
     if (teamMembers.isEmpty) return false;
     Map<String, dynamic> memberData = teamMembers[currentMemberIndex];
-    return (memberData['services']?[service]?.contains(subService) ?? false);
+    return (memberData['services']?[category]?.contains(subService) ?? false);
   }
 
-  Future<void> _toggleServiceSelection(String service, String subService, bool? value) async {
+  Future<void> _toggleServiceSelection(String category, String subService, bool? value) async {
     if (teamMembers.isEmpty) return;
     
-    Map<String, dynamic> memberData = Map<String, dynamic>.from(
-      teamMembers[currentMemberIndex]
-    );
+    Map<String, dynamic> memberData = Map<String, dynamic>.from(teamMembers[currentMemberIndex]);
     
     setState(() {
       if (value == true) {
         memberData['services'] ??= <String, List<String>>{};
-        memberData['services'][service] ??= <String>[];
-        if (!memberData['services'][service].contains(subService)) {
-          (memberData['services'][service] as List<String>).add(subService);
+        memberData['services'][category] ??= <String>[];
+        if (!memberData['services'][category].contains(subService)) {
+          (memberData['services'][category] as List<String>).add(subService);
         }
       } else {
-        if (memberData['services']?[service] != null) {
-          (memberData['services'][service] as List<String>).remove(subService);
-          if (memberData['services'][service].isEmpty) {
-            memberData['services'].remove(service);
+        if (memberData['services']?[category] != null) {
+          (memberData['services'][category] as List<String>).remove(subService);
+          if (memberData['services'][category].isEmpty) {
+            memberData['services'].remove(category);
           }
         }
       }
@@ -346,6 +348,7 @@ Future<void> _loadData() async {
       );
     }
   }
+  
   // Styles
   final TextStyle _headerStyle = TextStyle(
     fontSize: 24,
@@ -368,16 +371,18 @@ Future<void> _loadData() async {
           String memberName = isMemberAdded
               ? '${teamMembers[index]['firstName'] ?? ''} ${teamMembers[index]['lastName'] ?? ''}'.trim()
               : 'Team member ${index + 1}';
-
-          if (memberName.isEmpty && isMemberAdded) memberName = 'Team member ${index + 1}';
-
+          if (memberName.isEmpty && isMemberAdded) {
+            memberName = 'Team member ${index + 1}';
+          }
           return Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: Container(
               decoration: BoxDecoration(
                 color: isSelected ? Colors.black : Colors.transparent,
                 border: Border.all(
-                  color: isSelected ? Colors.transparent : (isMemberAdded ? Colors.black : Colors.grey[300]!),
+                  color: isSelected
+                      ? Colors.transparent
+                      : (isMemberAdded ? Colors.black : Colors.grey[300]!),
                   width: 2,
                 ),
                 borderRadius: BorderRadius.circular(20),
@@ -502,23 +507,24 @@ Future<void> _loadData() async {
     );
   }
 
-  Widget _buildServiceSection(String service, List<String> subServices) {
+  Widget _buildServiceSection(String category, List<String> subServices) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(service, style: TextStyle(fontWeight: FontWeight.bold)),
+        Text(category, style: TextStyle(fontWeight: FontWeight.bold)),
         ...subServices.map(
           (subService) => CheckboxListTile(
             title: Text(subService),
-            value: _isServiceSelected(service, subService),
+            value: _isServiceSelected(category, subService),
             onChanged: (bool? value) {
-              _toggleServiceSelection(service, subService, value);
+              _toggleServiceSelection(category, subService, value);
             },
           ),
         ),
       ],
     );
   }
+
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
@@ -540,6 +546,7 @@ Future<void> _loadData() async {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Progress bar at the top
             Row(
               children: List.generate(
                 8,
@@ -652,6 +659,7 @@ Future<void> _loadData() async {
                   SizedBox(height: 20),
                   Text('Services', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   SizedBox(height: 8),
+                  // Build a service section for each category (as loaded from categories)
                   ...servicesByCategory.entries.map(
                     (entry) => _buildServiceSection(entry.key, entry.value),
                   ),
@@ -667,7 +675,7 @@ Future<void> _loadData() async {
                         
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) =>  BusinessLocation()),
+                          MaterialPageRoute(builder: (context) => BusinessLocation()),
                         );
                       }
                     },
