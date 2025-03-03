@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'Membershipdetails.dart';
 
-// Import SelectServicesPage we created earlier
+
 import 'select_services_page.dart';
 
 class CreateMembershipPage extends StatefulWidget {
@@ -39,7 +39,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
     await _loadSelectedServices();
   }
 
-  // Load the default (global) selected services from businessData
+
   Future<void> _loadSelectedServices() async {
     Map<dynamic, dynamic>? businessData = appBox.get('businessData');
     if (businessData != null && businessData.containsKey('categories')) {
@@ -80,7 +80,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      // Build membership data for Hive manually (no FieldValue)
+   
       Map<String, dynamic> membershipForHive = {
         'name': _nameController.text,
         'description': _descriptionController.text,
@@ -93,15 +93,14 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
         'updatedAt': DateTime.now().toIso8601String(),
       };
 
-      // Save to Hive (local storage) in the memberships list
+    
       List<dynamic> storedMemberships = appBox.get('memberships') ?? [];
       storedMemberships.add(membershipForHive);
       await appBox.put('memberships', storedMemberships);
 
-      // Also store the current membership data so that it can be retrieved in MembershipDetailsPage
+ 
       await appBox.put('currentMembershipData', membershipForHive);
 
-      // Save to Firestore (cloud storage)
       User? user = _auth.currentUser;
       if (user != null) {
         await FirebaseFirestore.instance
@@ -137,7 +136,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
       return false;
     }
 
-    // Validate sessions is a number
+
     if (int.tryParse(_sessionsController.text) == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Sessions must be a valid number')),
@@ -145,7 +144,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
       return false;
     }
 
-    // Validate price is a number
+
     if (double.tryParse(_priceController.text) == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Price must be a valid number')),
@@ -339,7 +338,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
   Widget _buildServicesSelector() {
     return GestureDetector(
       onTap: () async {
-        // Pass the current (local) selectedServices to the SelectServicesPage.
+
         final updatedServices = await Navigator.push<List<String>>(
           context,
           MaterialPageRoute(

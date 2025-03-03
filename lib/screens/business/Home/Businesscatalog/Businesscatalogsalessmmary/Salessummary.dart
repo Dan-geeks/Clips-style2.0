@@ -9,7 +9,7 @@ import 'package:pdf/pdf.dart';
 import 'dart:convert';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-// Corrected import to hide Border from excel.dart
+
 import 'package:excel/excel.dart' hide Border;
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
@@ -23,7 +23,7 @@ class ExportHelper {
   static Future<String> exportAsPDF(SalesSummary salesSummary, String dateRange) async {
   final pdf = pw.Document();
 
-  // Load the custom Kavoon font from assets
+
   final fontData = await rootBundle.load("assets/Kavoon-Regular.ttf");
   final ttf = pw.Font.ttf(fontData);
 
@@ -48,11 +48,10 @@ class ExportHelper {
     ),
   );
 
-  // Get the app's temporary directory
+  
   final dir = await getTemporaryDirectory();
   final String filePath = '${dir.path}/sales_summary_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
-  // Save the PDF
   final file = File(filePath);
   await file.writeAsBytes(await pdf.save());
 
@@ -62,19 +61,19 @@ class ExportHelper {
   static Future<String> exportAsExcel(SalesSummary salesSummary, String dateRange) async {
     final excelFile = excel.Excel.createExcel();
     
-    // Create Activity Overview sheet
+
     final activitySheet = excelFile['Activity Overview'];
     _addActivityOverviewToExcel(activitySheet, salesSummary);
     
-    // Create Cash Flow sheet
+
     final cashFlowSheet = excelFile['Cash Flow'];
     _addCashFlowToExcel(cashFlowSheet, salesSummary);
     
-    // Get the app's temporary directory
+
     final dir = await getTemporaryDirectory();
     final String filePath = '${dir.path}/sales_summary_${DateTime.now().millisecondsSinceEpoch}.xlsx';
     
-    // Save the Excel file
+
     final file = File(filePath);
     await file.writeAsBytes(excelFile.encode()!);
     
@@ -149,7 +148,7 @@ class ExportHelper {
     return pw.Table(
       border: pw.TableBorder.all(color: PdfColors.grey300),
       children: [
-        // Header row
+    
         pw.TableRow(
           children: [
             _pdfCell('TYPE', font, isHeader: true),
@@ -158,7 +157,7 @@ class ExportHelper {
             _pdfCell('TOTAL', font, isHeader: true),
           ],
         ),
-        // Services row
+
         _buildActivityRow(
           'Services',
           salesSummary.activityOverview.servicesQuantity,
@@ -166,7 +165,7 @@ class ExportHelper {
           salesSummary.activityOverview.servicesGrossTotal,
           font,
         ),
-        // Late cancellation row
+
         _buildActivityRow(
           'Late cancellation',
           salesSummary.activityOverview.lateCancellationQuantity,
@@ -174,7 +173,7 @@ class ExportHelper {
           salesSummary.activityOverview.lateCancellationGrossTotal,
           font,
         ),
-        // Total row
+
         _buildActivityRow(
           'Total sales',
           salesSummary.activityOverview.totalSalesQuantity,
@@ -191,7 +190,7 @@ class ExportHelper {
     return pw.Table(
       border: pw.TableBorder.all(color: PdfColors.grey300),
       children: [
-        // Header row
+
         pw.TableRow(
           children: [
             _pdfCell('TYPE', font, isHeader: true),
@@ -199,7 +198,7 @@ class ExportHelper {
             _pdfCell('REFUNDS', font, isHeader: true),
           ],
         ),
-        // Payment rows
+       
         _buildCashFlowRow(
           'Cash',
           salesSummary.cashFlow.cashCollected,
@@ -224,7 +223,7 @@ class ExportHelper {
           salesSummary.cashFlow.giftCardsRefunds,
           font,
         ),
-        // Total row
+  
         _buildCashFlowRow(
           'Payment Collected',
           salesSummary.cashFlow.totalCollected,
@@ -237,13 +236,13 @@ class ExportHelper {
   }
 
   static void _addActivityOverviewToExcel(excel.Sheet sheet, SalesSummary salesSummary) {
-    // Add headers
+
     sheet.cell(excel.CellIndex.indexByString("A1")).value = excel.TextCellValue("TYPE");
     sheet.cell(excel.CellIndex.indexByString("B1")).value = excel.TextCellValue("QTY");
     sheet.cell(excel.CellIndex.indexByString("C1")).value = excel.TextCellValue("REFUND");
     sheet.cell(excel.CellIndex.indexByString("D1")).value = excel.TextCellValue("TOTAL");
 
-    // Add data rows
+
     _addActivityRowToExcel(sheet, 2, "Services",
         salesSummary.activityOverview.servicesQuantity,
         salesSummary.activityOverview.servicesRefund,
@@ -261,12 +260,11 @@ class ExportHelper {
   }
 
   static void _addCashFlowToExcel(excel.Sheet sheet, SalesSummary salesSummary) {
-    // Add headers
+    
     sheet.cell(excel.CellIndex.indexByString("A1")).value = excel.TextCellValue("TYPE");
     sheet.cell(excel.CellIndex.indexByString("B1")).value = excel.TextCellValue("COLLECTED");
     sheet.cell(excel.CellIndex.indexByString("C1")).value = excel.TextCellValue("REFUNDS");
 
-    // Add data rows
     _addCashFlowRowToExcel(sheet, 2, "Cash",
         salesSummary.cashFlow.cashCollected,
         salesSummary.cashFlow.cashRefunds);
@@ -473,7 +471,7 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
   bool _isLoading = true;
   DateTime _selectedDate = DateTime.now();
   
-  // Firestore listener subscription
+
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _salesSubscription;
 
   @override
@@ -484,16 +482,16 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
 
   Future<void> _initializeSalesPage() async {
   try {
-    // Get the already opened box
+   
     salesBox = Hive.box('appBox');
     
-    // Load initial data from Hive
+   
     salesData = salesBox.get('currentSalesData') ?? {};
     
-    // Set initial date text
+
     _dateRangeText = DateFormat('d MMM yyyy').format(DateTime.now());
     
-    // Start Firestore listener
+
     _startFirestoreListener();
     
     setState(() => _isLoading = false);
@@ -509,7 +507,7 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
 }
 
   void _startFirestoreListener() {
-    final userId = salesBox.get('userId'); // Get user ID from Hive
+    final userId = salesBox.get('userId'); 
     if (userId == null) return;
 
     final salesStream = FirebaseFirestore.instance
@@ -520,13 +518,13 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
     _salesSubscription = salesStream.listen(
       (docSnapshot) async {
         if (docSnapshot.exists && docSnapshot.data() != null) {
-          // Update local data with new Firestore data
+         
           salesData = docSnapshot.data()!;
           
-          // Save to Hive
+       
           await salesBox.put('currentSalesData', salesData);
           
-          // Update UI
+     
           if (mounted) {
             setState(() {});
           }
@@ -543,7 +541,7 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
     );
   }
   SalesSummary _getCurrentSalesSummary() {
-    // Extract activity data
+    
     final activityData = salesData['activityOverview'] ?? {};
     final cashFlowData = salesData['cashFlow'] ?? {};
 
@@ -609,7 +607,7 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
         return;
       }
 
-      // Fetch new data from Firestore based on selected date
+      
       final doc = await FirebaseFirestore.instance
           .collection('sales')
           .doc(userId)
@@ -1034,8 +1032,7 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
       );
     }
 
-    // For Android: Open file picker to save the file
-    // For iOS: Files are saved to temporary directory, consider using share_plus
+   
     final file = File(filePath);
     final snackBar = SnackBar(
       content: Text('Exported successfully to ${file.path}'),
@@ -1043,8 +1040,7 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
         label: 'Open',
         onPressed: () async {
           if (await file.exists()) {
-            // Use package:open_file to open the file
-            // Add open_file: ^3.3.1 to pubspec.yaml
+         
             OpenFile.open(file.path);
           }
         },

@@ -5,6 +5,7 @@ import 'package:hive/hive.dart';
 import 'package:dotted_border/dotted_border.dart';
 import '../Home/BusinessHomePage.dart';
 
+
 class BusinessDiscoverus extends StatefulWidget {
   @override
   _BusinessDiscoverusState createState() => _BusinessDiscoverusState();
@@ -33,11 +34,11 @@ class _BusinessDiscoverusState extends State<BusinessDiscoverus> {
   }
 
   Future<void> _loadBusinessData() async {
-    // Open the Hive box and get stored business data.
+
     appBox = Hive.box('appBox');
     businessData = appBox.get('businessData') ?? {};
 
-    // Initialize the discovery option and referral code if available.
+    
     setState(() {
       _selectedOption = businessData['discoverySource'];
       if (businessData['referralCode'] != null) {
@@ -46,9 +47,9 @@ class _BusinessDiscoverusState extends State<BusinessDiscoverus> {
     });
   }
 
-  /// This function updates the discovery fields locally and then syncs all Hive data to Firestore.
+  
   Future<void> _uploadBusinessData() async {
-    // Update local businessData with discovery information.
+   
     businessData['discoverySource'] = _selectedOption;
     if (_selectedOption == 'Recommended by a friend') {
       businessData['referralCode'] = _referralCodeController.text;
@@ -56,18 +57,18 @@ class _BusinessDiscoverusState extends State<BusinessDiscoverus> {
       businessData['referralCode'] = null;
     }
 
-    // Optionally, update the account setup step.
-    businessData['accountSetupStep'] = 8; // Adjust the step as needed.
 
-    // Save the updated businessData back to Hive.
+    businessData['accountSetupStep'] = 8; 
+
+
     await appBox.put('businessData', businessData);
     print("Updated discovery fields in Hive: $businessData");
 
-    // Now sync all data from the Hive box to Firestore.
+    
     await syncHiveDataWithFirestore();
   }
 
-  /// This function retrieves all data from the Hive box and uploads it to Firestore.
+
   Future<void> syncHiveDataWithFirestore() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -79,22 +80,21 @@ class _BusinessDiscoverusState extends State<BusinessDiscoverus> {
     }
 
     try {
-      // Retrieve all data stored in the Hive box.
+     
       final Map<dynamic, dynamic> hiveData = appBox.toMap();
 
-      // You may want to merge your businessData (if stored separately) with the rest of the data.
-      // In this example, we assume the entire box data represents the complete business data.
+
       final Map<String, dynamic> completeBusinessData = {
-        // Convert dynamic keys to String if needed.
+    
         ...hiveData.map((key, value) => MapEntry(key.toString(), value)),
-        // Add or override any additional fields:
+
         'status': 'active',
         'userId': user.uid,
         'updatedAt': FieldValue.serverTimestamp(),
         'lastModified': DateTime.now().toIso8601String(),
       };
 
-      // Upload to Firestore using the user's UID as the document ID.
+     
       await FirebaseFirestore.instance
           .collection('businesses')
           .doc(user.uid)
@@ -138,8 +138,7 @@ class _BusinessDiscoverusState extends State<BusinessDiscoverus> {
 
   @override
   Widget build(BuildContext context) {
-    // Since we are using Hive, we no longer need to use Provider here.
-    // The local businessData map is used to initialize discovery source and referral code.
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -175,7 +174,7 @@ class _BusinessDiscoverusState extends State<BusinessDiscoverus> {
                             onChanged: (value) {
                               setState(() {
                                 _selectedOption = value;
-                                // Clear referral code if the option is not a friend recommendation.
+                            
                                 if (value != 'Recommended by a friend') {
                                   _referralCodeController.clear();
                                 }
@@ -241,7 +240,7 @@ class _BusinessDiscoverusState extends State<BusinessDiscoverus> {
                               ),
                             );
                           } catch (e) {
-                            // The error is already shown via SnackBar.
+                        
                           }
                         }
                       : null,

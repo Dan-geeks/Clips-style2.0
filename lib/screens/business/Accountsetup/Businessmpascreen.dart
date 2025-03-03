@@ -10,7 +10,7 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  final LatLng _initialPosition = LatLng(-1.2921, 36.8219); // Default to Nairobi coordinates
+  final LatLng _initialPosition = LatLng(-1.2921, 36.8219); 
   LatLng _selectedPosition = LatLng(-1.2921, 36.8219);
   String _address = '';
   Set<Marker> _markers = {};
@@ -27,12 +27,11 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _loadDataAndInitializeLocation() async {
-    // Open the Hive box and load the stored businessData.
+   
     appBox = Hive.box('appBox');
     businessData = appBox.get('businessData') ?? {};
 
-    // If a stored location exists (latitude and longitude), use it;
-    // otherwise, use the default initial position.
+
     if (businessData['latitude'] != null && businessData['longitude'] != null) {
       LatLng storedPosition = LatLng(
         businessData['latitude'],
@@ -62,7 +61,7 @@ class _MapScreenState extends State<MapScreen> {
     });
 
     try {
-      // Get address from coordinates.
+
       List<Placemark> placemarks = await placemarkFromCoordinates(
         position.latitude,
         position.longitude,
@@ -80,7 +79,7 @@ class _MapScreenState extends State<MapScreen> {
       print("Error getting address: $e");
     }
 
-    // Always animate to the new position.
+
     _animateToPosition(position);
   }
 
@@ -101,19 +100,17 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _saveLocation() async {
-    // Update the businessData map with the latest location values.
+
     businessData['address'] = _address;
     businessData['latitude'] = _selectedPosition.latitude;
     businessData['longitude'] = _selectedPosition.longitude;
 
-    // Optionally update the account setup step (for example, step 7).
     businessData['accountSetupStep'] = 7;
 
-    // Save the updated businessData back to the Hive box.
+   
     await appBox.put('businessData', businessData);
     print("Business location saved to Hive: $businessData");
 
-    // Navigate to the next screen.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => BusinessDiscoverus()),
@@ -161,7 +158,7 @@ class _MapScreenState extends State<MapScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Progress indicator
+
               Row(
                 children: List.generate(
                   8,
@@ -188,7 +185,7 @@ class _MapScreenState extends State<MapScreen> {
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 16),
-              // Search Field
+
               Row(
                 children: [
                   Expanded(
@@ -213,7 +210,7 @@ class _MapScreenState extends State<MapScreen> {
                 ],
               ),
               SizedBox(height: 16),
-              // Display the current address
+             
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -228,7 +225,7 @@ class _MapScreenState extends State<MapScreen> {
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 16),
-              // Google Map
+       
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
@@ -253,7 +250,7 @@ class _MapScreenState extends State<MapScreen> {
                 ),
               ),
               SizedBox(height: 5),
-              // Save button
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

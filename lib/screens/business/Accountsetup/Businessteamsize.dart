@@ -9,7 +9,7 @@ class TeamSize extends StatefulWidget {
 }
 
 class _TeamSizeState extends State<TeamSize> {
-  // Constants
+
   static const Map<String, int> teamSizeMapping = {
     'Just me': 1,
     '2-5 people': 5,
@@ -18,7 +18,7 @@ class _TeamSizeState extends State<TeamSize> {
     '16+ people': 16,
   };
 
-  // State variables
+
   late Box appBox;
   Map<String, dynamic>? businessData;
   String? selectedTeamSize;
@@ -57,7 +57,7 @@ class _TeamSizeState extends State<TeamSize> {
         businessData!['teamSizeValue'] = int.tryParse(customTeamSize!) ?? 16;
       }
 
-      // Update setup step
+
       businessData!['accountSetupStep'] = 5;
       await appBox.put('businessData', businessData);
     } catch (e) {
@@ -107,7 +107,7 @@ class _TeamSizeState extends State<TeamSize> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        // Create a TextEditingController and initialize it with current customTeamSize if any
+      
         final textController = TextEditingController(text: customTeamSize);
         
         return AlertDialog(

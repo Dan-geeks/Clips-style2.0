@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 
-// Define the date range type
+
 enum DateRangeType { day, week, month, year }
 
 class SalesListPage extends StatefulWidget {
@@ -21,7 +21,7 @@ class _SalesListPageState extends State<SalesListPage> {
   bool _isLoading = true;
   StreamSubscription<DocumentSnapshot>? _salesSubscription;
 
-  // New date range state variables
+ 
   DateTime _selectedDate = DateTime.now();
   DateRangeType _dateRangeType = DateRangeType.day;
   final GlobalKey _dateButtonKey = GlobalKey();
@@ -36,7 +36,7 @@ class _SalesListPageState extends State<SalesListPage> {
     try {
       appBox = Hive.box('appBox');
 
-      // Load initial data from Hive
+ 
       var storedSales = appBox.get('salesData');
       if (storedSales != null) {
         setState(() {
@@ -45,7 +45,7 @@ class _SalesListPageState extends State<SalesListPage> {
         });
       }
 
-      // Start Firestore listener
+      
       _startFirestoreListener();
 
       setState(() => _isLoading = false);
@@ -89,11 +89,10 @@ class _SalesListPageState extends State<SalesListPage> {
             }
           });
 
-          // Sort by timestamp (latest first)
+      
           newSales.sort((a, b) =>
               (b['timestamp'] as Timestamp).compareTo(a['timestamp'] as Timestamp));
 
-          // Save to Hive
           await appBox.put('salesData', newSales);
 
           if (mounted) {
@@ -120,23 +119,23 @@ class _SalesListPageState extends State<SalesListPage> {
     );
   }
 
-  /// Updates the filteredSales list by applying both the search query and date range filter.
+ 
   void _filterSales(String query) {
     setState(() {
       filteredSales = sales.where((sale) {
-        // Check search query (by client name or sale id)
+     
         bool matchesQuery = query.isEmpty ||
             sale['client'].toString().toLowerCase().contains(query.toLowerCase()) ||
             sale['id'].toString().toLowerCase().contains(query.toLowerCase());
 
-        // Check if sale timestamp falls within the selected date range.
+  
         bool matchesDate = _isSaleInSelectedRange(sale['timestamp']);
         return matchesQuery && matchesDate;
       }).toList();
     });
   }
 
-  /// Returns true if the given saleTimestamp falls within the currently selected date range.
+
   bool _isSaleInSelectedRange(Timestamp saleTimestamp) {
     final saleDate = saleTimestamp.toDate();
     switch (_dateRangeType) {
@@ -155,7 +154,7 @@ class _SalesListPageState extends State<SalesListPage> {
     }
   }
 
-  // Helper functions to format date ranges
+ 
   String _getDayText(DateTime date) => DateFormat('d MMM yyyy').format(date);
 
   String _getWeekDates(DateTime date) {
@@ -182,7 +181,7 @@ class _SalesListPageState extends State<SalesListPage> {
     return '$startDate - $endDate';
   }
 
-  /// Returns a display string for the current selected date range.
+
   String get _dateRangeText {
     switch (_dateRangeType) {
       case DateRangeType.day:
@@ -196,7 +195,7 @@ class _SalesListPageState extends State<SalesListPage> {
     }
   }
 
-  /// Shows a popup menu allowing the user to select the date range type.
+
   void _showDateRangeMenu() {
     final RenderBox? button = _dateButtonKey.currentContext?.findRenderObject() as RenderBox?;
     if (button == null) return;
@@ -268,7 +267,7 @@ class _SalesListPageState extends State<SalesListPage> {
     );
   }
 
-  /// Routes to the appropriate date picker based on [type].
+  /// Routes  [type].
   Future<void> _showDatePickerByType(DateRangeType type) async {
     switch (type) {
       case DateRangeType.day:
@@ -344,7 +343,7 @@ class _SalesListPageState extends State<SalesListPage> {
                     return InkWell(
                       onTap: () {
                         Navigator.pop(context);
-                        // Calculate the start date for the selected week.
+                       
                         final now = DateTime.now();
                         final firstDayOfYear = DateTime(now.year, 1, 1);
                         final selectedWeekDate = firstDayOfYear.add(Duration(days: index * 7));
@@ -534,7 +533,7 @@ class _SalesListPageState extends State<SalesListPage> {
           ? Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                // Search and Calendar Filter Bar
+         
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
@@ -559,7 +558,7 @@ class _SalesListPageState extends State<SalesListPage> {
                         ),
                       ),
                       SizedBox(width: 12),
-                      // Calendar filter container (tappable)
+  
                       InkWell(
                         key: _dateButtonKey,
                         onTap: _showDateRangeMenu,
@@ -582,7 +581,7 @@ class _SalesListPageState extends State<SalesListPage> {
                     ],
                   ),
                 ),
-                // Table Headers (only show if there are filtered sales)
+
                 if (filteredSales.isNotEmpty) ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -613,7 +612,7 @@ class _SalesListPageState extends State<SalesListPage> {
                   ),
                   SizedBox(height: 8),
                 ],
-                // Sales List or Empty State
+        
                 Expanded(
                   child: filteredSales.isEmpty
                       ? Center(

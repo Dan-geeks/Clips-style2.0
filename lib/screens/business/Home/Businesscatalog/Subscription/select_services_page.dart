@@ -15,7 +15,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
   late Box appBox;
   
   Map<String, List<Map<String, dynamic>>> categorizedServices = {};
-  // Local copy for the current package's selection.
+
   List<String> localSelectedServices = [];
   String searchQuery = '';
   String selectedCategory = 'All categories';
@@ -24,7 +24,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
   @override
   void initState() {
     super.initState();
-    // Initialize localSelectedServices from the widget parameter.
+
     localSelectedServices = List.from(widget.selectedServices);
     _loadServices();
   }
@@ -41,11 +41,11 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
 
       print("BusinessData retrieved: $businessData");
 
-      // Get the nested categories list.
+
       List<dynamic> categoriesList = businessData['categories'] ?? [];
       Map<String, List<Map<String, dynamic>>> tempCategorizedServices = {};
 
-      // Iterate over each category.
+
       for (var category in categoriesList) {
         if (category is Map &&
             category['isSelected'] == true &&
@@ -54,12 +54,12 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
           List<dynamic> serviceList = category['services'];
           List<Map<String, dynamic>> allServicesList = [];
 
-          // Add all services (do not filter by global isSelected)
+       
           for (var service in serviceList) {
             if (service is Map) {
               String serviceName = service['name'].toString();
 
-              // Determine pricing (default to 'KES 150').
+
               String price = 'KES 150';
               if (businessData.containsKey('pricing')) {
                 Map<String, dynamic> pricingData =
@@ -80,7 +80,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
                 }
               }
 
-              // Determine duration (default to '30mins').
+
               String duration = '30mins';
               if (businessData.containsKey('durations')) {
                 Map<String, dynamic> durationData =
@@ -98,7 +98,6 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
             }
           }
 
-          // Always add the category.
           tempCategorizedServices[categoryName] = allServicesList;
         }
       }
@@ -116,7 +115,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
     }
   }
 
-  // Returns services that match the search query and category filter.
+
   List<Map<String, dynamic>> getFilteredServices() {
     List<Map<String, dynamic>> filteredServices = [];
 
@@ -138,7 +137,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Build the category filter list from the keys in categorizedServices.
+
     List<String> categoryFilterList =
         ['All categories', ...categorizedServices.keys.toList()];
     List<Map<String, dynamic>> filteredServices = getFilteredServices();
@@ -149,7 +148,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            // Return the local selection without updating global businessData.
+
             Navigator.pop(context, localSelectedServices);
           },
         ),
@@ -162,7 +161,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
       ),
       body: Column(
         children: [
-          // Search Bar
+
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
@@ -184,7 +183,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
               ),
             ),
           ),
-          // Category Filter Chips
+
           Container(
             height: 40,
             margin: EdgeInsets.symmetric(horizontal: 16),
@@ -216,7 +215,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
               },
             ),
           ),
-          // Services List
+     
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.all(16),
@@ -228,7 +227,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
                   margin: EdgeInsets.only(bottom: 12),
                   child: Row(
                     children: [
-                      // Checkbox for toggling local selection.
+         
                       Container(
                         width: 24,
                         height: 24,
@@ -251,7 +250,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
                           ),
                         ),
                       ),
-                      // Service details.
+                   
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,7 +302,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
               },
             ),
           ),
-          // Select Button
+  
           Padding(
             padding: EdgeInsets.all(16),
             child: ElevatedButton(

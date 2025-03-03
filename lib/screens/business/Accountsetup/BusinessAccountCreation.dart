@@ -36,7 +36,7 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
       _businessData = appBox.get('businessData');
       print('Loaded business data from Hive: $_businessData');
       
-      // Pre-fill the email if available
+     
       if (_businessData != null && _businessData!['email'] != null) {
         setState(() {
           _workEmailController.text = _businessData!['email'];
@@ -56,11 +56,11 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
     try {
       _formKey.currentState!.save();
       
-      // Get the Hive box
+  
       final appBox = Hive.box('appBox');
       final userId = appBox.get('userId');
       
-      // Update business data in Hive
+
       Map<String, dynamic> updatedBusinessData = {
         ..._businessData ?? {},
         'businessName': _businessName,
@@ -71,20 +71,20 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
       await appBox.put('businessData', updatedBusinessData);
       print('Updated business data in Hive: $updatedBusinessData');
 
-      // Update Firestore - Always use user.uid as document ID
+ 
       final firestore = FirebaseFirestore.instance;
       await firestore
           .collection('businesses')
-          .doc(userId)  // Use userId consistently as document ID
+          .doc(userId) 
           .set({
             'businessName': _businessName,
             'workEmail': _workEmail,
             'userId': userId,
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));  // Use merge to prevent overwriting other fields
+          }, SetOptions(merge: true)); 
 
-      // Navigate to next screen
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => BusinessCategories()),

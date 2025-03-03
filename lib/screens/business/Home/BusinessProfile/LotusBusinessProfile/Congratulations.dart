@@ -18,7 +18,7 @@ class Congratulations extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const String shareLink = "https://yourbusiness.com/profile"; // Replace with actual link
+    const String shareLink = "https://yourbusiness.com/profile"; 
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -34,16 +34,16 @@ class Congratulations extends StatelessWidget {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            // Party Icon
+ 
             Image.asset(
-              'assets/congratulations.png', // Add your party icon asset
+              'assets/congratulations.png', 
               height: 80,
               width: 80,
               color: Colors.orange,
             ),
             const SizedBox(height: 24),
             
-            // Title
+    
             const Text(
               'Congratulation your\nprofile is ready!',
               textAlign: TextAlign.center,
@@ -55,7 +55,7 @@ class Congratulations extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             
-            // Subtitle
+    
             const Text(
               'Clients can now view your profile. Share the link\nbelow to get started',
               textAlign: TextAlign.center,
@@ -66,7 +66,7 @@ class Congratulations extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             
-            // Link Container
+  
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -85,8 +85,7 @@ class Congratulations extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
-            // Share Link Button
+         
             InkWell(
               onTap: () => _copyToClipboard(context, shareLink),
               child: Container(
@@ -112,10 +111,10 @@ class Congratulations extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             
-            // Generate QR Code Button
+            
             InkWell(
               onTap: () {
-                // Add QR code generation logic here
+      
               },
               child: Container(
                 padding: const EdgeInsets.all(16),
@@ -140,7 +139,7 @@ class Congratulations extends StatelessWidget {
             ),
             const Spacer(),
             
-            // Ok Button
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

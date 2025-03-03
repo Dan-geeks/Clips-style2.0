@@ -456,23 +456,23 @@ void _startFirestoreListener() {
       DateTime startDate;
       DateTime endDate;
 
-      // Determine date range based on selected date
+  
       if (_dateRangeText.contains('-')) {
-        // Week, Month, or Year view
+     
         final dates = _dateRangeText.split('-');
         startDate = DateFormat('d MMM yyyy').parse('${dates[0].trim()} ${_selectedDate.year}');
         endDate = DateFormat('d MMM yyyy').parse(dates[1].trim());
         endDate = endDate.add(const Duration(days: 1));
       } else {
-        // Day view
+
         startDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
         endDate = startDate.add(const Duration(days: 1));
       }
 
-      // Cancel existing subscription if any
+
       await _appointmentsSubscription?.cancel();
 
-      // Update Firestore query
+     
       final appointmentsQuery = FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -481,7 +481,7 @@ void _startFirestoreListener() {
           .where('date', isLessThan: endDate)
           .snapshots();
 
-      // Start new listener
+
       _appointmentsSubscription = appointmentsQuery.listen(
         (snapshot) async {
           final Map<String, dynamic> appointments = {};
@@ -620,7 +620,7 @@ void _startFirestoreListener() {
               pw.Table(
                 border: pw.TableBorder.all(),
                 children: [
-                  // Header row
+              
                   pw.TableRow(
                     children: [
                       'Ref #',
@@ -636,7 +636,7 @@ void _startFirestoreListener() {
                       child: pw.Text(text, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     )).toList(),
                   ),
-                  // Data rows
+          
                   ...appointmentsData.entries.map((entry) {
                     final appointment = entry.value;
                     return pw.TableRow(
@@ -799,7 +799,7 @@ void _startFirestoreListener() {
           contentPadding: const EdgeInsets.symmetric(horizontal: 20),
         ),
         onChanged: (value) {
-          setState(() {}); // Triggers rebuild to filter the appointments list
+          setState(() {}); 
         },
       ),
     );

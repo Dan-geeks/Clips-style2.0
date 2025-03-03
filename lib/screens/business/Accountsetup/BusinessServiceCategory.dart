@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:collection/collection.dart';
 
-import 'BusinessPricing.dart'; // Make sure PricingPage is defined there
+import 'BusinessPricing.dart'; 
 
 class ServiceCategoriesPage extends StatefulWidget {
   @override
@@ -10,7 +10,7 @@ class ServiceCategoriesPage extends StatefulWidget {
 }
 
 class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
-  // Define your base list of services per mapped category.
+ 
   final Map<String, List<String>> serviceCategories = {
     'Barbershop': [
       'Beard trimming',
@@ -118,7 +118,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     ],
   };
 
-  // Your mapping from original to mapped names.
+  
   final Map<String, String> categoryMappings = {
     'Barbering': 'Barbershop',
     'Salons': 'Salons',
@@ -132,7 +132,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
 
   String searchQuery = '';
   bool _isInitialized = false;
-  // List of mapped category names that are selected.
+
   List<String> categoriesToDisplay = [];
   String selectedCategory = '';
   late Box appBox;
@@ -141,7 +141,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
   @override
   void initState() {
     super.initState();
-    // Delay initialization until after the first frame.
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _initializeHive();
@@ -155,7 +155,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     _initializeCategories();
   }
 
-  // Loop through the stored categories (businessData['categories']) and for each selected category,
+
   // update its name using our mapping and ensure a "services" list is nested in that same category map.
   void _initializeCategories() {
     if (_isInitialized) return;
@@ -166,17 +166,17 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
         for (int i = 0; i < categoryList.length; i++) {
           var category = categoryList[i];
           if (category['isSelected'] == true) {
-            // Look up the mapped category name.
+        
             String originalName = category['name'];
             String? mappedCategory = categoryMappings[originalName];
-            // If mapping exists and we have services defined for that mapped key...
+        
             if (mappedCategory != null && serviceCategories.containsKey(mappedCategory)) {
-              // Update the stored category name.
+       
               categoryList[i]['name'] = mappedCategory;
               if (!categoriesToDisplay.contains(mappedCategory)) {
                 categoriesToDisplay.add(mappedCategory);
               }
-              // Initialize nested services for this category if not already present.
+        
               if (!category.containsKey('services')) {
                 categoryList[i]['services'] = serviceCategories[mappedCategory]!
                     .map((service) => {'name': service, 'isSelected': false})
@@ -192,11 +192,11 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
       _isInitialized = true;
     });
 
-    // Save the updated businessData (with nested services) back to Hive.
+
     appBox.put('businessData', businessData);
   }
 
-  // Looks up the given service in the nested services list of the selected category.
+
   bool isServiceSelected(String categoryName, String serviceName) {
     if (businessData == null || !businessData!.containsKey('categories')) {
       return false;
@@ -214,7 +214,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     return serviceData['isSelected'] ?? false;
   }
 
-  // Toggle a service’s selected flag by finding it in the nested array for that category.
+  
   Future<void> toggleService(String categoryName, String serviceName, bool value) async {
     if (businessData == null || !businessData!.containsKey('categories')) return;
     List categoryList = businessData!['categories'];
@@ -226,15 +226,15 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     final serviceIndex = services.indexWhere((s) => s['name'] == serviceName);
     if (serviceIndex != -1) {
       services[serviceIndex]['isSelected'] = value;
-      // Update the services list for the category.
+     
       categoryList[catIndex]['services'] = services;
-      // Save the updated businessData.
+
       await appBox.put('businessData', businessData);
       setState(() {});
     }
   }
 
-  // Shows a dialog for adding a custom service.
+
   Future<void> _showAddServiceDialog() async {
     final TextEditingController serviceNameController = TextEditingController();
     final TextEditingController categoryNameController = TextEditingController();
@@ -335,7 +335,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
                     if (isAddingNewCategory) {
                       categoryToUse = categoryNameController.text.trim();
                       if (categoryToUse.isEmpty) return;
-                      // Add new category (nested structure)
+           
                       await _addNewCategory(categoryToUse);
                     } else {
                       if (dialogSelectedCategory == null) return;
@@ -354,11 +354,11 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     );
   }
 
-  // Add a new category by appending a new map with a nested empty services list.
+  
   Future<void> _addNewCategory(String categoryName) async {
     if (businessData == null) return;
 
-    // Update categoriesToDisplay and selectedCategory if needed.
+
     if (!categoriesToDisplay.contains(categoryName)) {
       setState(() {
         categoriesToDisplay.add(categoryName);
@@ -368,7 +368,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
       });
     }
 
-    // Ensure the 'categories' key exists.
+
     if (!businessData!.containsKey('categories')) {
       businessData!['categories'] = [];
     }
@@ -383,11 +383,11 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     await appBox.put('businessData', businessData);
   }
 
-  // Add a custom service into the nested services list of the given category.
+
   Future<void> _addCustomService(String categoryName, String serviceName) async {
     if (businessData == null) return;
 
-    // Ensure the category exists in the nested structure.
+   
     List categoryList = businessData!['categories'];
     final catIndex = categoryList.indexWhere((cat) => cat['name'] == categoryName);
     if (catIndex == -1) return;
@@ -552,8 +552,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     );
   }
 
-  // Instead of reading from the original serviceCategories map,
-  // we now look up the nested services in the selected category from businessData.
+
   Widget _buildServiceList() {
     List<dynamic> services = [];
     if (businessData != null && businessData!.containsKey('categories')) {
@@ -563,7 +562,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
         services = cat['services'];
       }
     }
-    // Filter services based on search query.
+  
     List filteredServices = services
         .where((service) =>
             service['name'].toString().toLowerCase().contains(searchQuery.toLowerCase()))
@@ -638,7 +637,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
 
   Future<void> _saveAndContinue() async {
     if (businessData != null) {
-      // Update the account setup step (or any other field you wish)
+
       businessData!['accountSetupStep'] = 4;
       await appBox.put('businessData', businessData);
       Navigator.pushReplacement(

@@ -1,4 +1,3 @@
-// final_business_profile.dart
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,7 +7,7 @@ import 'dart:io';
 import 'Abouttab.dart';
 import 'Businessprofileimage.dart';
 import 'EditBusinessProfile/EditBusinessprofilescreen.dart';
- // Import the edit screen
+import 'package:collection/collection.dart';
 
 class FinalBusinessProfile extends StatefulWidget {
   const FinalBusinessProfile({Key? key}) : super(key: key);
@@ -22,11 +21,13 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
   late TabController _tabController;
   bool _isUploading = false;
   final ImagePicker _picker = ImagePicker();
-  final GlobalKey<BusinessProfileAboutTabState> _aboutTabKey = GlobalKey<BusinessProfileAboutTabState>();
+  final GlobalKey<BusinessProfileAboutTabState> _aboutTabKey =
+      GlobalKey<BusinessProfileAboutTabState>();
 
   late Box appBox;
-  // businessData loaded from Hive
+  
   Map<String, dynamic> businessData = {};
+  String selectedCategory = '';
 
   @override
   void initState() {
@@ -38,16 +39,82 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
         _aboutTabKey.currentState?.refreshData();
       }
     });
-    _initializeHive();
+
+    
+    _initializeHive().then((_) {
+      _syncWithFirebase();
+    });
   }
+
 
   Future<void> _initializeHive() async {
     try {
       appBox = Hive.box('appBox');
       businessData = appBox.get('businessData') ?? {};
+      print('Loaded businessData from Hive: $businessData');
+
+   
+      if (businessData.containsKey('categories')) {
+        List categories = businessData['categories'];
+        print('Found ${categories.length} categories in businessData.');
+        for (var category in categories) {
+          print('Category: ${category['name']} | isSelected: ${category['isSelected']}');
+          if (category.containsKey('services')) {
+            List services = category['services'];
+            print('  Contains ${services.length} services.');
+            for (var service in services) {
+              print('    Service: ${service['name']} | isSelected: ${service['isSelected']}');
+            }
+          } else {
+            print('  No services key found for this category.');
+          }
+        }
+
+        if (categories.isNotEmpty) {
+          selectedCategory = categories[0]['name'] ?? '';
+          print('Default selectedCategory set to: $selectedCategory');
+        }
+      } else {
+        print('No categories found in businessData.');
+      }
       setState(() {});
     } catch (e) {
       print('Error initializing Hive data: $e');
+    }
+  }
+
+
+  Future<void> _syncWithFirebase() async {
+    try {
+      final String? userId = businessData['userId'];
+      if (userId == null) {
+        print("No userId found, cannot sync with Firebase");
+        return;
+      }
+      DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
+          .collection('businesses')
+          .doc(userId)
+          .get();
+
+      if (docSnapshot.exists) {
+      
+        Map<String, dynamic> remoteData =
+            docSnapshot.data() as Map<String, dynamic>;
+        businessData = remoteData;
+        print('Synced businessData from Firebase: $businessData');
+
+     
+        if (businessData.containsKey('categories') &&
+            (businessData['categories'] as List).isNotEmpty) {
+          selectedCategory = businessData['categories'][0]['name'] ?? '';
+          print('Updated selectedCategory from Firebase data: $selectedCategory');
+        }
+ 
+        await appBox.put('businessData', businessData);
+        setState(() {});
+      }
+    } catch (e) {
+      print("Error syncing with Firebase: $e");
     }
   }
 
@@ -60,19 +127,24 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
       if (userId == null) {
         throw Exception('User ID is missing. Please complete registration first.');
       }
-      String fileName = 'feed_images/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      String fileName =
+          'feed_images/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
       Reference storageRef = FirebaseStorage.instance.ref().child(fileName);
       UploadTask uploadTask = storageRef.putFile(file);
       TaskSnapshot taskSnapshot = await uploadTask;
       String downloadURL = await taskSnapshot.ref.getDownloadURL();
 
-      // Update Firestore
-      await FirebaseFirestore.instance.collection('businesses').doc(userId).update({
+ 
+      await FirebaseFirestore.instance
+          .collection('businesses')
+          .doc(userId)
+          .update({
         'Feeds': FieldValue.arrayUnion([downloadURL])
       });
 
-      // Update local Hive data
-      List<String> feedImages = List<String>.from(businessData['feedImages'] ?? []);
+
+      List<String> feedImages =
+          List<String>.from(businessData['feedImages'] ?? []);
       feedImages.add(downloadURL);
       businessData['feedImages'] = feedImages;
       await appBox.put('businessData', businessData);
@@ -90,7 +162,8 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
 
   Future<void> _pickAndUploadFeedImage() async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? pickedFile =
+          await _picker.pickImage(source: ImageSource.gallery);
       if (pickedFile != null) {
         File file = File(pickedFile.path);
         String? downloadURL = await _uploadFeedImage(file);
@@ -98,7 +171,7 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Feed image uploaded successfully!')),
           );
-          setState(() {}); // Refresh UI
+          setState(() {}); 
         }
       }
     } catch (e) {
@@ -151,30 +224,96 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
     );
   }
 
-  // Here we assume services are stored in businessData['services'] as a Map.
-  Widget _buildServicesList() {
-    final Map<String, dynamic> servicesData = businessData['services'] ?? {};
-    if (servicesData.isEmpty) {
-      return const Center(child: Text('No services found'));
+Widget _buildServicesList() {
+  if (!businessData.containsKey('categories')) {
+    return const Center(child: Text('No services found'));
+  }
+
+  List categoriesData = businessData['categories'];
+
+
+  Map<String, List<Map<String, dynamic>>> servicesByCategory = {};
+
+  for (var category in categoriesData) {
+    if (category.containsKey('services')) {
+      List services = category['services'];
+      List<Map<String, dynamic>> selectedServices = services
+          .where((service) => service['isSelected'] == true)
+          .map<Map<String, dynamic>>((service) => {
+                'name': service['name'] ?? '',
+           
+                'fallbackDuration': service['duration'] ?? 'Duration not set',
+   
+                'fallbackPrice': service['price'] ?? 'Price not set',
+                'ageRange': service['ageRange'] ?? 'All',
+              })
+          .toList();
+
+      if (selectedServices.isNotEmpty) {
+        servicesByCategory[category['name']] = selectedServices;
+      }
     }
-    List<Map<String, dynamic>> formattedServices = [];
-    servicesData.forEach((serviceName, details) {
-      formattedServices.add({
-        'name': serviceName,
-        'duration': details['duration'] ?? 'Duration not set',
-        'price': details['price'] ?? 'Price not set',
-        'ageRange': details['ageRange'] ?? 'All',
-      });
-    });
-    return ListView.builder(
-      itemCount: formattedServices.length,
-      padding: const EdgeInsets.all(16),
-      itemBuilder: (context, index) {
-        final service = formattedServices[index];
-        return Card(
+  }
+
+  if (servicesByCategory.isEmpty) {
+    return const Center(child: Text('No selected services found'));
+  }
+
+  
+  String getPriceForService(String serviceName, String fallbackPrice) {
+    String price = fallbackPrice;
+    if (businessData.containsKey('pricing') &&
+        businessData['pricing'][serviceName] != null) {
+      var pricingData = businessData['pricing'][serviceName];
+      if (pricingData.containsKey('Everyone')) {
+        price = pricingData['Everyone'].toString();
+      } else if (pricingData.containsKey('Customize')) {
+        List customPricing = pricingData['Customize'];
+        if (customPricing.isNotEmpty) {
+          price = customPricing[0]['price'].toString();
+        }
+      }
+    }
+    return price;
+  }
+
+
+  String getDurationForService(String serviceName, String fallbackDuration) {
+    String duration = fallbackDuration;
+    if (businessData.containsKey('durations') &&
+        businessData['durations'][serviceName] != null) {
+      duration = businessData['durations'][serviceName].toString();
+    }
+    return duration;
+  }
+
+
+  List<Widget> serviceSections = [];
+  servicesByCategory.forEach((categoryName, serviceList) {
+
+    serviceSections.add(
+      Padding(
+        padding: const EdgeInsets.only(bottom: 8.0),
+        child: Text(
+          categoryName,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+
+  
+    for (var service in serviceList) {
+      String displayPrice = getPriceForService(
+          service['name'], service['fallbackPrice']);
+      String displayDuration = getDurationForService(
+          service['name'], service['fallbackDuration']);
+
+      serviceSections.add(
+        Card(
           elevation: 0,
-          color: Colors.white,
+          shadowColor: Colors.transparent, 
           margin: const EdgeInsets.only(bottom: 16),
+          color: Colors.white, 
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -185,12 +324,19 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(service['name'],
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis),
+                      Text(
+                        service['name'],
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 4),
-                      Text(service['duration'],
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+        
+                      Text(
+                        displayDuration,
+                        style: TextStyle(
+                            fontSize: 14, color: Colors.grey[600]),
+                      ),
                     ],
                   ),
                 ),
@@ -200,31 +346,47 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('Kes ${service['price']}',
-                          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                          textAlign: TextAlign.end),
+                      Text(
+                        'Kes $displayPrice',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w500, fontSize: 14),
+                        textAlign: TextAlign.end,
+                      ),
                       const SizedBox(height: 4),
-                      Text(service['ageRange'],
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                      Text(
+                        service['ageRange'],
+                        style: TextStyle(
+                            fontSize: 14, color: Colors.grey[600]),
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    }
+    serviceSections.add(const SizedBox(height: 16));
+  });
 
-  // Assuming team members are stored in businessData['teamMembers'] as a list.
+  return ListView(
+    padding: const EdgeInsets.all(16),
+    children: serviceSections,
+  );
+}
+
+
+
+
   Widget _buildTeamMembersList() {
     final List<dynamic> teamMembers = businessData['teamMembers'] ?? [];
     if (teamMembers.isEmpty) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(16.0),
-          child: Text('No team members found', style: TextStyle(fontSize: 16, color: Colors.grey)),
+          child: Text('No team members found',
+              style: TextStyle(fontSize: 16, color: Colors.grey)),
         ),
       );
     }
@@ -234,18 +396,24 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
         final member = teamMembers[index] as Map<String, dynamic>;
         return ListTile(
           leading: CircleAvatar(
-            backgroundImage: member['profileImageUrl'] != null && member['profileImageUrl'].toString().isNotEmpty
+            backgroundImage: member['profileImageUrl'] != null &&
+                    member['profileImageUrl'].toString().isNotEmpty
                 ? NetworkImage(member['profileImageUrl'])
                 : null,
-            child: member['profileImageUrl'] == null || member['profileImageUrl'].toString().isEmpty
+            child: member['profileImageUrl'] == null ||
+                    member['profileImageUrl'].toString().isEmpty
                 ? const Icon(Icons.person, size: 25)
                 : null,
             radius: 25,
           ),
-          title: Text('${member['firstName'] ?? ''} ${member['lastName'] ?? ''}',
-              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
-          subtitle: member['email'] != null && member['email'].toString().isNotEmpty
-              ? Text(member['email'], style: TextStyle(color: Colors.grey[600], fontSize: 14))
+          title: Text(
+            '${member['firstName'] ?? ''} ${member['lastName'] ?? ''}',
+            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
+          ),
+          subtitle: member['email'] != null &&
+                  member['email'].toString().isNotEmpty
+              ? Text(member['email'],
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14))
               : null,
         );
       },
@@ -253,7 +421,7 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
   }
 
   void _handleProfileUpdate() {
-    // Refresh Hive data (e.g. after editing)
+
     _initializeHive();
   }
 
@@ -273,13 +441,14 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
         ),
       );
     }
-    final List<String> feedImages = List<String>.from(businessData['feedImages'] ?? []);
+    final List<String> feedImages =
+        List<String>.from(businessData['feedImages'] ?? []);
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
-            // Header with Business Name and Edit Profile button
+
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
@@ -306,19 +475,22 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
                     ),
                     child: TextButton(
                       onPressed: () async {
-                        // Navigate to the Edit screen (which now loads data from Hive)
+                      
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const EditBusinessProfileScreen(),
+                            builder: (context) =>
+                                const EditBusinessProfile(),
                           ),
                         );
                         setState(() {});
                       },
                       child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         child: Text('Edit Profile',
-                            style: TextStyle(color: Colors.white, fontSize: 14)),
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 14)),
                       ),
                     ),
                   ),
@@ -348,7 +520,7 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
                   ),
                   _buildServicesList(),
                   _buildTeamMembersList(),
-                  // For About, we assume BusinessProfileAboutTab loads data from Hive.
+      
                   BusinessProfileAboutTab(key: _aboutTabKey),
                 ],
               ),

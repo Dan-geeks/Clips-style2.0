@@ -20,7 +20,6 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
   String ageRange = 'Age gap (25-35 years)';
   String gender = 'Male';
 
-  // Sort options
   final List<String> nameOptions = ['First name(A-Z)', 'First name(Z-A)'];
   final List<String> emailOptions = ['Email (A-Z)', 'Email (Z-A)'];
   final List<String> ageRanges = [
@@ -104,18 +103,18 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white, // Make dialog background white
+      backgroundColor: Colors.white, 
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
       child: Container(
-        color: Colors.white, // Container background also explicitly set to white
+        color: Colors.white, 
         padding: EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header row with "Filter" title and close icon
+            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -134,7 +133,7 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
             ),
             SizedBox(height: 16),
 
-            // Sort by (Name)
+     
             Text('Sort by'),
             SizedBox(height: 8),
             _buildDropdown(
@@ -149,7 +148,7 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
             ),
             SizedBox(height: 16),
 
-            // Sort by (Email)
+
             Text('Sort by'),
             SizedBox(height: 8),
             _buildDropdown(
@@ -164,7 +163,7 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
             ),
             SizedBox(height: 16),
 
-            // Age range
+ 
             Text('Age'),
             SizedBox(height: 8),
             _buildDropdown(
@@ -179,7 +178,7 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
             ),
             SizedBox(height: 16),
 
-            // Gender
+        
             Text('Gender'),
             SizedBox(height: 8),
             _buildDropdown(
@@ -194,7 +193,7 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
             ),
             SizedBox(height: 24),
 
-            // Cancel & Apply buttons
+            
             Row(
               children: [
                 Expanded(

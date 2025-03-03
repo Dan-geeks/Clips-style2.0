@@ -6,18 +6,18 @@ import 'screens/signup.dart';
 import 'screens/login.dart';
 
 void main() async {
-  // Ensure Flutter bindings are initialized
+
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Hive
+ 
   await Hive.initFlutter();
   
-  // Initialize Firebase with platform-specific options
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   
-  // Open a default Hive box
+
   await Hive.openBox('appBox');
 
   runApp(const MyApp());

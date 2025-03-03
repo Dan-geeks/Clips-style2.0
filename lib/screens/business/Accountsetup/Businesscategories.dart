@@ -34,7 +34,7 @@ class _BusinessCategoriesState extends State<BusinessCategories> {
       appBox = Hive.box('appBox');
       businessData = appBox.get('businessData') ?? {};
       
-      // Initialize categories if not exists
+
       if (!businessData!.containsKey('categories')) {
         businessData!['categories'] = categories.map((cat) => {
           'name': cat['name'],
@@ -93,24 +93,24 @@ class _BusinessCategoriesState extends State<BusinessCategories> {
     if (index != -1) {
       final currentIsSelected = categoryList[index]['isSelected'] ?? false;
       
-      // If deselecting primary, remove primary status
+
       if (!currentIsSelected && categoryList[index]['isPrimary'] == true) {
         categoryList[index]['isPrimary'] = false;
       }
       
-      // Toggle selection
+    
       categoryList[index]['isSelected'] = !currentIsSelected;
       
-      // If first selected category, make it primary
+
       if (!currentIsSelected && !categoryList.any((cat) => cat['isPrimary'] == true)) {
         categoryList[index]['isPrimary'] = true;
       }
 
-      // Update businessData
+
       businessData!['categories'] = categoryList;
-      businessData!['accountSetupStep'] = 3; // Update step
+      businessData!['accountSetupStep'] = 3; 
       
-      // Save to Hive
+    
       await appBox.put('businessData', businessData);
       setState(() {});
     }

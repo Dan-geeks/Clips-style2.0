@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'Subscription.dart'; // Import your MembershipPage
-
+import 'Subscription.dart'; 
 class MembershipDetailsPage extends StatefulWidget {
   const MembershipDetailsPage({Key? key}) : super(key: key);
 
@@ -22,10 +21,10 @@ class _MembershipDetailsPageState extends State<MembershipDetailsPage> {
 
   void _loadMembershipData() {
     try {
-      // Get the Hive box
+
       appBox = Hive.box('appBox');
 
-      // Get current membership data
+
       membershipData = Map<String, dynamic>.from(appBox.get('currentMembershipData') ?? {});
     } catch (e) {
       print('Error loading membership data: $e');
@@ -39,12 +38,7 @@ class _MembershipDetailsPageState extends State<MembershipDetailsPage> {
       context,
       MaterialPageRoute(builder: (context) =>  MembershipPage()),
     );
-    // Alternatively, if you want to remove all previous routes:
-    // Navigator.pushAndRemoveUntil(
-    //   context,
-    //   MaterialPageRoute(builder: (context) => const MembershipPage()),
-    //   (route) => false,
-    // );
+
   }
 
   @override
@@ -92,7 +86,7 @@ class _MembershipDetailsPageState extends State<MembershipDetailsPage> {
         actions: [
           TextButton(
             onPressed: () {
-              // TODO: Navigate to edit page
+             
             },
             child: const Text(
               'Edit',

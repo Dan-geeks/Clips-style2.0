@@ -1,4 +1,3 @@
-// about.dart
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -171,7 +170,7 @@ class BusinessProfileAboutTabState extends State<BusinessProfileAboutTab> {
     String aboutUs = businessData['AboutUs'] ?? '';
     String businessLocation = businessData['BusinessLocation'] ?? '';
     Map<String, dynamic> operatingHours =
-        businessData['BusinessCalendarDetails'] ?? {};
+        businessData['operatingHours'] ?? {}; // Updated key
     String workEmail = businessData['workEmail'] ?? '';
 
     return SingleChildScrollView(
@@ -181,7 +180,7 @@ class BusinessProfileAboutTabState extends State<BusinessProfileAboutTab> {
           if (aboutUs.isNotEmpty) _buildSection('About us', aboutUs),
           if (businessLocation.isNotEmpty)
             _buildSection('Location', businessLocation),
-          _buildBusinessCalendarDetails(operatingHours),
+          _buildBusinessCalendarDetails(operatingHours), // Updated to use correct key
           if (workEmail.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 32, 20, 0),

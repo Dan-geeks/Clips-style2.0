@@ -24,7 +24,6 @@ class _TeamMembersState extends State<TeamMembers> {
   int currentMemberIndex = 0;
   bool _isInitialized = false;
   
-  // This map will hold the available services (by category) that were selected in ServiceCategoriesPage.
   Map<String, List<String>> servicesByCategory = {};
   List<Map<String, dynamic>> teamMembers = [];
   int maxTeamSize = 1;
@@ -51,36 +50,33 @@ class _TeamMembersState extends State<TeamMembers> {
       appBox = Hive.box('appBox');
       businessData = appBox.get('businessData') ?? {};
       
-      // Load team size first
+
       int teamSize = businessData?['teamSizeValue'] ?? 1;
       maxTeamSize = teamSize;
 
-      // *** IMPORTANT UPDATE ***
-      // Instead of reading a top-level "services" key, we load the available services
-      // from businessData["categories"]—the same structure used in ServiceCategoriesPage.
       if (businessData!.containsKey('categories')) {
         List categoriesData = businessData!['categories'];
         for (var category in categoriesData) {
-          // If the category is selected and it contains a services list...
+     
           if (category['isSelected'] == true && category.containsKey('services')) {
             List catServices = category['services'];
-            // Filter only those services that are marked as selected.
+       
             List<String> selectedServices = catServices
                 .where((service) => service['isSelected'] == true)
                 .map((service) => service['name'].toString())
                 .toList();
             if (selectedServices.isNotEmpty) {
-              // Use the updated (mapped) category name as key.
+           
               servicesByCategory[category['name']] = selectedServices;
             }
           }
         }
       }
       
-      // Debug print to verify loaded services
+    
       print('Loaded services by category: $servicesByCategory');
       
-      // Load existing team members or initialize new list
+    
       if (businessData!.containsKey('teamMembers')) {
         teamMembers = List<Map<String, dynamic>>.from(businessData!['teamMembers']);
       } else {
@@ -96,7 +92,7 @@ class _TeamMembersState extends State<TeamMembers> {
         await appBox.put('businessData', businessData);
       }
 
-      // Load first member data if team members exist
+     
       if (teamMembers.isNotEmpty) {
         _loadMemberData(0);
       }
@@ -144,7 +140,7 @@ class _TeamMembersState extends State<TeamMembers> {
 
   Future<void> _saveCurrentMemberData() async {
     if (currentMemberIndex >= 0 && currentMemberIndex < teamMembers.length) {
-      // Save the team member's chosen services.
+  
       Map<String, List<String>> services = Map<String, List<String>>.from(
         teamMembers[currentMemberIndex]['services'] ?? {}
       );
@@ -185,7 +181,7 @@ class _TeamMembersState extends State<TeamMembers> {
     }
   }
 
-  // Returns true if the current team member’s services contain the given subService under the specified category.
+ 
   bool _isServiceSelected(String category, String subService) {
     if (teamMembers.isEmpty) return false;
     Map<String, dynamic> memberData = teamMembers[currentMemberIndex];
@@ -348,8 +344,7 @@ class _TeamMembersState extends State<TeamMembers> {
       );
     }
   }
-  
-  // Styles
+
   final TextStyle _headerStyle = TextStyle(
     fontSize: 24,
     fontWeight: FontWeight.bold,
@@ -546,7 +541,7 @@ class _TeamMembersState extends State<TeamMembers> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Progress bar at the top
+         
             Row(
               children: List.generate(
                 8,
@@ -659,7 +654,7 @@ class _TeamMembersState extends State<TeamMembers> {
                   SizedBox(height: 20),
                   Text('Services', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   SizedBox(height: 8),
-                  // Build a service section for each category (as loaded from categories)
+                  
                   ...servicesByCategory.entries.map(
                     (entry) => _buildServiceSection(entry.key, entry.value),
                   ),
@@ -669,7 +664,7 @@ class _TeamMembersState extends State<TeamMembers> {
                       if (_formKey.currentState!.validate()) {
                         await _saveCurrentMemberData();
                         
-                        // Update account setup step
+                 
                         businessData!['accountSetupStep'] = 5;
                         await appBox.put('businessData', businessData);
                         

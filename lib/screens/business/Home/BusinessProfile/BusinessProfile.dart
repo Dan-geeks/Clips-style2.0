@@ -4,6 +4,9 @@ import '../BusinessHomePage.dart';
 import '../Businesscatalog/Businesscatalog.dart';
 import '../Businessclient/Businesscient.dart';
 import 'LotusBusinessProfile/OpeniningHours.dart';
+import 'Servicelisting/Servicelisting.dart';
+import 'MarketDevelopment/Marketdevelopment.dart';
+import 'Analysis/Analysis.dart';
 
 class BusinessProfile extends StatefulWidget {
   final VoidCallback? onUpdateComplete;
@@ -99,10 +102,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
         break;
       case 'Service Listing':
         if (businessId != null) {
-          page = BusinessProfile (
-            onUpdateComplete: widget.onUpdateComplete,
-         
-          );
+          page = ServiceListingScreen();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Business ID not found')),
@@ -111,13 +111,13 @@ class _BusinessProfileState extends State<BusinessProfile> {
         }
         break;
       case 'Market Development':
-        page = BusinessProfile ();
+        page = MarketDevelopmentScreen();
         break;
       case 'Staff':
         page = BusinessProfile ();
         break;
       case 'Analysis':
-        page =BusinessProfile ();
+        page = BusinessAnalysis();
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
@@ -143,7 +143,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
           IconButton(
             icon: Icon(Icons.notifications_none, color: Colors.black),
             onPressed: () {
-              // TODO: Implement notifications functionality
+       
             },
           ),
         ],

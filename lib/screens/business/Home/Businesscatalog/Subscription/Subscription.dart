@@ -23,11 +23,11 @@ class _MembershipPageState extends State<MembershipPage> {
     _initializeHive();
   }
 
-  /// Initialize Hive and load membership data
+
   Future<void> _initializeHive() async {
     appBox = Hive.box('appBox');
 
-    // Load membership plans directly from Hive
+
     List<dynamic>? storedMemberships = appBox.get('memberships');
     print("Stored Memberships in Hive: $storedMemberships");
 
@@ -39,14 +39,14 @@ class _MembershipPageState extends State<MembershipPage> {
       memberships = [];
     }
 
-    // Load previously selected membership (if any)
+
     setState(() {
       filteredMemberships = memberships;
       selectedMembership = appBox.get('selectedMembership');
     });
   }
 
-  /// Filter memberships based on search query
+
   void _filterMemberships(String query) {
     setState(() {
       filteredMemberships = memberships
@@ -56,16 +56,16 @@ class _MembershipPageState extends State<MembershipPage> {
     });
   }
 
-  /// Save selected membership to Hive & Firestore
+  
   Future<void> _saveMembershipSelection(String membershipName) async {
     setState(() {
       selectedMembership = membershipName;
     });
 
-    // Save selection in Hive
+   
     await appBox.put('selectedMembership', membershipName);
 
-    // Save selection in Firestore if a user is signed in
+
     User? user = _auth.currentUser;
     if (user != null) {
       await FirebaseFirestore.instance
@@ -75,17 +75,17 @@ class _MembershipPageState extends State<MembershipPage> {
     }
   }
 
-  /// Helper method to map tier to a color
+
   Color _getTierColor(String? tier) {
     switch (tier?.toLowerCase()) {
       case 'basic':
-        return Colors.lightBlue; // or any light-blue variant
+        return Colors.lightBlue; 
       case 'premium':
         return Colors.yellow;
       case 'vip':
         return Colors.black;
       default:
-        return Colors.grey; // fallback color
+        return Colors.grey;
     }
   }
 
@@ -109,7 +109,7 @@ class _MembershipPageState extends State<MembershipPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Search field
+            
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -123,7 +123,7 @@ class _MembershipPageState extends State<MembershipPage> {
               onChanged: _filterMemberships,
             ),
             SizedBox(height: 16),
-            // Membership list or "No membership package" message
+         
             Expanded(
               child: filteredMemberships.isNotEmpty
                   ? ListView.builder(
@@ -133,7 +133,7 @@ class _MembershipPageState extends State<MembershipPage> {
                         bool isSelected =
                             membership['name'] == selectedMembership;
 
-                        // Convert price to a string if necessary.
+               
                         String priceText;
                         if (membership['price'] is double) {
                           priceText =
@@ -145,8 +145,8 @@ class _MembershipPageState extends State<MembershipPage> {
                       return GestureDetector(
   onTap: () => _saveMembershipSelection(membership['name']),
   child: Card(
-    color: Colors.white,        // Make the card white
-    elevation: 0,              // Remove the shadow
+    color: Colors.white,  
+    elevation: 0,       
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(10),
       side: BorderSide(
@@ -191,7 +191,7 @@ class _MembershipPageState extends State<MembershipPage> {
                   : Center(child: Text("No membership package")),
             ),
             SizedBox(height: 16),
-            // Add button navigates to CreateMembershipPage
+
             ElevatedButton(
               onPressed: () {
                 Navigator.push(

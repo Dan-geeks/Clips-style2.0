@@ -73,7 +73,7 @@ String formatPhoneNumber(String phone) {
     String phone = _phoneController.text.trim();
     phone = formatPhoneNumber(phone);
 
-    // Check if the phone number already exists
+   
     bool phoneExists = await _checkPhoneNumber(phone);
     if (phoneExists) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -82,12 +82,12 @@ String formatPhoneNumber(String phone) {
       return;
     }
 
-    // If the phone number doesn't exist, proceed with verification
+
     await _auth.verifyPhoneNumber(
       phoneNumber: phone,
       timeout: Duration(seconds: 120),
       verificationCompleted: (PhoneAuthCredential credential) async {
-        // Sign the user in with the auto-generated credential
+
         UserCredential result = await _auth.signInWithCredential(credential);
         User? user = result.user;
 
@@ -135,7 +135,7 @@ String formatPhoneNumber(String phone) {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          // Your existing UI code
+      
           padding: EdgeInsets.all(10.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -168,7 +168,7 @@ String formatPhoneNumber(String phone) {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), 
                 ),
               ),
-              // Rest of your UI code
+           
               SizedBox(height: 16),
               Row(
                 children: [
@@ -211,7 +211,7 @@ String formatPhoneNumber(String phone) {
               text: 'Log in',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.black, // Optional: make it look like a link
+                color: Colors.black,
               ),
               recognizer: TapGestureRecognizer()
                 ..onTap = () {
@@ -314,7 +314,7 @@ class _VerificationPageState extends State<VerificationPage> {
       await _auth.verifyPhoneNumber(
         phoneNumber: widget.phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
-          // Auto-retrieve may be possible on some devices
+          
           UserCredential result = await _auth.signInWithCredential(credential);
           User? user = result.user;
           if (user != null) {

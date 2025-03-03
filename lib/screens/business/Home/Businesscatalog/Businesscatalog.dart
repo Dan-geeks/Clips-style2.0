@@ -128,11 +128,11 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
             'Subscription',
             'See and edit your subscriptions here',
             onTap: () async {
-              // Access the Hive box
+     
               Box appBox = Hive.box('appBox');
               List<dynamic>? membershipsData = appBox.get('memberships');
 
-              // Navigate based on whether membership data exists
+            
               if (membershipsData != null && membershipsData.isNotEmpty) {
                 Navigator.push(
                   context,

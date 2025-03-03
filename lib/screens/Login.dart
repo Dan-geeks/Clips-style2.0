@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> checkUserTypeAndNavigate(User user) async {
   try {
-    // Check both collections simultaneously
+
     final businessQuery = await _firestore
         .collection('businesses')
         .where('userId', isEqualTo: user.uid)
@@ -38,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final businessId = businessDoc.id;
       final businessData = businessDoc.data();
       
-      // Add the document ID to the business data
+      
       businessData['documentId'] = businessId;
 
     
@@ -276,7 +276,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                    style: TextStyle(fontSize: 10, color: Colors.black),
                                  ),
                                  onPressed: () {
-                                   // TODO: Implement forgot password
+                  
                                  },
                                ),
                                TextButton(
@@ -284,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                    style: TextStyle(fontSize: 10, color: Colors.black),
                                  ),
                                  onPressed: () {
-                                   // TODO: Navigate to sign up screen
+                          
                                  },
                                ),
                              ],

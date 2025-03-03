@@ -8,7 +8,7 @@ class PricingPage extends StatefulWidget {
 }
 
 class _PricingPageState extends State<PricingPage> with PricingValidationMixin {
-  // Controllers and Variables
+
   Map<String, String> serviceDurations = {};
   Map<String, Map<String, String>> pricing = {};
   String selectedAudienceType = 'Everyone';
@@ -19,7 +19,7 @@ class _PricingPageState extends State<PricingPage> with PricingValidationMixin {
   Map<String, TextEditingController> priceControllers = {};
   List<AgeRangePrice> customAgeRanges = [];
   Map<String, List<AgeRangePrice>> serviceAgeRanges = {};
-  List<String> services = []; // This list should contain only the selected service names.
+  List<String> services = []; 
   late Box appBox;
   Map<String, dynamic>? businessData;
 
@@ -29,26 +29,26 @@ class _PricingPageState extends State<PricingPage> with PricingValidationMixin {
     _loadData();
   }
 
-  // In _PricingPageState class, update the _loadData() method:
+
 
 Future<void> _loadData() async {
   try {
     appBox = Hive.box('appBox');
     businessData = appBox.get('businessData') ?? {};
 
-    // Instead of checking for businessData['services'], we now iterate over the nested categories.
+   
     if (businessData!.containsKey('categories')) {
       List<dynamic> categoriesList = businessData!['categories'];
       
       setState(() {
-        // Clear the existing services list.
+
         services = [];
 
-        // Loop through each category in the nested structure.
+      
         for (var category in categoriesList) {
           if (category is Map && category.containsKey('services')) {
             List<dynamic> serviceList = category['services'];
-            // Add the name of each service where 'isSelected' is true.
+          
             services.addAll(
               serviceList
                 .where((service) => service['isSelected'] == true)
@@ -57,15 +57,15 @@ Future<void> _loadData() async {
           }
         }
         
-        // Initialize controllers for each service.
+      
         services.forEach((service) {
-          // Duration controller
+
           String? duration = businessData!['durations']?[service];
           durationControllers[service] = TextEditingController(
             text: duration ?? '1 hr'
           );
 
-          // Price controller for 'Everyone' pricing
+          
           var servicePricing = businessData!['pricing']?[service];
           if (servicePricing != null && servicePricing['Everyone'] != null) {
             priceControllers[service] = TextEditingController(
@@ -75,7 +75,7 @@ Future<void> _loadData() async {
             priceControllers[service] = TextEditingController();
           }
 
-          // Initialize age ranges for custom pricing
+
           if (servicePricing != null && servicePricing['Customize'] != null) {
             List<dynamic> ageRanges = servicePricing['Customize'];
             serviceAgeRanges[service] = ageRanges.map((range) {
@@ -90,7 +90,7 @@ Future<void> _loadData() async {
           }
         });
 
-        // Read audience type and select the first service by default (if any)
+
         selectedAudienceType = businessData!['audienceType'] ?? 'Everyone';
         if (services.isNotEmpty) {
           selectedService = services[0];
@@ -103,60 +103,70 @@ Future<void> _loadData() async {
 }
 
 
-  // Saves pricing and duration information into Hive.
-  Future<void> _saveToHive() async {
-    try {
-      if (businessData == null) return;
+ Future<void> _saveToHive() async {
+  try {
+    if (businessData == null) return;
 
-      businessData!['audienceType'] = selectedAudienceType;
-      businessData!['durations'] = businessData!['durations'] ?? {};
-      businessData!['pricing'] = businessData!['pricing'] ?? {};
+    businessData!['audienceType'] = selectedAudienceType;
 
-      services.forEach((service) {
-        if (durationControllers[service]?.text != null) {
-          businessData!['durations'][service] = durationControllers[service]!.text;
-        }
+    businessData!['durations'] = businessData!['durations'] ?? {};
+    businessData!['pricing'] = businessData!['pricing'] ?? {};
 
-        // Save pricing based on selected audience type.
-        businessData!['pricing'][service] = {};
-        if (selectedAudienceType == 'Everyone') {
-          if (priceControllers[service]?.text != null) {
-            businessData!['pricing'][service] = {
-              'Everyone': priceControllers[service]!.text
-            };
-          }
-        } else {
-          final ageRanges = serviceAgeRanges[service];
-          if (ageRanges != null && ageRanges.isNotEmpty) {
-            List<Map<String, dynamic>> formattedAgeRanges = ageRanges
-                .where((range) => 
-                  range.minAgeController.text.isNotEmpty &&
-                  range.maxAgeController.text.isNotEmpty &&
-                  range.priceController.text.isNotEmpty)
-                .map((ageRange) => {
+    services.forEach((service) {
+      print("Saving pricing for service: $service");
+      if (durationControllers[service]?.text != null) {
+        print("Duration for $service: ${durationControllers[service]?.text}");
+        businessData!['durations'][service] = durationControllers[service]!.text;
+      }
+
+    
+      Map<String, dynamic> existingPricing = {};
+      if (businessData!['pricing'][service] != null) {
+        existingPricing =
+            Map<String, dynamic>.from(businessData!['pricing'][service]);
+      }
+
+
+      String everyonePrice = priceControllers[service]?.text ?? "";
+      if (everyonePrice.isNotEmpty) {
+        existingPricing['Everyone'] = everyonePrice;
+        print("Storing 'Everyone' pricing for $service: $everyonePrice");
+      }
+
+
+      final ageRanges = serviceAgeRanges[service];
+      if (ageRanges != null && ageRanges.isNotEmpty) {
+        List<Map<String, dynamic>> formattedAgeRanges = ageRanges
+            .where((range) =>
+                range.minAgeController.text.isNotEmpty &&
+                range.maxAgeController.text.isNotEmpty &&
+                range.priceController.text.isNotEmpty)
+            .map((ageRange) => {
                   'minAge': ageRange.minAgeController.text,
                   'maxAge': ageRange.maxAgeController.text,
                   'price': ageRange.priceController.text,
                 })
-                .toList();
-
-            if (formattedAgeRanges.isNotEmpty) {
-              businessData!['pricing'][service] = {
-                'Customize': formattedAgeRanges
-              };
-            }
-          }
+            .toList();
+        if (formattedAgeRanges.isNotEmpty) {
+          existingPricing['Customize'] = formattedAgeRanges;
+          print("Storing 'Customize' pricing for $service: $formattedAgeRanges");
         }
-      });
+      }
 
-      await appBox.put('businessData', businessData);
-    } catch (e) {
-      print('Error saving pricing data: $e');
-      throw e;
-    }
+
+      businessData!['pricing'][service] = existingPricing;
+    });
+
+    await appBox.put('businessData', businessData);
+  } catch (e) {
+    print('Error saving pricing data: $e');
+    throw e;
   }
+}
 
-  /// Build the service chips UI.
+
+
+
   Widget _buildServiceChips(List<String> services) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -185,7 +195,7 @@ Future<void> _loadData() async {
     );
   }
 
-  /// Build the UI for setting the duration and price for the selected service.
+ 
   Widget _buildDurationAndPriceFields() {
     if (selectedService == null) {
       return Center(
@@ -215,7 +225,7 @@ Future<void> _loadData() async {
               ),
             ),
             SizedBox(width: 16),
-            // Only display the "Everyone" price field in this row.
+
             if (selectedAudienceType == 'Everyone')
               Text(
                 'Price for ${selectedService}',
@@ -234,7 +244,7 @@ Future<void> _loadData() async {
                 controller: durationControllers[selectedService],
                 onChanged: (value) {
                   setState(() {
-                    // Duration will be saved on continue.
+ 
                   });
                 },
                 decoration: InputDecoration(
@@ -253,7 +263,7 @@ Future<void> _loadData() async {
                   controller: priceControllers[selectedService],
                   onChanged: (value) {
                     setState(() {
-                      // Price will be saved on continue.
+              
                     });
                   },
                   keyboardType: TextInputType.number,
@@ -305,7 +315,7 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
                 fontSize: 16,
               ),
             ),
-            // Allow removal of the age range if there's more than one.
+            
             if (serviceAgeRanges[selectedService]!.length > 1)
               IconButton(
                 icon: Icon(Icons.remove_circle_outline),
@@ -396,7 +406,7 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
   );
 }
  
-  /// Build the UI for custom age-range pricing.
+
   Widget _buildCustomAgeRangePricing() {
     if (selectedService == null) return SizedBox.shrink();
     
@@ -412,7 +422,7 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
           ),
         ),
         SizedBox(height: 16),
-        // For each age range, build a set of fields.
+
         ...serviceAgeRanges[selectedService]!.asMap().entries.map((entry) {
           int index = entry.key;
           AgeRangePrice ageRange = entry.value;
@@ -432,7 +442,7 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
     );
   }
 
-  // Adds a new age range only if the current one is filled.
+
   void _addNewAgeRange(String service) {
     setState(() {
       final currentRanges = serviceAgeRanges[service] ?? [];
@@ -449,14 +459,14 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
     });
   }
 
-  // Checks if the current age range is fully filled.
+ 
   bool _isAgeRangeFilled(AgeRangePrice range) {
     return range.minAgeController.text.isNotEmpty &&
            range.maxAgeController.text.isNotEmpty &&
            range.priceController.text.isNotEmpty;
   }
 
-  // Removes an age range.
+
   void _removeAgeRange(String service, int index) {
     setState(() {
       serviceAgeRanges[service]![index].dispose();
@@ -464,12 +474,12 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
     });
   }
 
-  // Save data and navigate to the next screen.
+
   Future<void> _saveAndContinue() async {
     try {
       await _saveToHive();
       
-      // Update the account setup step
+  
       businessData!['accountSetupStep'] = 4;
       await appBox.put('businessData', businessData);
 
@@ -505,7 +515,7 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // For example, progress bar indicators.
+          
               Row(
                 children: List.generate(
                   8,
@@ -532,15 +542,14 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
               ),
               SizedBox(height: 24),
 
-              // Display service chips based on the selected services.
+         
               _buildServiceChips(services),
               SizedBox(height: 32),
 
-              // Duration and price fields.
+
               _buildDurationAndPriceFields(),
               SizedBox(height: 32),
 
-              // Audience type selection.
               Text(
                 'Select the Audience type of pricing',
                 style: TextStyle(
@@ -574,7 +583,7 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
                 contentPadding: EdgeInsets.zero,
                 activeColor: Color(0xFF23461a),
               ),
-              // If "Customize" is selected, display the custom age-range pricing UI.
+
               if (selectedAudienceType == 'Customize' && selectedService != null) 
                 Column(
                   children: [

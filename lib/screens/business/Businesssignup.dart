@@ -44,7 +44,7 @@ class _BusinesssignupState extends State<Businesssignup> {
 
    Future<void> _signInWithGoogle(BuildContext context) async {
   try {
-    // Show loading indicator
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -53,7 +53,6 @@ class _BusinesssignupState extends State<Businesssignup> {
       },
     );
 
-    // Initialize Google Sign In
     final GoogleSignIn googleSignIn = GoogleSignIn(
       scopes: [
         'email',
@@ -61,16 +60,16 @@ class _BusinesssignupState extends State<Businesssignup> {
       ],
     );
 
-    // Sign out first to make sure we get the account picker
+
     await googleSignIn.signOut();
     
-    // Trigger the authentication flow
+  
     print('Starting Google Sign In...');
     final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
     
-    // Check if user canceled the sign in
+
     if (googleUser == null) {
-      Navigator.pop(context); // Remove loading indicator
+      Navigator.pop(context);
       print('User canceled the sign-in flow');
       return;
     }
@@ -78,42 +77,42 @@ class _BusinesssignupState extends State<Businesssignup> {
     print('Got Google User: ${googleUser.email}');
 
     try {
-      // Get auth details
+
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       print('Got Google Auth');
 
-      // Create Firebase credential
+     
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
       print('Created Firebase credential');
 
-      // Check if email already exists in businesses collection
+
       final QuerySnapshot emailCheck = await _firestore
           .collection('businesses')
           .where('work_email', isEqualTo: googleUser.email)
           .get();
 
       if (emailCheck.docs.isNotEmpty) {
-        Navigator.pop(context); // Remove loading indicator
+        Navigator.pop(context); 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("An account with this email already exists")),
         );
         return;
       }
 
-      // Sign in with Firebase
+
       print('Signing in with Firebase...');
       final UserCredential userCredential = await _auth.signInWithCredential(credential);
       print('Firebase sign in successful');
 
-      // Get Hive box
+    
       try {
         final appBox = Hive.box('appBox');
         print('Successfully opened Hive box');
         
-        // Store user data in Hive
+     
         await appBox.put('userId', userCredential.user?.uid);
         print('Stored userId in Hive: ${userCredential.user?.uid}');
         
@@ -129,7 +128,7 @@ class _BusinesssignupState extends State<Businesssignup> {
         await appBox.put('isBusinessAccount', true);
         print('Stored isBusinessAccount in Hive: true');
         
-        // Store initial business data
+       
         final businessData = {
           'userId': userCredential.user?.uid,
           'email': googleUser.email,
@@ -140,7 +139,7 @@ class _BusinesssignupState extends State<Businesssignup> {
         await appBox.put('businessData', businessData);
         print('Stored businessData in Hive: $businessData');
 
-        // Verify the data was stored
+      
         print('\nVerifying stored data:');
         print('userId from Hive: ${appBox.get('userId')}');
         print('userEmail from Hive: ${appBox.get('userEmail')}');
@@ -154,10 +153,10 @@ class _BusinesssignupState extends State<Businesssignup> {
         throw Exception('Failed to store user data: $e');
       }
 
-      // Remove loading indicator
+
       Navigator.pop(context);
 
-      // Navigate to business account creation
+
       print('Navigating to BusinessAccountCreation...');
       await Navigator.push(
         context,
@@ -167,13 +166,13 @@ class _BusinesssignupState extends State<Businesssignup> {
       );
 
     } catch (e) {
-      Navigator.pop(context); // Remove loading indicator
+      Navigator.pop(context); 
       print('Error during authentication: $e');
       throw e;
     }
 
   } on FirebaseAuthException catch (e) {
-    // Remove loading indicator if it's showing
+   
     if (Navigator.canPop(context)) {
       Navigator.pop(context);
     }
@@ -191,7 +190,7 @@ class _BusinesssignupState extends State<Businesssignup> {
       SnackBar(content: Text(errorMessage)),
     );
   } catch (e) {
-    // Remove loading indicator if it's showing
+
     if (Navigator.canPop(context)) {
       Navigator.pop(context);
     }
@@ -536,14 +535,14 @@ class _VerificationPageState extends State<VerificationPage> {
           'updated_at': FieldValue.serverTimestamp()
         };
 
-        // Create the business profile
+     
         final DocumentReference docRef = await _firestore
             .collection('businesses')
             .add(businessData);
             
        
 
-        // Create initial analytics document
+
         await _firestore
             .collection('businesses')
             .doc(docRef.id)

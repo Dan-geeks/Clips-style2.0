@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'Businessdetails.dart';
+import 'FinalBusinessProfile.dart';
 
 
 class OpeningHoursScreen extends StatefulWidget {
@@ -36,7 +37,7 @@ class _OpeningHoursScreenState extends State<OpeningHoursScreen> {
     appBox = Hive.box('appBox');
     businessData = appBox.get('businessData') ?? {};
 
-    // Load existing operating hours if available
+
     if (businessData.containsKey('operatingHours')) {
       Map<String, dynamic> existingHours = Map<String, dynamic>.from(businessData['operatingHours']);
       
@@ -57,15 +58,8 @@ class _OpeningHoursScreenState extends State<OpeningHoursScreen> {
       }
     }
 
-    // Check if profile is complete and redirect if needed
-    if (businessData['isProfileSetupComplete'] == true) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const OpeningHoursScreen()),
-        );
-      });
-    }
+ 
+  
   }
 
   Map<String, Map<String, dynamic>> formatOperatingHours() {
@@ -107,7 +101,7 @@ class _OpeningHoursScreenState extends State<OpeningHoursScreen> {
           selectedTimes[index] = '${startTime.format(context)} - ${endTime.format(context)}';
         });
         
-        // Update operating hours in Hive
+
         final updatedHours = formatOperatingHours();
         businessData['operatingHours'] = updatedHours;
         await appBox.put('businessData', businessData);
@@ -115,34 +109,7 @@ class _OpeningHoursScreenState extends State<OpeningHoursScreen> {
     }
   }
 
-  Future<void> handleNavigation() async {
-    if (!selectedDays.contains(true)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one operating day'),
-        ),
-      );
-      return;
-    }
-
-    // Save operating hours
-    final operatingHours = formatOperatingHours();
-    businessData['operatingHours'] = operatingHours;
-    await appBox.put('businessData', businessData);
-
-    // Navigate based on profile completion status
-    if (businessData['isProfileSetupComplete'] == true) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileSetupScreen()),
-      );
-    } else {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfileSetupScreen()),
-      );
-    }
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +160,7 @@ class _OpeningHoursScreenState extends State<OpeningHoursScreen> {
                           setState(() {
                             selectedDays[index] = value!;
                           });
-                          // Update Hive when checkbox changes
+                
                           businessData['operatingHours'] = formatOperatingHours();
                           await appBox.put('businessData', businessData);
                         },
@@ -243,7 +210,9 @@ class _OpeningHoursScreenState extends State<OpeningHoursScreen> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
-              onPressed: handleNavigation,
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileSetupScreen()));
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF23461a),
                 minimumSize: const Size(double.infinity, 48),

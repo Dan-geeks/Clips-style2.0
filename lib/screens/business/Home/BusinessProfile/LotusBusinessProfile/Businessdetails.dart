@@ -32,7 +32,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       appBox = Hive.box('appBox');
       businessData = appBox.get('businessData') ?? {};
       
-      // Get document ID from stored data
+    
       _documentId = businessData['userId'];
       
       if (_documentId == null) {
@@ -48,7 +48,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         return;
       }
 
-      // Set initial about text if available
       if (businessData['aboutUs'] != null) {
         setState(() {
           _aboutController.text = businessData['aboutUs'];
@@ -80,7 +79,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       TaskSnapshot taskSnapshot = await uploadTask;
       String downloadURL = await taskSnapshot.ref.getDownloadURL();
 
-      // Update the business data
+   
       businessData['profileImageUrl'] = downloadURL;
       await appBox.put('businessData', businessData);
 
@@ -106,14 +105,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     }
 
     try {
-      // Update business data with new values
+  
       businessData['aboutUs'] = _aboutController.text;
       businessData['isProfileSetupComplete'] = true;
       
-      // Save to Hive
+
       await appBox.put('businessData', businessData);
 
-      // Upload to Firestore
+
       await FirebaseFirestore.instance
           .collection('businesses')
           .doc(_documentId)

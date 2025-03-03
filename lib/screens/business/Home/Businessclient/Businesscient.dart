@@ -22,7 +22,7 @@ class _BusinessClientState extends State<BusinessClient> {
   bool _isLoading = true;
   int _selectedIndex = 2;
   
-  // Firestore listener subscription
+
   StreamSubscription<QuerySnapshot>? _clientsSubscription;
 
   @override
@@ -33,10 +33,10 @@ class _BusinessClientState extends State<BusinessClient> {
 
   Future<void> _initializeClientPage() async {
     try {
-      // Get the already opened box
+    
       appBox = Hive.box('appBox');
       
-      // Load initial data from Hive
+
       final hiveCachedData = appBox.get('currentClients');
       if (hiveCachedData != null) {
         setState(() {
@@ -45,7 +45,7 @@ class _BusinessClientState extends State<BusinessClient> {
         });
       }
       
-      // Start Firestore listener
+
       _startFirestoreListener();
       
       setState(() => _isLoading = false);
@@ -79,8 +79,7 @@ class _BusinessClientState extends State<BusinessClient> {
             ...Map<String, dynamic>.from(doc.data()),
           });
         }
-        
-        // Save to Hive
+     
         await appBox.put('currentClients', updatedClients);
         
         if (mounted) {
@@ -110,7 +109,7 @@ class _BusinessClientState extends State<BusinessClient> {
     setState(() {
       List<Map<String, dynamic>> tempClients = List.from(clients);
 
-      // Apply age filter
+     
       if (ageRange != null) {
         final ages = ageRange.replaceAll(RegExp(r'[^0-9-]'), '').split('-');
         if (ages.length == 2) {
@@ -123,14 +122,14 @@ class _BusinessClientState extends State<BusinessClient> {
         }
       }
 
-      // Apply gender filter
+
       if (gender != null) {
         tempClients = tempClients.where((client) => 
           client['gender']?.toString().toLowerCase() == gender.toLowerCase()
         ).toList();
       }
 
-      // Apply name sort
+      
       if (sortByName != null) {
         tempClients.sort((a, b) {
           final aName = a['name']?.toString() ?? '';
@@ -141,7 +140,7 @@ class _BusinessClientState extends State<BusinessClient> {
         });
       }
 
-      // Apply email sort
+
       if (sortByEmail != null) {
         tempClients.sort((a, b) {
           final aEmail = a['email']?.toString() ?? '';

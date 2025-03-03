@@ -10,17 +10,17 @@ class SaleDetailsPage extends StatelessWidget {
     required this.saleData,
   }) : super(key: key);
 
-  // Format date helper function
+
   String formatDate(DateTime date) {
     return DateFormat('MMM d, yyyy').format(date);
   }
 
-  // Format time helper function
+
   String formatTime(DateTime date) {
     return DateFormat('HH:mm').format(date);
   }
 
-  // Get status color helper function
+
   Color getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'completed':
@@ -42,14 +42,14 @@ class SaleDetailsPage extends StatelessWidget {
     }
   }
 
-  // Launch URL helper function
+
   Future<void> _launchUrl(String url) async {
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url));
     }
   }
 
-  // Contact actions
+  
   void handleEmail(BuildContext context, String email) {
     _launchUrl('mailto:$email');
   }
@@ -92,7 +92,7 @@ class SaleDetailsPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Status Badge
+          
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -110,7 +110,7 @@ class SaleDetailsPage extends StatelessWidget {
               ),
               SizedBox(height: 12),
 
-              // Title and Date
+          
               Text(
                 'Sale',
                 style: TextStyle(
@@ -128,7 +128,7 @@ class SaleDetailsPage extends StatelessWidget {
               
               SizedBox(height: 24),
               
-              // Details Section
+
               Text(
                 'Details',
                 style: TextStyle(
@@ -138,7 +138,7 @@ class SaleDetailsPage extends StatelessWidget {
               ),
               SizedBox(height: 12),
 
-              // Client Info Card
+              
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -224,7 +224,7 @@ class SaleDetailsPage extends StatelessWidget {
 
               SizedBox(height: 12),
 
-              // Contact Buttons
+ 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -250,7 +250,7 @@ class SaleDetailsPage extends StatelessWidget {
 
               SizedBox(height: 24),
 
-              // Sale Details Card
+           
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -346,7 +346,7 @@ class SaleDetailsPage extends StatelessWidget {
 
               SizedBox(height: 16),
 
-              // Staff Member
+        
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(

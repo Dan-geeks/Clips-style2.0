@@ -44,21 +44,20 @@ class _BusinessLocationState extends State<BusinessLocation> {
 
   Future<void> _handleNavigationBasedOnAddress(BuildContext context) async {
     try {
-      // Save the business location preference
+
       businessData!['hasBusinessLocation'] = _hasBusinessAddress;
-      
-      // If they don't have a business address, clear any existing location data
+
       if (!_hasBusinessAddress) {
         businessData!['latitude'] = null;
         businessData!['longitude'] = null;
         businessData!['address'] = null;
       }
       
-      // Update account setup step
+
       businessData!['accountSetupStep'] = 7;
       await appBox.put('businessData', businessData);
 
-      // Navigate based on selection
+
       Navigator.push(
         context,
         MaterialPageRoute(
