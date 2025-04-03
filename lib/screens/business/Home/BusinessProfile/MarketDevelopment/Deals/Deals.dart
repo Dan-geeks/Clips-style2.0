@@ -6,7 +6,10 @@ import 'PromotionDiscunts.dart';
 import 'Flashsales.dart';
 import 'Lastminuteoffer.dart';
 import 'Packages.dart';
+
 class BusinessDealsMain extends StatefulWidget {
+  const BusinessDealsMain({super.key});
+
   @override
   _BusinessDealsMainState createState() => _BusinessDealsMainState();
 }
@@ -24,10 +27,8 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
 
   Future<void> _initializeDeals() async {
     try {
-
       appBox = Hive.box('appBox');
       
-
       final List<Map<String, String>> defaultDealOptions = [
         {
           'title': 'Promotion Discounts',
@@ -47,15 +48,14 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
         },
       ];
 
-
-      final savedDeals = appBox.get('dealOptions');
+      // Fixed: Get saved deals and handle type casting properly
+      final dynamic savedDeals = appBox.get('dealOptions');
       
       if (savedDeals == null) {
-
+        // First time setup - use defaults
         dealOptions = defaultDealOptions;
         await appBox.put('dealOptions', defaultDealOptions);
         
-
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           await FirebaseFirestore.instance
@@ -67,13 +67,39 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
               }, SetOptions(merge: true));
         }
       } else {
-
-        dealOptions = List<Map<String, String>>.from(
-          savedDeals.map((deal) => Map<String, String>.from(deal))
-        );
+        // Handle data from Hive with improved type casting
+        dealOptions = [];
+        
+        if (savedDeals is List) {
+          for (var deal in savedDeals) {
+            if (deal is Map) {
+              // Create a fresh Map<String, String> for each deal
+              final Map<String, String> typedDeal = {};
+              
+              // Carefully convert each key-value pair
+              deal.forEach((dynamic key, dynamic value) {
+                if (key != null && value != null) {
+                  final String stringKey = key.toString();
+                  final String stringValue = value.toString();
+                  typedDeal[stringKey] = stringValue;
+                }
+              });
+              
+              if (typedDeal.containsKey('title') && typedDeal.containsKey('description')) {
+                dealOptions.add(typedDeal);
+              }
+            }
+          }
+        }
+        
+        // If we couldn't extract any properly formatted deals, use defaults
+        if (dealOptions.isEmpty) {
+          dealOptions = defaultDealOptions;
+          await appBox.put('dealOptions', defaultDealOptions);
+        }
       }
 
-
+      // Sync with Firestore
       _syncWithFirestore();
 
       setState(() {
@@ -81,9 +107,33 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
       });
     } catch (e) {
       print('Error initializing deals: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading deals: $e'))
-      );
+      // Show an error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading deals: $e'))
+        );
+      }
+      
+      // Set default options even on error to prevent UI issues
+      dealOptions = [
+        {
+          'title': 'Promotion Discounts',
+          'description': 'Delight your clients and boost loyalty with discounts',
+        },
+        {
+          'title': 'Flash sales',
+          'description': 'Limited-time discounts that create urgency',
+        },
+        {
+          'title': 'Last-minute offer',
+          'description': 'Fill empty slots with last-minute offers',
+        },
+        {
+          'title': 'Packages',
+          'description': 'Bundle services for greater value',
+        },
+      ];
+      
       setState(() {
         _isLoading = false;
       });
@@ -95,14 +145,25 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-
       final businessDoc = FirebaseFirestore.instance
           .collection('businesses')
           .doc(user.uid);
 
+      // Make sure we have properly typed data before saving to Firestore
+      List<Map<String, String>> cleanDealOptions = [];
+      
+      for (var deal in dealOptions) {
+        // Create a clean Map<String, String> to ensure type safety
+        Map<String, String> cleanDeal = {
+          'title': deal['title'] ?? '',
+          'description': deal['description'] ?? '',
+        };
+        
+        cleanDealOptions.add(cleanDeal);
+      }
 
       await businessDoc.set({
-        'dealOptions': dealOptions,
+        'dealOptions': cleanDealOptions,
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -112,15 +173,37 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
         final data = snapshot.data();
         if (data != null && data['dealOptions'] != null) {
           final List<dynamic> firestoreDeals = data['dealOptions'];
-          dealOptions = firestoreDeals.map((deal) => 
-            Map<String, String>.from(deal)
-          ).toList();
           
-
-          await appBox.put('dealOptions', dealOptions);
+          // Process the deals from Firestore with improved type handling
+          List<Map<String, String>> typedDeals = [];
           
-          if (mounted) {
-            setState(() {});
+          for (var deal in firestoreDeals) {
+            if (deal is Map) {
+              Map<String, String> typedDeal = {};
+              
+              deal.forEach((dynamic key, dynamic value) {
+                if (key != null && value != null) {
+                  String stringKey = key.toString();
+                  String stringValue = value.toString();
+                  typedDeal[stringKey] = stringValue;
+                }
+              });
+              
+              if (typedDeal.containsKey('title') && typedDeal.containsKey('description')) {
+                typedDeals.add(typedDeal);
+              }
+            }
+          }
+          
+          if (typedDeals.isNotEmpty) {
+            dealOptions = typedDeals;
+            
+            // Update Hive storage with properly typed data
+            await appBox.put('dealOptions', dealOptions);
+            
+            if (mounted) {
+              setState(() {});
+            }
           }
         }
       });
@@ -133,16 +216,16 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
     Widget destination;
     switch (index) {
       case 0:
-        destination = BusinessPromotionDiscount  ();
+        destination = BusinessPromotionDiscount();
         break;
       case 1:
-        destination = FlashSales ();
+        destination = FlashSales();
         break;
       case 2:
-        destination = LastMinuteOffer  ();
+        destination = LastMinuteOffer();
         break;
       case 3:
-        destination = Packages ();
+        destination = Packages();
         break;
       default:
         return;
@@ -155,7 +238,6 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
       );
       
       if (result != null) {
-       
         await _syncWithFirestore();
       }
       
@@ -168,7 +250,7 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.white,
         body: Center(child: CircularProgressIndicator()),
       );
@@ -180,10 +262,10 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Deals',
           style: TextStyle(
             color: Colors.black,
@@ -193,7 +275,7 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
         ),
       ),
       body: ListView.builder(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         itemCount: dealOptions.length,
         itemBuilder: (context, index) {
           final deal = dealOptions[index];
@@ -217,13 +299,13 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
                           children: [
                             Text(
                               deal['title'] ?? '',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               deal['description'] ?? '',
                               style: TextStyle(
@@ -235,7 +317,7 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
                           ],
                         ),
                       ),
-                      SizedBox(width: 16),
+                      const SizedBox(width: 16),
                       Icon(
                         Icons.arrow_forward_ios,
                         size: 16,
@@ -250,11 +332,5 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
         },
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    
-    super.dispose();
   }
 }

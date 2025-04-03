@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class BusinessAccountCreation extends StatefulWidget {
+  const BusinessAccountCreation({super.key});
+
   @override
   _BusinessAccountCreationState createState() => _BusinessAccountCreationState();
 }
@@ -95,11 +97,11 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('Error'),
-            content: Text('Failed to save business information. Please try again.'),
+            title: const Text('Error'),
+            content: const Text('Failed to save business information. Please try again.'),
             actions: [
               TextButton(
-                child: Text('OK'),
+                child: const Text('OK'),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -138,36 +140,36 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
                     (index) => Expanded(
                       child: Container(
                         height: 8,
-                        margin: EdgeInsets.symmetric(horizontal: 2),
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
-                          color: index == 0 ? Color(0xFF23461a) : Colors.grey[300],
+                          color: index == 0 ? const Color(0xFF23461a) : Colors.grey[300],
                           borderRadius: BorderRadius.circular(2.5),
                         ),
                       ),
                     ),
                   ),
                 ),
-                SizedBox(height: 26),
-                Text(
+                const SizedBox(height: 26),
+                const Text(
                   'Account setup',
                   style: TextStyle(fontSize: 32, fontWeight: FontWeight.w300),
                 ),
-                SizedBox(height: 30),
-                Text(
+                const SizedBox(height: 30),
+                const Text(
                   'Business name',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 8),
-                Text(
+                const SizedBox(height: 8),
+                const Text(
                   'This is the brand name your clients will see.',
                   style: TextStyle(color: Colors.black),
                 ),
-                SizedBox(height: 40),
-                Text(
+                const SizedBox(height: 40),
+                const Text(
                   'Business Name',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 30),
+                const SizedBox(height: 30),
                 TextFormField(
                   controller: _businessNameController,
                   decoration: InputDecoration(
@@ -184,12 +186,12 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
                   },
                   onSaved: (value) => _businessName = value ?? '',
                 ),
-                SizedBox(height: 30),
-                Text(
+                const SizedBox(height: 30),
+                const Text(
                   'Work email',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 30),
+                const SizedBox(height: 30),
                 TextFormField(
                   controller: _workEmailController,
                   decoration: InputDecoration(
@@ -209,10 +211,18 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
                   },
                   onSaved: (value) => _workEmail = value ?? '',
                 ),
-                SizedBox(height: 50),
+                const SizedBox(height: 50),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF23461a),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
+                    onPressed: _isLoading ? null : _saveToFirestoreAndNavigate,
                     child: _isLoading
                       ? CircularProgressIndicator(color: Colors.white)
                       : Text(
@@ -223,14 +233,6 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
                             color: Colors.white
                           ),
                         ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF23461a),
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    onPressed: _isLoading ? null : _saveToFirestoreAndNavigate,
                   ),
                 ),
               ],

@@ -1,0 +1,2 @@
+C:/Users/labco/OneDrive/Desktop/Dev/clipsstylesapp/clipsandstyles2/android/app/.cxx/Debug/706nn263/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/labco/OneDrive/Desktop/Dev/clipsstylesapp/clipsandstyles2/android/app/.cxx/Debug/706nn263/x86_64/CMakeFiles/rebuild_cache.dir

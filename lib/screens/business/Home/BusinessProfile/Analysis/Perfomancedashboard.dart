@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:dotted_border/dotted_border.dart'; 
+import 'package:dotted_border/dotted_border.dart';
 
 class _MiniChartPainter extends CustomPainter {
   @override
@@ -15,14 +15,11 @@ class _MiniChartPainter extends CustomPainter {
     const dashWidth = 5.0;
     const dashSpace = 5.0;
 
-
     final step = size.height / 4;
     for (int i = 0; i <= 4; i++) {
       final y = size.height - (step * i);
       double startX = 0;
-
       while (startX < size.width) {
-        
         canvas.drawLine(
           Offset(startX, y),
           Offset(startX + dashWidth, y),
@@ -33,13 +30,12 @@ class _MiniChartPainter extends CustomPainter {
     }
   }
 
-
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 class BusinessDashboardPerformance extends StatefulWidget {
-  const BusinessDashboardPerformance({Key? key}) : super(key: key);
+  const BusinessDashboardPerformance({super.key});
 
   @override
   State<BusinessDashboardPerformance> createState() =>
@@ -48,7 +44,6 @@ class BusinessDashboardPerformance extends StatefulWidget {
 
 class _BusinessDashboardPerformanceState
     extends State<BusinessDashboardPerformance> {
-
   double services = 0.0;
   double noShow = 0.0;
   double cancellation = 0.0;
@@ -56,29 +51,28 @@ class _BusinessDashboardPerformanceState
   double totalSales = 0.0;
   double averageSalesValue = 0.0;
   int appointments = 0;
+
+  
   double occupancyRate = 0.0;
   double returningClientRate = 0.0;
+
+ 
   int newCustomers = 0;
   int returningCustomers = 0;
-
 
   late DateTime startDate;
   late DateTime endDate;
 
-
   late Box appBox;
   bool _isLoadingHive = true;
-
 
   final currencyFormatter = NumberFormat.currency(symbol: 'KES ', decimalDigits: 2);
 
   @override
   void initState() {
     super.initState();
-
     endDate = DateTime.now();
     startDate = DateTime.now().subtract(const Duration(days: 1));
-
     _initHiveAndLoadData();
   }
 
@@ -102,6 +96,7 @@ class _BusinessDashboardPerformanceState
       totalSales = (perfMap['totalSales'] ?? 0.0).toDouble();
       averageSalesValue = (perfMap['averageSalesValue'] ?? 0.0).toDouble();
       appointments = (perfMap['appointments'] ?? 0).toInt();
+
       occupancyRate = (perfMap['occupancyRate'] ?? 0.0).toDouble();
       returningClientRate = (perfMap['returningClientRate'] ?? 0.0).toDouble();
       newCustomers = (perfMap['newCustomers'] ?? 0).toInt();
@@ -168,7 +163,6 @@ class _BusinessDashboardPerformanceState
     }
   }
 
-
   Widget _buildSalesChart() {
     final double chartMaxY = totalSales > 0 ? totalSales : 1000;
     return Container(
@@ -209,8 +203,12 @@ class _BusinessDashboardPerformanceState
                 ),
                 titlesData: FlTitlesData(
                   show: true,
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -316,14 +314,12 @@ class _BusinessDashboardPerformanceState
     );
   }
 
-
   Widget _buildAppointmentsCard() {
     final int totalAppts = appointments;
     final int noShowsCount = noShow.toInt();
     final int cancelledCount = cancellation.toInt();
-
-    final int completedAppts = 0;
-    final int notCompletedAppts = 0;
+    const int completedAppts = 0;
+    const int notCompletedAppts = 0;
 
     return DottedBorder(
       color: Colors.grey,
@@ -349,7 +345,6 @@ class _BusinessDashboardPerformanceState
               ),
             ),
             const SizedBox(height: 8),
-       
             SizedBox(
               height: 120,
               child: CustomPaint(
@@ -357,7 +352,6 @@ class _BusinessDashboardPerformanceState
               ),
             ),
             const SizedBox(height: 8),
-            
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 16,
@@ -420,11 +414,206 @@ class _BusinessDashboardPerformanceState
   }
 
 
+  Widget _buildOccupancyCard() {
+   
+    const String occRateText = '0 %';
+    const String workingHoursText = '0hr 0min';
+    const String unbookedHoursText = '0hr 0min';
+    const String bookedHoursText = '0hr 0min';
+
+    return DottedBorder(
+      color: Colors.grey,
+      strokeWidth: 1,
+      borderType: BorderType.RRect,
+      radius: const Radius.circular(12),
+      dashPattern: const [6, 3],
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Occupancy rate',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              occRateText,
+              style: const TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 120,
+              child: CustomPaint(
+                painter: _MiniChartPainter(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 16,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Text('17 Sep 2024'),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.lightBlue,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Text('16 Sep 2024'),
+                  ],
+                ),
+                const Text('(Comparison)'),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildOccupancyStatRow('Working hours', workingHoursText),
+            _buildOccupancyStatRow('Unbooked hours', unbookedHoursText),
+            _buildOccupancyStatRow('Booked hours', bookedHoursText),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOccupancyStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          Text(value),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildReturningClientRateCard() {
+
+    const String rateText = '0 %';
+    const int newCust = 0;
+    const int retCust = 0;
+
+    return DottedBorder(
+      color: Colors.grey,
+      strokeWidth: 1,
+      borderType: BorderType.RRect,
+      radius: const Radius.circular(12),
+      dashPattern: const [6, 3],
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Returning Client Rate',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              rateText,
+              style: const TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 120,
+              child: CustomPaint(
+                painter: _MiniChartPainter(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 16,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.blue,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Text('17 Sep 2024'),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.lightBlue,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Text('16 Sep 2024'),
+                  ],
+                ),
+                const Text('(Comparison)'),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildReturningClientStatRow('New customers', newCust),
+            _buildReturningClientStatRow('Returning Customers', retCust),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReturningClientStatRow(String label, int count) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label),
+          Text('$count'),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMainContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-
+        // Date pills
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -440,7 +629,7 @@ class _BusinessDashboardPerformanceState
         ),
         const SizedBox(height: 16),
 
- 
+        // Total Sales card
         _buildCard(
           'Total sales',
           Column(
@@ -456,8 +645,7 @@ class _BusinessDashboardPerformanceState
           ),
         ),
         const SizedBox(height: 16),
-
-
+ 
         _buildSalesChart(),
         const SizedBox(height: 16),
 
@@ -465,16 +653,16 @@ class _BusinessDashboardPerformanceState
         _buildAppointmentsCard(),
         const SizedBox(height: 16),
 
+        _buildOccupancyCard(),
+        const SizedBox(height: 16),
 
-        _buildCard(
-          'Customer Summary',
-          Column(
-            children: [
-              _buildSaleRow('New Customers', '$newCustomers'),
-              _buildSaleRow('Returning Customers', '$returningCustomers'),
-            ],
-          ),
-        ),
+
+        _buildReturningClientRateCard(),
+        const SizedBox(height: 16),
+
+      
+
+      
       ],
     );
   }
@@ -597,16 +785,7 @@ class _BusinessDashboardPerformanceState
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         child: _buildMainContent(),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-
-          _addSale(1000.0, 'service');
-          await _savePerformanceDataToHive();
-          setState(() {});
-        },
-        child: const Icon(Icons.add),
-      ),
+    
     );
   }
 }
- 

@@ -5,7 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
 
 class BusinessLocationScreen extends StatefulWidget {
-  const BusinessLocationScreen({Key? key}) : super(key: key);
+  const BusinessLocationScreen({super.key});
 
   @override
   State<BusinessLocationScreen> createState() => _BusinessLocationScreenState();
@@ -19,12 +19,12 @@ class _BusinessLocationScreenState extends State<BusinessLocationScreen> {
   Map<String, dynamic> businessData = {};
   
  
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   GoogleMapController? _mapController;
   
  
   String _address = '';
-  LatLng _selectedPosition = LatLng(-1.2921, 36.8219);
+  LatLng _selectedPosition = const LatLng(-1.2921, 36.8219);
   Set<Marker> _markers = {};
   String? _businessName;
 
@@ -99,7 +99,7 @@ class _BusinessLocationScreenState extends State<BusinessLocationScreen> {
       _selectedPosition = position;
       _markers = {
         Marker(
-          markerId: MarkerId('selected_location'),
+          markerId: const MarkerId('selected_location'),
           position: position,
           draggable: true,
           onDragEnd: (newPosition) => _updateSelectedLocation(newPosition),
@@ -273,33 +273,33 @@ class _BusinessLocationScreenState extends State<BusinessLocationScreen> {
                           onSubmitted: (_) => _searchLocation(),
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       ElevatedButton(
                         onPressed: _searchLocation,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF23461a),
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          backgroundColor: const Color(0xFF23461a),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         ),
-                        child: Text('Search'),
+                        child: const Text('Search'),
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
    
                   Container(
-                    padding: EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.grey[200],
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(_address),
                   ),
-                  SizedBox(height: 16),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     'Move the pin to the right location',
                     style: TextStyle(fontSize: 16),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
        
                   Expanded(
                     child: ClipRRect(
@@ -317,7 +317,7 @@ class _BusinessLocationScreenState extends State<BusinessLocationScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
      
                   SizedBox(
                     width: double.infinity,
@@ -325,13 +325,13 @@ class _BusinessLocationScreenState extends State<BusinessLocationScreen> {
                     child: ElevatedButton(
                       onPressed: _isSaving ? null : _saveLocation,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF23461a),
+                        backgroundColor: const Color(0xFF23461a),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                       child: _isSaving
-                          ? SizedBox(
+                          ? const SizedBox(
                               height: 20,
                               width: 20,
                               child: CircularProgressIndicator(
@@ -339,7 +339,7 @@ class _BusinessLocationScreenState extends State<BusinessLocationScreen> {
                                 strokeWidth: 2,
                               ),
                             )
-                          : Text(
+                          : const Text(
                               'Save Location',
                               style: TextStyle(
                                 fontSize: 16,

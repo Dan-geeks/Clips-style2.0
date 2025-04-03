@@ -6,6 +6,8 @@ import 'package:hive/hive.dart';
 
 
 class FlashSales extends StatefulWidget {
+  const FlashSales({super.key});
+
   @override
   _FlashSalesState createState() => _FlashSalesState();
 }
@@ -95,17 +97,17 @@ class _FlashSalesState extends State<FlashSales> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Select Services'),
-              SizedBox(height: 8),
+              const Text('Select Services'),
+              const SizedBox(height: 8),
               TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Search services...',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                 ),
                 onChanged: (value) {
                   setDialogState(() {
@@ -115,7 +117,7 @@ class _FlashSalesState extends State<FlashSales> {
               ),
             ],
           ),
-          content: Container(
+          content: SizedBox(
             width: double.maxFinite,
             height: MediaQuery.of(context).size.height * 0.4,
             child: ListView.builder(
@@ -129,7 +131,7 @@ class _FlashSalesState extends State<FlashSales> {
                 return CheckboxListTile(
                   title: Text(
                     service,
-                    style: TextStyle(fontSize: 15),
+                    style: const TextStyle(fontSize: 15),
                   ),
                   value: _selectedServices.contains(service),
                   onChanged: (bool? value) {
@@ -155,7 +157,7 @@ class _FlashSalesState extends State<FlashSales> {
                       });
                     });
                   },
-                  activeColor: Color(0xFF1B4332),
+                  activeColor: const Color(0xFF1B4332),
                 );
               },
             ),
@@ -163,7 +165,7 @@ class _FlashSalesState extends State<FlashSales> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -171,7 +173,7 @@ class _FlashSalesState extends State<FlashSales> {
                 _searchController.clear();
                 _searchQuery = '';
               },
-              child: Text(
+              child: const Text(
                 'Done',
                 style: TextStyle(color: Color(0xFF1B4332)),
               ),
@@ -187,7 +189,7 @@ class _FlashSalesState extends State<FlashSales> {
       context: context,
       initialDate: isStartDate ? _startDate : _endDate,
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
       setState(() {
@@ -334,10 +336,10 @@ class _FlashSalesState extends State<FlashSales> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Flash sales',
           style: TextStyle(
             color: Colors.black,
@@ -349,19 +351,19 @@ class _FlashSalesState extends State<FlashSales> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           children: [
-            Text(
+            const Text(
               'Customise Flash sale details',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-            Text('Flash sale name'),
-            SizedBox(height: 8),
+            const Text('Flash sale name'),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _flashSaleNameController,
               decoration: InputDecoration(
@@ -369,7 +371,7 @@ class _FlashSalesState extends State<FlashSales> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -379,16 +381,16 @@ class _FlashSalesState extends State<FlashSales> {
               },
             ),
 
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Description'),
+                const Text('Description'),
                 Text('${_descriptionController.text.length}/1000',
-                    style: TextStyle(color: Colors.grey)),
+                    style: const TextStyle(color: Colors.grey)),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _descriptionController,
               maxLines: 4,
@@ -403,20 +405,20 @@ class _FlashSalesState extends State<FlashSales> {
               },
             ),
 
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Apply promotion to'),
+                const Text('Apply promotion to'),
                 TextButton(
                   onPressed: () => _showServiceSelectionDialog(context, null),
-                  child: Text('Edit', style: TextStyle(color: Color(0xFF1B4332))),
+                  child: const Text('Edit', style: TextStyle(color: Color(0xFF1B4332))),
                 ),
               ],
             ),
             Container(
               width: double.infinity,
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
                 borderRadius: BorderRadius.circular(8),
@@ -424,13 +426,13 @@ class _FlashSalesState extends State<FlashSales> {
               child: Text(_selectedServices.join(', ')),
             ),
 
-            SizedBox(height: 16),
-            Text('Flash sale Start date'),
-            SizedBox(height: 8),
+            const SizedBox(height: 16),
+            const Text('Flash sale Start date'),
+            const SizedBox(height: 8),
             GestureDetector(
               onTap: () => _selectDate(context, true),
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(8),
@@ -439,21 +441,21 @@ class _FlashSalesState extends State<FlashSales> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(DateFormat('EEEE,dd MMM yyyy').format(_startDate)),
-                    Icon(Icons.keyboard_arrow_down),
+                    const Icon(Icons.keyboard_arrow_down),
                   ],
                 ),
               ),
             ),
 
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Discount Value'),
-                      SizedBox(height: 8),
+                      const Text('Discount Value'),
+                      const SizedBox(height: 8),
                       TextFormField(
                         controller: _discountValueController,
                         decoration: InputDecoration(
@@ -461,20 +463,20 @@ class _FlashSalesState extends State<FlashSales> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         ),
                         keyboardType: TextInputType.number,
                       ),
                     ],
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Discount code'),
-                      SizedBox(height: 8),
+                      const Text('Discount code'),
+                      const SizedBox(height: 8),
                       TextFormField(
                         controller: _discountCodeController,
                         decoration: InputDecoration(
@@ -482,7 +484,7 @@ class _FlashSalesState extends State<FlashSales> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         ),
                       ),
                     ],
@@ -494,19 +496,19 @@ class _FlashSalesState extends State<FlashSales> {
         ),
       ),
       bottomNavigationBar: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: ElevatedButton(
           onPressed: _isLoading ? null : () => _createFlashSale(context, null),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF1B4332),
-            padding: EdgeInsets.symmetric(vertical: 16),
+            backgroundColor: const Color(0xFF1B4332),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
             disabledBackgroundColor: Colors.grey[300],
           ),
           child: _isLoading
-              ? Row(
+              ? const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
@@ -528,7 +530,7 @@ class _FlashSalesState extends State<FlashSales> {
                     ),
                   ],
                 )
-              : Text(
+              : const Text(
                   'Create flash sale',
                   style: TextStyle(
                     color: Colors.white,

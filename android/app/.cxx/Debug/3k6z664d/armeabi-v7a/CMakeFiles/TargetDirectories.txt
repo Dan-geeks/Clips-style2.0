@@ -1,0 +1,2 @@
+C:/Users/labco/OneDrive/Desktop/Dev/clipsandstyles2/android/app/.cxx/Debug/3k6z664d/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/labco/OneDrive/Desktop/Dev/clipsandstyles2/android/app/.cxx/Debug/3k6z664d/armeabi-v7a/CMakeFiles/rebuild_cache.dir

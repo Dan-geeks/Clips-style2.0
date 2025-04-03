@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'Createmembership.dart';
 
 class MembershipPage extends StatefulWidget {
+  const MembershipPage({super.key});
+
   @override
   _MembershipPageState createState() => _MembershipPageState();
 }
@@ -96,12 +98,12 @@ class _MembershipPageState extends State<MembershipPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Text(
+        title: const Text(
           'Membership',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -114,15 +116,15 @@ class _MembershipPageState extends State<MembershipPage> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search by membership name',
-                prefixIcon: Icon(Icons.search),
-                suffixIcon: Icon(Icons.filter_list),
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: const Icon(Icons.filter_list),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
               onChanged: _filterMemberships,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
          
             Expanded(
               child: filteredMemberships.isNotEmpty
@@ -165,7 +167,7 @@ class _MembershipPageState extends State<MembershipPage> {
       ),
       title: Text(
         membership['name'],
-        style: TextStyle(fontWeight: FontWeight.bold),
+        style: const TextStyle(fontWeight: FontWeight.bold),
       ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,13 +176,13 @@ class _MembershipPageState extends State<MembershipPage> {
           Text('Services: ${membership['services']}'),
           Text(
             membership['tier'] ?? membership['type'] ?? '',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ],
       ),
       trailing: Text(
         priceText,
-        style: TextStyle(fontWeight: FontWeight.bold),
+        style: const TextStyle(fontWeight: FontWeight.bold),
       ),
     ),
   ),
@@ -188,9 +190,9 @@ class _MembershipPageState extends State<MembershipPage> {
 
                       },
                     )
-                  : Center(child: Text("No membership package")),
+                  : const Center(child: Text("No membership package")),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             ElevatedButton(
               onPressed: () {
@@ -201,12 +203,12 @@ class _MembershipPageState extends State<MembershipPage> {
                   ),
                 );
               },
-              child: Text('Add', style: TextStyle(fontSize: 16)),
               style: ElevatedButton.styleFrom(
-               backgroundColor: Color(0xFF23461a),
+               backgroundColor: const Color(0xFF23461a),
                 foregroundColor: Colors.white,
-                minimumSize: Size(double.infinity, 50),
+                minimumSize: const Size(double.infinity, 50),
               ),
+              child: Text('Add', style: TextStyle(fontSize: 16)),
             ),
           ],
         ),

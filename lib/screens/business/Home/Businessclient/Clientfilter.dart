@@ -5,9 +5,9 @@ class ClientFilterDialog extends StatefulWidget {
   final Function(Map<String, dynamic>) onApplyFilters;
 
   const ClientFilterDialog({
-    Key? key,
+    super.key,
     required this.onApplyFilters,
-  }) : super(key: key);
+  });
 
   @override
   _ClientFilterDialogState createState() => _ClientFilterDialogState();
@@ -72,9 +72,9 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
         if (label.isNotEmpty)
           Text(
             label,
-            style: TextStyle(color: Colors.black87),
+            style: const TextStyle(color: Colors.black87),
           ),
-        if (label.isNotEmpty) SizedBox(height: 8),
+        if (label.isNotEmpty) const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey[300]!),
@@ -84,8 +84,8 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              icon: Icon(Icons.keyboard_arrow_down),
-              padding: EdgeInsets.symmetric(horizontal: 12),
+              icon: const Icon(Icons.keyboard_arrow_down),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               items: items.map((String item) {
                 return DropdownMenuItem<String>(
                   value: item,
@@ -109,7 +109,7 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
       ),
       child: Container(
         color: Colors.white, 
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,7 +118,7 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                const Text(
                   'Filter',
                   style: TextStyle(
                     fontSize: 20,
@@ -126,16 +126,16 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.close),
+                  icon: const Icon(Icons.close),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
      
-            Text('Sort by'),
-            SizedBox(height: 8),
+            const Text('Sort by'),
+            const SizedBox(height: 8),
             _buildDropdown(
               label: '',
               value: sortByName,
@@ -146,11 +146,11 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
                 }
               },
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
 
-            Text('Sort by'),
-            SizedBox(height: 8),
+            const Text('Sort by'),
+            const SizedBox(height: 8),
             _buildDropdown(
               label: '',
               value: sortByEmail,
@@ -161,11 +161,11 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
                 }
               },
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
  
-            Text('Age'),
-            SizedBox(height: 8),
+            const Text('Age'),
+            const SizedBox(height: 8),
             _buildDropdown(
               label: '',
               value: ageRange,
@@ -176,11 +176,11 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
                 }
               },
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
         
-            Text('Gender'),
-            SizedBox(height: 8),
+            const Text('Gender'),
+            const SizedBox(height: 8),
             _buildDropdown(
               label: '',
               value: gender,
@@ -191,7 +191,7 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
                 }
               },
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
 
             
             Row(
@@ -202,15 +202,15 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
                       Navigator.pop(context);
                     },
                     style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text('Cancel'),
+                    child: const Text('Cancel'),
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () async {
@@ -218,14 +218,14 @@ class _ClientFilterDialogState extends State<ClientFilterDialog> {
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF23461A),
+                      backgroundColor: const Color(0xFF23461A),
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text('Apply'),
+                    child: const Text('Apply'),
                   ),
                 ),
               ],

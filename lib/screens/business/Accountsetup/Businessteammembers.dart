@@ -6,6 +6,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'BusinessLocation.dart';
 
 class TeamMembers extends StatefulWidget {
+  const TeamMembers({super.key});
+
   @override
   _TeamMembersState createState() => _TeamMembersState();
 }
@@ -244,7 +246,7 @@ class _TeamMembersState extends State<TeamMembers> {
     try {
       if (businessData?['userId'] == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Cannot upload image: Business profile not initialized'),
             backgroundColor: Colors.red,
           ),
@@ -266,7 +268,7 @@ class _TeamMembersState extends State<TeamMembers> {
           builder: (BuildContext context) {
             return Center(
               child: Container(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
@@ -275,11 +277,11 @@ class _TeamMembersState extends State<TeamMembers> {
                       color: Colors.black.withOpacity(0.1),
                       spreadRadius: 1,
                       blurRadius: 3,
-                      offset: Offset(0, 1),
+                      offset: const Offset(0, 1),
                     ),
                   ],
                 ),
-                child: Column(
+                child: const Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     CircularProgressIndicator(
@@ -315,10 +317,10 @@ class _TeamMembersState extends State<TeamMembers> {
           
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Team member image uploaded successfully!'),
+              content: const Text('Team member image uploaded successfully!'),
               backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
-              margin: EdgeInsets.all(16),
+              margin: const EdgeInsets.all(16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -336,7 +338,7 @@ class _TeamMembersState extends State<TeamMembers> {
           content: Text('Failed to upload team member image: ${e.toString()}'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(16),
+          margin: const EdgeInsets.all(16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
@@ -400,8 +402,8 @@ class _TeamMembersState extends State<TeamMembers> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (isSelected)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
+                        const Padding(
+                          padding: EdgeInsets.only(right: 8.0),
                           child: Icon(Icons.check, color: Colors.white, size: 16),
                         ),
                       Text(
@@ -433,7 +435,7 @@ class _TeamMembersState extends State<TeamMembers> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: _labelStyle),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           decoration: InputDecoration(
@@ -480,7 +482,7 @@ class _TeamMembersState extends State<TeamMembers> {
           child: GestureDetector(
             onTap: _pickAndUploadTeamMemberImage,
             child: Container(
-              padding: EdgeInsets.all(4),
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
@@ -490,11 +492,11 @@ class _TeamMembersState extends State<TeamMembers> {
                     color: Colors.black.withOpacity(0.1),
                     spreadRadius: 1,
                     blurRadius: 3,
-                    offset: Offset(0, 1),
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),
-              child: Icon(Icons.edit, size: 20, color: Colors.black),
+              child: const Icon(Icons.edit, size: 20, color: Colors.black),
             ),
           ),
         ),
@@ -506,7 +508,7 @@ class _TeamMembersState extends State<TeamMembers> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(category, style: TextStyle(fontWeight: FontWeight.bold)),
+        Text(category, style: const TextStyle(fontWeight: FontWeight.bold)),
         ...subServices.map(
           (subService) => CheckboxListTile(
             title: Text(subService),
@@ -523,7 +525,7 @@ class _TeamMembersState extends State<TeamMembers> {
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -531,13 +533,13 @@ class _TeamMembersState extends State<TeamMembers> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Account Setup'),
+        title: const Text('Account Setup'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -550,25 +552,25 @@ class _TeamMembersState extends State<TeamMembers> {
                     height: 8,
                     margin: EdgeInsets.only(right: index < 7 ? 8 : 0),
                     decoration: BoxDecoration(
-                      color: index < 5 ? Color(0xFF23461a) : Colors.grey[300],
+                      color: index < 5 ? const Color(0xFF23461a) : Colors.grey[300],
                       borderRadius: BorderRadius.circular(2.5),
                     ),
                   ),
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Team members', style: _headerStyle),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   _buildTeamMemberChips(),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   _buildProfilePicture(),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Row(
                     children: [
                       Expanded(
@@ -584,7 +586,7 @@ class _TeamMembersState extends State<TeamMembers> {
                           },
                         ),
                       ),
-                      SizedBox(width: 16),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: _buildTextInputField(
                           label: 'Last name',
@@ -600,7 +602,7 @@ class _TeamMembersState extends State<TeamMembers> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   _buildTextInputField(
                     label: 'Email',
                     controller: emailController,
@@ -616,9 +618,9 @@ class _TeamMembersState extends State<TeamMembers> {
                       return null;
                     },
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Text('Phone Number', style: _labelStyle),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Container(
@@ -628,9 +630,9 @@ class _TeamMembersState extends State<TeamMembers> {
                           border: Border.all(color: Colors.grey),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Center(child: Text('+254')),
+                        child: const Center(child: Text('+254')),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: TextFormField(
                           controller: phoneNumberController,
@@ -651,14 +653,14 @@ class _TeamMembersState extends State<TeamMembers> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 20),
-                  Text('Services', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 20),
+                  const Text('Services', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
                   
                   ...servicesByCategory.entries.map(
                     (entry) => _buildServiceSection(entry.key, entry.value),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () async {
                       if (_formKey.currentState!.validate()) {
@@ -675,13 +677,13 @@ class _TeamMembersState extends State<TeamMembers> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF1E4620),
-                      minimumSize: Size(double.infinity, 50),
+                      backgroundColor: const Color(0xFF1E4620),
+                      minimumSize: const Size(double.infinity, 50),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Continue',
                       style: TextStyle(
                         color: Colors.white, 
@@ -690,7 +692,7 @@ class _TeamMembersState extends State<TeamMembers> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),

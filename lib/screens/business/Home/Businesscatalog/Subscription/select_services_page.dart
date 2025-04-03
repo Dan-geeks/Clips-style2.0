@@ -4,8 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 class SelectServicesPage extends StatefulWidget {
   final List<String> selectedServices;
 
-  const SelectServicesPage({Key? key, required this.selectedServices})
-      : super(key: key);
+  const SelectServicesPage({super.key, required this.selectedServices});
 
   @override
   _SelectServicesPageState createState() => _SelectServicesPageState();
@@ -121,14 +120,14 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
 
     categorizedServices.forEach((category, services) {
       if (selectedCategory == 'All categories' || selectedCategory == category) {
-        services.forEach((service) {
+        for (var service in services) {
           if (service['name']
               .toString()
               .toLowerCase()
               .contains(searchQuery.toLowerCase())) {
             filteredServices.add({...service, 'category': category});
           }
-        });
+        }
       }
     });
 
@@ -139,20 +138,20 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
   Widget build(BuildContext context) {
 
     List<String> categoryFilterList =
-        ['All categories', ...categorizedServices.keys.toList()];
+        ['All categories', ...categorizedServices.keys];
     List<Map<String, dynamic>> filteredServices = getFilteredServices();
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
 
             Navigator.pop(context, localSelectedServices);
           },
         ),
-        title: Text(
+        title: const Text(
           'Select Services',
           style: TextStyle(color: Colors.black, fontSize: 18),
         ),
@@ -173,10 +172,10 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
               },
               decoration: InputDecoration(
                 hintText: 'Search Service',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide(color: Colors.grey),
+                  borderSide: const BorderSide(color: Colors.grey),
                 ),
                 filled: true,
                 fillColor: Colors.grey[100],
@@ -186,7 +185,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
 
           Container(
             height: 40,
-            margin: EdgeInsets.symmetric(horizontal: 16),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: categoryFilterList.length,
@@ -194,7 +193,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
                 final category = categoryFilterList[index];
                 final isSelected = selectedCategory == category;
                 return Padding(
-                  padding: EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: 8),
                   child: FilterChip(
                     label: Text(
                       category,
@@ -218,20 +217,20 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
      
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               itemCount: filteredServices.length,
               itemBuilder: (context, index) {
                 final service = filteredServices[index];
                 final serviceName = service['name'].toString();
                 return Container(
-                  margin: EdgeInsets.only(bottom: 12),
+                  margin: const EdgeInsets.only(bottom: 12),
                   child: Row(
                     children: [
          
                       Container(
                         width: 24,
                         height: 24,
-                        margin: EdgeInsets.only(right: 12),
+                        margin: const EdgeInsets.only(right: 12),
                         child: Checkbox(
                           value: localSelectedServices.contains(serviceName),
                           onChanged: (bool? value) {
@@ -260,7 +259,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
                                 Container(
                                   width: 3,
                                   height: 40,
-                                  margin: EdgeInsets.only(right: 8),
+                                  margin: const EdgeInsets.only(right: 8),
                                   color: Colors.red,
                                 ),
                                 Expanded(
@@ -269,7 +268,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
                                     children: [
                                       Text(
                                         serviceName,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -286,7 +285,7 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
                                 ),
                                 Text(
                                   service['price'] ?? 'KES 150',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -304,24 +303,24 @@ class _SelectServicesPageState extends State<SelectServicesPage> {
           ),
   
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: ElevatedButton(
               onPressed: () {
                 Navigator.pop(context, localSelectedServices);
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF23461A),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
               child: Text(
                 'Select',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF23461A),
-                foregroundColor: Colors.white,
-                minimumSize: Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
             ),

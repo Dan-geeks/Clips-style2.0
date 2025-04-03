@@ -7,7 +7,7 @@ import './Reviews/Reviews.dart';
 
 
 class MarketDevelopmentScreen extends StatelessWidget {
-  const MarketDevelopmentScreen({Key? key}) : super(key: key);
+  const MarketDevelopmentScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +54,7 @@ class MarketDevelopmentScreen extends StatelessWidget {
                   _buildListItem('Deals', onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) =>   BusinessDealsNav ()),
+                      MaterialPageRoute(builder: (context) =>   const BusinessDealsNav ()),
                     );
                   }),
                   const SizedBox(height: 12.0),

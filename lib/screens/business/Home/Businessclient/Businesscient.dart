@@ -10,6 +10,8 @@ import '../BusinessProfile/BusinessProfile.dart';
 import 'dart:async';
 
 class BusinessClient extends StatefulWidget {
+  const BusinessClient({super.key});
+
   @override
   _BusinessClientState createState() => _BusinessClientState();
 }
@@ -175,7 +177,7 @@ class _BusinessClientState extends State<BusinessClient> {
 
   Widget _buildClientItem(Map<String, dynamic> client) {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
       ),
@@ -184,26 +186,26 @@ class _BusinessClientState extends State<BusinessClient> {
           backgroundImage: client['profileImageUrl'] != null
               ? NetworkImage(client['profileImageUrl'])
               : null,
+          radius: 25,
           child: client['profileImageUrl'] == null
               ? Text(
                   client['name']?.substring(0, 1).toUpperCase() ?? 'C',
                   style: TextStyle(color: Colors.white),
                 )
               : null,
-          radius: 25,
         ),
         title: Text(
           client['name'] ?? 'No Name',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(client['email'] ?? 'No Email', style: TextStyle(fontSize: 12)),
-            Text(client['phone'] ?? 'No Phone', style: TextStyle(fontSize: 12)),
+            Text(client['email'] ?? 'No Email', style: const TextStyle(fontSize: 12)),
+            Text(client['phone'] ?? 'No Phone', style: const TextStyle(fontSize: 12)),
           ],
         ),
-        contentPadding: EdgeInsets.symmetric(vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
       ),
     );
   }
@@ -228,7 +230,7 @@ class _BusinessClientState extends State<BusinessClient> {
     if (index == 3) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => BusinessProfile()),
+        MaterialPageRoute(builder: (context) => const BusinessProfile()),
       );
     }
   }
@@ -239,25 +241,25 @@ class _BusinessClientState extends State<BusinessClient> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text('Clients List', style: TextStyle(color: Colors.black)),
+        title: const Text('Clients List', style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
       ),
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
               onChanged: _filterClients,
               decoration: InputDecoration(
                 hintText: 'Search by name, email or number',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search),
                 suffixIcon: IconButton(
-                  icon: Icon(Icons.tune_outlined),
+                  icon: const Icon(Icons.tune_outlined),
                   onPressed: () {
                     showDialog(
                       context: context,
@@ -280,7 +282,7 @@ class _BusinessClientState extends State<BusinessClient> {
           ),
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : filteredClients.isEmpty
                     ? Center(
                         child: Text(
@@ -299,8 +301,8 @@ class _BusinessClientState extends State<BusinessClient> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Color.fromARGB(255, 0, 0, 0),
-        items: <BottomNavigationBarItem>[
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today),
             label: '',

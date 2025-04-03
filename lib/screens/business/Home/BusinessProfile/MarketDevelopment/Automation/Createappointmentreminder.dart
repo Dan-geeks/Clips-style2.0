@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class AppointmentReminderSetup extends StatefulWidget {
-  const AppointmentReminderSetup({Key? key}) : super(key: key);
+  const AppointmentReminderSetup({super.key});
 
   @override
   State<AppointmentReminderSetup> createState() => _AppointmentReminderSetupState();

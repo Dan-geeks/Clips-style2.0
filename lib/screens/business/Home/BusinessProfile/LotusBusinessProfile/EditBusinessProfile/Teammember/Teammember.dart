@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class StaffMembersScreen extends StatefulWidget {
+  const StaffMembersScreen({super.key});
+
   @override
   _StaffMembersScreenState createState() => _StaffMembersScreenState();
 }
@@ -72,17 +74,17 @@ class _StaffMembersScreenState extends State<StaffMembersScreen> {
   void _showMemberOptions(Map<String, dynamic> member, int index) {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
       ),
       builder: (context) => Container(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.person_add, color: Colors.green),
-              title: Text('Add Staff Member',
+              leading: const Icon(Icons.person_add, color: Colors.green),
+              title: const Text('Add Staff Member',
                   style: TextStyle(color: Colors.green)),
               onTap: () async {
                 Navigator.pop(context);
@@ -90,8 +92,8 @@ class _StaffMembersScreenState extends State<StaffMembersScreen> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete, color: Colors.red),
-              title: Text('Remove Staff Member',
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('Remove Staff Member',
                   style: TextStyle(color: Colors.red)),
               onTap: () async {
                 Navigator.pop(context);
@@ -130,7 +132,7 @@ class _StaffMembersScreenState extends State<StaffMembersScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Staff member removed successfully')),
+          const SnackBar(content: Text('Staff member removed successfully')),
         );
       }
     } catch (e) {
@@ -180,7 +182,7 @@ class _StaffMembersScreenState extends State<StaffMembersScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Staff member added successfully!')),
+        const SnackBar(content: Text('Staff member added successfully!')),
       );
     }
   }
@@ -204,7 +206,7 @@ class _StaffMembersScreenState extends State<StaffMembersScreen> {
         }, SetOptions(merge: true));
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Staff members saved successfully!')),
+        const SnackBar(content: Text('Staff members saved successfully!')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -249,18 +251,18 @@ class _StaffMembersScreenState extends State<StaffMembersScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search Staff Member',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide(color: Colors.grey),
+                  borderSide: const BorderSide(color: Colors.grey),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide(color: Colors.grey),
+                  borderSide: const BorderSide(color: Colors.grey),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide(color: Colors.grey),
+                  borderSide: const BorderSide(color: Colors.grey),
                 ),
                 filled: true,
                 fillColor: Colors.grey[50],
@@ -270,10 +272,10 @@ class _StaffMembersScreenState extends State<StaffMembersScreen> {
      
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : ListView.separated(
                     itemCount: filteredMembers.length,
-                    separatorBuilder: (context, index) => Divider(height: 1),
+                    separatorBuilder: (context, index) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final member = filteredMembers[index];
                       return ListTile(
@@ -284,16 +286,16 @@ class _StaffMembersScreenState extends State<StaffMembersScreen> {
                           child: member['profileImageUrl'] == null
                               ? Text(
                                   '${member['firstName'][0]}${member['lastName'][0]}',
-                                  style: TextStyle(color: Colors.black),
+                                  style: const TextStyle(color: Colors.black),
                                 )
                               : null,
                         ),
                         title: Text(
                           '${member['firstName']} ${member['lastName']}',
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                          style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                         trailing: IconButton(
-                          icon: Icon(Icons.more_vert),
+                          icon: const Icon(Icons.more_vert),
                           onPressed: () => _showMemberOptions(member, index),
                         ),
                       );
@@ -307,14 +309,14 @@ class _StaffMembersScreenState extends State<StaffMembersScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF23461a),
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: const Color(0xFF23461a),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 onPressed: _isSaving ? null : _saveTeamMembers,
-                child: Text(
+                child: const Text(
                   'Save',
                   style: TextStyle(
                     fontSize: 16,
@@ -338,6 +340,8 @@ class _StaffMembersScreenState extends State<StaffMembersScreen> {
 
 
 class StaffMemberFormScreen extends StatefulWidget {
+  const StaffMemberFormScreen({super.key});
+
   @override
   _StaffMemberFormScreenState createState() => _StaffMemberFormScreenState();
 }
@@ -450,7 +454,7 @@ class _StaffMemberFormScreenState extends State<StaffMemberFormScreen> {
           child: GestureDetector(
             onTap: _pickAndUploadImage,
             child: Container(
-              padding: EdgeInsets.all(4),
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
@@ -460,11 +464,11 @@ class _StaffMemberFormScreenState extends State<StaffMemberFormScreen> {
                     color: Colors.black.withOpacity(0.1),
                     spreadRadius: 1,
                     blurRadius: 3,
-                    offset: Offset(0, 1),
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),
-              child: Icon(Icons.edit, size: 20, color: Colors.black),
+              child: const Icon(Icons.edit, size: 20, color: Colors.black),
             ),
           ),
         ),
@@ -472,7 +476,7 @@ class _StaffMemberFormScreenState extends State<StaffMemberFormScreen> {
           Positioned.fill(
             child: Container(
               color: Colors.black.withOpacity(0.3),
-              child: Center(
+              child: const Center(
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
@@ -494,8 +498,8 @@ class _StaffMemberFormScreenState extends State<StaffMemberFormScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        SizedBox(height: 8),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           decoration: InputDecoration(
@@ -515,19 +519,19 @@ class _StaffMemberFormScreenState extends State<StaffMemberFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Staff Member'),
+        title: const Text('Add Staff Member'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
               _buildProfilePicture(),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               _buildTextInputField(
                 label: 'First Name',
                 controller: _firstNameController,
@@ -539,7 +543,7 @@ class _StaffMemberFormScreenState extends State<StaffMemberFormScreen> {
                   return null;
                 },
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               _buildTextInputField(
                 label: 'Last Name',
                 controller: _lastNameController,
@@ -551,7 +555,7 @@ class _StaffMemberFormScreenState extends State<StaffMemberFormScreen> {
                   return null;
                 },
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               _buildTextInputField(
                 label: 'Email',
                 controller: _emailController,
@@ -568,7 +572,7 @@ class _StaffMemberFormScreenState extends State<StaffMemberFormScreen> {
                   return null;
                 },
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Container(
@@ -578,9 +582,9 @@ class _StaffMemberFormScreenState extends State<StaffMemberFormScreen> {
                       border: Border.all(color: Colors.grey),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Center(child: Text('+254')),
+                    child: const Center(child: Text('+254')),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: TextFormField(
                       controller: _phoneController,
@@ -601,17 +605,17 @@ class _StaffMemberFormScreenState extends State<StaffMemberFormScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
               ElevatedButton(
                 onPressed: _saveForm,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF1E4620),
-                  minimumSize: Size(double.infinity, 50),
+                  backgroundColor: const Color(0xFF1E4620),
+                  minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   'Save Staff Member',
                   style: TextStyle(
                     color: Colors.white,

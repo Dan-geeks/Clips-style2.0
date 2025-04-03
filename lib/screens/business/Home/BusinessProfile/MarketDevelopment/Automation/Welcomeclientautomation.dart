@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class WelcomeClientAutomation extends StatefulWidget {
-  const WelcomeClientAutomation({Key? key}) : super(key: key);
+  const WelcomeClientAutomation({super.key});
 
   @override
   State<WelcomeClientAutomation> createState() =>
@@ -71,7 +71,7 @@ class _WelcomeClientAutomationState extends State<WelcomeClientAutomation> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Select Services'),
-        content: Container(
+        content: SizedBox(
           width: double.maxFinite,
           height: MediaQuery.of(context).size.height * 0.7,
           child: ServiceSelectorDialog(
@@ -256,7 +256,7 @@ if (userId != null) {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(
+              const Text(
                 'When appointments include',
                 style: TextStyle(
                   fontSize: 16,
@@ -272,9 +272,9 @@ if (userId != null) {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   padding: const EdgeInsets.all(12),
-                  child: Row(
+                  child: const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text('Select Services'),
                       Icon(
                         Icons.keyboard_arrow_down,
@@ -339,9 +339,9 @@ if (userId != null) {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     padding: const EdgeInsets.all(12),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
+                      children: [
                         Text('Select Services'),
                         Icon(
                           Icons.keyboard_arrow_down,
@@ -449,11 +449,11 @@ class ServiceSelectorDialog extends StatefulWidget {
   final String category;
 
   const ServiceSelectorDialog({
-    Key? key,
+    super.key,
     required this.initialSelected,
     required this.businessData,
     required this.category,
-  }) : super(key: key);
+  });
 
   @override
   _ServiceSelectorDialogState createState() => _ServiceSelectorDialogState();
@@ -501,8 +501,8 @@ class _ServiceSelectorDialogState extends State<ServiceSelectorDialog> {
     return Column(
       children: [
  
-        Padding(
-          padding: const EdgeInsets.all(16.0),
+        const Padding(
+          padding: EdgeInsets.all(16.0),
           child: Text(
             'Select Services',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -516,7 +516,7 @@ class _ServiceSelectorDialogState extends State<ServiceSelectorDialog> {
             onChanged: (value) => setState(() => searchQuery = value),
             decoration: InputDecoration(
               hintText: 'Search services',
-              prefixIcon: Icon(Icons.search),
+              prefixIcon: const Icon(Icons.search),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(30),
               ),

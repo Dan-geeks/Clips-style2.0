@@ -87,13 +87,13 @@ class _OpeningHoursScreenState extends State<OpeningHoursScreen> {
   Future<void> _selectTime(int index) async {
     TimeOfDay? startTime = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(hour: 8, minute: 0),
+      initialTime: const TimeOfDay(hour: 8, minute: 0),
     );
 
     if (startTime != null) {
       TimeOfDay? endTime = await showTimePicker(
         context: context,
-        initialTime: TimeOfDay(hour: 20, minute: 0),
+        initialTime: const TimeOfDay(hour: 20, minute: 0),
       );
 
       if (endTime != null) {

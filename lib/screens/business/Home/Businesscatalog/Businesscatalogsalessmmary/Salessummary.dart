@@ -456,7 +456,7 @@ enum DateRangeType {
 }
 
 class SalesSummaryScreen extends StatefulWidget {
-  const SalesSummaryScreen({Key? key}) : super(key: key);
+  const SalesSummaryScreen({super.key});
 
   @override
   State<SalesSummaryScreen> createState() => _SalesSummaryScreenState();
@@ -723,7 +723,7 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
                       child: Text(year.toString()),
                     ),
                   ),
-                )).toList(),
+                )),
               ],
             ),
           ),
@@ -1086,7 +1086,7 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
         ),
       ),
       body: _isLoading 
-        ? Center(child: CircularProgressIndicator())
+        ? const Center(child: CircularProgressIndicator())
         : SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1236,8 +1236,8 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
   }
 
   Widget _buildActivityHeaderRow() {
-    return Row(
-      children: const [
+    return const Row(
+      children: [
         Expanded(flex: 2, child: Text('TYPE', style: TextStyle(color: Colors.grey, fontSize: 12))),
         Expanded(child: Text('QTY', style: TextStyle(color: Colors.grey, fontSize: 12))),
         Expanded(child: Text('REFUND', style: TextStyle(color: Colors.grey, fontSize: 12))),
@@ -1316,8 +1316,8 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
   }
 
   Widget _buildCashFlowHeaderRow() {
-    return Row(
-      children: const [
+    return const Row(
+      children: [
         Expanded(flex: 2, child: Text('TYPE', style: TextStyle(color: Colors.grey, fontSize: 12))),
         Expanded(child: Text('COLLECTED', style: TextStyle(color: Colors.grey, fontSize: 12))),
         Expanded(child: Text('REFUNDS', style: TextStyle(color: Colors.grey, fontSize: 12))),

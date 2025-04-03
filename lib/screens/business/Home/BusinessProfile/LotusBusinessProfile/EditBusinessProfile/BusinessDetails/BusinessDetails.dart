@@ -22,7 +22,7 @@ class TimestampAdapter extends TypeAdapter<Timestamp> {
 }
 
 class BusinessDetailsScreen extends StatefulWidget {
-  const BusinessDetailsScreen({Key? key}) : super(key: key);
+  const BusinessDetailsScreen({super.key});
 
   @override
   State<BusinessDetailsScreen> createState() => _BusinessDetailsScreenState();

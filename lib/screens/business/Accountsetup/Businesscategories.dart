@@ -4,20 +4,22 @@ import 'BusinessServiceCategory.dart';
 
 
 class BusinessCategories extends StatefulWidget {
+  const BusinessCategories({super.key});
+
   @override
   _BusinessCategoriesState createState() => _BusinessCategoriesState();
 }
 
 class _BusinessCategoriesState extends State<BusinessCategories> {
   final List<Map<String, dynamic>> categories = [
-    {'name': 'Barbering', 'color': Color(0xFF68624c), 'icon': 'assets/barber.jpg'},
-    {'name': 'Salons', 'color': Color(0xFF295903), 'icon': 'assets/salon.jpg'},
-    {'name': 'Spa', 'color': Color(0xFF1e4f4c), 'icon': 'assets/spa.jpg'},
-    {'name': 'Nail Techs', 'color': Color(0xFFa448a0), 'icon': 'assets/Nailtech.jpg'},
-    {'name': 'Dreadlocks', 'color': Color(0xFF141d48), 'icon': 'assets/Dreadlocks.jpg'},
-    {'name': 'MakeUps', 'color': Color(0xFF5f131c), 'icon': 'assets/Makeup.jpg'},
-    {'name': 'Tattoo&Piercing', 'color': Color(0xFF0d5b3a), 'icon': 'assets/TatooandPiercing.jpg'},
-    {'name': 'Eyebrows & Eyelashes', 'color': Color(0xFF8B4513), 'icon': 'assets/eyebrows.jpg'},
+    {'name': 'Barbering', 'color': const Color(0xFF68624c), 'icon': 'assets/barber.jpg'},
+    {'name': 'Salons', 'color': const Color(0xFF295903), 'icon': 'assets/salon.jpg'},
+    {'name': 'Spa', 'color': const Color(0xFF1e4f4c), 'icon': 'assets/spa.jpg'},
+    {'name': 'Nail Techs', 'color': const Color(0xFFa448a0), 'icon': 'assets/Nailtech.jpg'},
+    {'name': 'Dreadlocks', 'color': const Color(0xFF141d48), 'icon': 'assets/Dreadlocks.jpg'},
+    {'name': 'MakeUps', 'color': const Color(0xFF5f131c), 'icon': 'assets/Makeup.jpg'},
+    {'name': 'Tattoo&Piercing', 'color': const Color(0xFF0d5b3a), 'icon': 'assets/TatooandPiercing.jpg'},
+    {'name': 'Eyebrows & Eyelashes', 'color': const Color(0xFF8B4513), 'icon': 'assets/eyebrows.jpg'},
   ];
 
   late Box appBox;
@@ -51,10 +53,10 @@ class _BusinessCategoriesState extends State<BusinessCategories> {
 
   List<Color> getMainCategoryBorderColors() {
     return [
-      Color.fromARGB(255, 61, 238, 3),
-      Color.fromARGB(255, 78, 255, 2),
-      Color.fromARGB(255, 83, 246, 2),
-      Color.fromARGB(255, 85, 242, 7),
+      const Color.fromARGB(255, 61, 238, 3),
+      const Color.fromARGB(255, 78, 255, 2),
+      const Color.fromARGB(255, 83, 246, 2),
+      const Color.fromARGB(255, 85, 242, 7),
     ];
   }
 
@@ -135,26 +137,26 @@ class _BusinessCategoriesState extends State<BusinessCategories> {
                 (index) => Expanded(
                   child: Container(
                     height: 8,
-                    margin: EdgeInsets.only(right: 8),
+                    margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(
-                      color: index < 2 ? Color(0xFF23461a) : Colors.grey[300],
+                      color: index < 2 ? const Color(0xFF23461a) : Colors.grey[300],
                       borderRadius: BorderRadius.circular(2.5),
                     ),
                   ),
                 ),
               ),
             ),
-            SizedBox(height: 26),
-            Text(
+            const SizedBox(height: 26),
+            const Text(
               'Account setup',
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.w300),
             ),
-            SizedBox(height: 30),
-            Text(
+            const SizedBox(height: 30),
+            const Text(
               'Choose the categories your services\nfall under',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
                 itemCount: categories.length,
@@ -171,12 +173,12 @@ class _BusinessCategoriesState extends State<BusinessCategories> {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 4, left: 16),
                           child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.grey[600],
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(
+                            child: const Text(
                               'Primary',
                               style: TextStyle(
                                 fontSize: 12,
@@ -199,7 +201,7 @@ class _BusinessCategoriesState extends State<BusinessCategories> {
                                   borderRadius: BorderRadius.circular(12),
                                 )
                               : null,
-                          padding: categoryIsPrimary ? EdgeInsets.all(2.0) : null,
+                          padding: categoryIsPrimary ? const EdgeInsets.all(2.0) : null,
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
@@ -216,7 +218,7 @@ class _BusinessCategoriesState extends State<BusinessCategories> {
                               ),
                               child: Container(
                                 height: 60,
-                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
                                 child: Row(
                                   children: [
                                     CircleAvatar(
@@ -228,16 +230,16 @@ class _BusinessCategoriesState extends State<BusinessCategories> {
                                           fit: BoxFit.cover,
                                           errorBuilder: (context, error, stackTrace) {
                                             print('Error loading image: ${categories[index]['icon']}');
-                                            return Icon(Icons.error, color: Colors.white);
+                                            return const Icon(Icons.error, color: Colors.white);
                                           },
                                         ),
                                       ),
                                     ),
-                                    SizedBox(width: 16),
+                                    const SizedBox(width: 16),
                                     Expanded(
                                       child: Text(
                                         categoryName,
-                                        style: TextStyle(fontSize: 16, color: Colors.white),
+                                        style: const TextStyle(fontSize: 16, color: Colors.white),
                                       ),
                                     ),
                                     if (categoryIsSelected)
@@ -257,7 +259,7 @@ class _BusinessCategoriesState extends State<BusinessCategories> {
                 },
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             if (isCategorySelected)
               SizedBox(
                 width: double.infinity,
@@ -265,16 +267,16 @@ class _BusinessCategoriesState extends State<BusinessCategories> {
                   onPressed: () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => ServiceCategoriesPage()));
                   },
-                  child: Text(
-                    'Continue',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF23461a),
-                    padding: EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: const Color(0xFF23461a),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
+                  ),
+                  child: Text(
+                    'Continue',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
               ),

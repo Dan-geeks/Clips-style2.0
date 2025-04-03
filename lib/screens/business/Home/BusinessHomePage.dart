@@ -9,8 +9,11 @@ import './Businesscatalog/Businesscatalog.dart';
 import 'Businessclient/Businesscient.dart';
 import 'dart:async';
 import './BusinessProfile/BusinessProfile.dart';
+import 'Notification/Notifiactionscreen.dart';
 
 class BusinessHomePage extends StatefulWidget {
+  const BusinessHomePage({super.key});
+
   @override
   _BusinessHomePageState createState() => _BusinessHomePageState();
 }
@@ -142,7 +145,7 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
 
     if (businessData['userId'] == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Business data not found')),
+        const SnackBar(content: Text('Business data not found')),
       );
       return;
     }
@@ -160,7 +163,7 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
     } else if (index == 3) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => BusinessProfile()),
+        MaterialPageRoute(builder: (context) => const BusinessProfile()),
       );
     }
   }
@@ -190,7 +193,7 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
     return Expanded(
       child: SingleChildScrollView(
         controller: _verticalController,
-        physics: ClampingScrollPhysics(),
+        physics: const ClampingScrollPhysics(),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -208,7 +211,7 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
                     ),
                   ),
                   alignment: Alignment.center,
-                  child: Text(''), 
+                  child: const Text(''), 
                 ),
  
                 ...timeSlots.map(
@@ -224,7 +227,7 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
                     ),
                     child: Text(
                       time,
-                      style: TextStyle(fontSize: 12, color: Colors.black87),
+                      style: const TextStyle(fontSize: 12, color: Colors.black87),
                     ),
                   ),
                 ),
@@ -235,7 +238,7 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
               child: SingleChildScrollView(
                 controller: _horizontalController,
                 scrollDirection: Axis.horizontal,
-                physics: AlwaysScrollableScrollPhysics(),
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
                 
@@ -261,14 +264,14 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
                                 child: staff['profileImageUrl'] == null
                                     ? Text(
                                         '${staff['firstName'].isNotEmpty ? staff['firstName'][0] : ''}${staff['lastName'].isNotEmpty ? staff['lastName'][0] : ''}',
-                                        style: TextStyle(color: Colors.black),
+                                        style: const TextStyle(color: Colors.black),
                                       )
                                     : null,
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
                                 '${staff['firstName']} ${staff['lastName']}',
-                                style: TextStyle(fontSize: 12),
+                                style: const TextStyle(fontSize: 12),
                                 textAlign: TextAlign.center,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -325,7 +328,7 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
           backgroundColor: Colors.white,
           elevation: 0,
           automaticallyImplyLeading: false,
-          title: Text(
+          title: const Text(
             'Clips&Styles',
             style: TextStyle(
               color: Colors.black,
@@ -335,25 +338,25 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
           ),
           actions: [
             IconButton(
-              icon: Icon(Icons.add, color: Colors.black),
+              icon: const Icon(Icons.add, color: Colors.black),
               onPressed: () {
            
               },
             ),
             IconButton(
-              icon: Icon(Icons.notifications, color: Colors.black),
+              icon: const Icon(Icons.notifications, color: Colors.black),
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => BusinessHomePage()),
+                  MaterialPageRoute(builder: (context) => const NotificationsScreen()),
                 );
               },
             ),
             Padding(
-              padding: EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.only(right: 16),
               child: CircleAvatar(
                 backgroundColor: Colors.grey[300],
-                child: Text(
+                child: const Text(
                   'A',
                   style: TextStyle(color: Colors.black),
                 ),
@@ -366,7 +369,7 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
             children: [
       
               Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16.0),
                 child: GestureDetector(
                   onTap: () => _selectDate(context),
                   child: Row(
@@ -374,12 +377,12 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
                     children: [
                       Text(
                         DateFormat('EEE d MMM, yyyy').format(_selectedDate),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Icon(Icons.arrow_drop_down),
+                      const Icon(Icons.arrow_drop_down),
                     ],
                   ),
                 ),
@@ -391,7 +394,7 @@ class _BusinessHomePageState extends State<BusinessHomePage> {
         ),
         bottomNavigationBar: BottomNavigationBar(
           backgroundColor: Colors.black,
-          items: <BottomNavigationBarItem>[
+          items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.calendar_today),
               label: '',

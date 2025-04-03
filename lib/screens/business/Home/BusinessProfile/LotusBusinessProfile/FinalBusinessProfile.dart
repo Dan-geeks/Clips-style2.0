@@ -10,7 +10,7 @@ import 'EditBusinessProfile/EditBusinessprofilescreen.dart';
 import 'package:collection/collection.dart';
 
 class FinalBusinessProfile extends StatefulWidget {
-  const FinalBusinessProfile({Key? key}) : super(key: key);
+  const FinalBusinessProfile({super.key});
 
   @override
   State<FinalBusinessProfile> createState() => _FinalBusinessProfileState();
@@ -400,11 +400,11 @@ Widget _buildServicesList() {
                     member['profileImageUrl'].toString().isNotEmpty
                 ? NetworkImage(member['profileImageUrl'])
                 : null,
+            radius: 25,
             child: member['profileImageUrl'] == null ||
                     member['profileImageUrl'].toString().isEmpty
                 ? const Icon(Icons.person, size: 25)
                 : null,
-            radius: 25,
           ),
           title: Text(
             '${member['firstName'] ?? ''} ${member['lastName'] ?? ''}',

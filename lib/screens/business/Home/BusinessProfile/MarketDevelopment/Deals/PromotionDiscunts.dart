@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive/hive.dart';
 
 class BusinessPromotionDiscount extends StatefulWidget {
+  const BusinessPromotionDiscount({super.key});
+
   @override
   _BusinessPromotionDiscountState createState() => _BusinessPromotionDiscountState();
 }
@@ -85,7 +87,7 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
     }
 
     if (_selectedServices.contains('All services')) {
-      return Text('All services', 
+      return const Text('All services', 
         style: TextStyle(color: Colors.black87),
       );
     }
@@ -95,8 +97,8 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
       runSpacing: 8,
       children: _selectedServices.map((service) {
         return Container(
-          margin: EdgeInsets.only(bottom: 4),
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          margin: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.grey[100],
             borderRadius: BorderRadius.circular(16),
@@ -108,14 +110,14 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
               Flexible(
                 child: Text(
                   service,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.black87,
                     fontSize: 14,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              SizedBox(width: 4),
+              const SizedBox(width: 4),
               InkWell(
                 onTap: () {
                   setState(() {
@@ -148,17 +150,17 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Select Services'),
-              SizedBox(height: 8),
+              const Text('Select Services'),
+              const SizedBox(height: 8),
               TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Search services...',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  contentPadding: EdgeInsets.symmetric(
+                  contentPadding: const EdgeInsets.symmetric(
                     vertical: 8, 
                     horizontal: 12,
                   ),
@@ -171,7 +173,7 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
               ),
             ],
           ),
-          content: Container(
+          content: SizedBox(
             width: double.maxFinite,
             height: MediaQuery.of(context).size.height * 0.4,
             child: ListView.builder(
@@ -211,7 +213,7 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -219,7 +221,7 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
                 _searchController.clear();
                 _searchQuery = '';
               },
-              child: Text('Done', style: TextStyle(color: Color(0xFF1B4332))),
+              child: const Text('Done', style: TextStyle(color: Color(0xFF1B4332))),
             ),
           ],
         ),
@@ -232,7 +234,7 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
       context: context,
       initialDate: isStartDate ? _startDate : _endDate,
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
       setState(() {
@@ -374,10 +376,10 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Discounts',
           style: TextStyle(
             color: Colors.black,
@@ -389,18 +391,18 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           children: [
-            Text(
+            const Text(
               'Customise Discount details',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 16),
-            Text('Discount name'),
-            SizedBox(height: 8),
+            const SizedBox(height: 16),
+            const Text('Discount name'),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _discountNameController,
               decoration: InputDecoration(
@@ -408,7 +410,7 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -417,16 +419,16 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
                 return null;
               },
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Description'),
+                const Text('Description'),
                 Text('${_descriptionController.text.length}/1000', 
-                  style: TextStyle(color: Colors.grey)),
+                  style: const TextStyle(color: Colors.grey)),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _descriptionController,
               maxLines: 4,
@@ -440,14 +442,14 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
                 setState(() {});
               },
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Apply promotion to'),
+                const Text('Apply promotion to'),
                 TextButton(
                   onPressed: () => _showServiceSelectionDialog(context),
-                  child: Text(
+                  child: const Text(
                     'Edit', 
                     style: TextStyle(color: Color(0xFF1B4332)),
                   ),
@@ -456,20 +458,20 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
             ),
             Container(
               width: double.infinity,
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: _buildSelectedServicesDisplay(),
             ),
-            SizedBox(height: 16),
-            Text('Start date'),
-            SizedBox(height: 8),
+            const SizedBox(height: 16),
+            const Text('Start date'),
+            const SizedBox(height: 8),
             GestureDetector(
               onTap: () => _selectDate(context, true),
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(8),
@@ -478,18 +480,18 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(DateFormat('EEEE,dd MMM yyyy').format(_startDate)),
-                    Icon(Icons.keyboard_arrow_down),
+                    const Icon(Icons.keyboard_arrow_down),
                   ],
                 ),
               ),
             ),
-            SizedBox(height: 16),
-            Text('End date'),
-            SizedBox(height: 8),
+            const SizedBox(height: 16),
+            const Text('End date'),
+            const SizedBox(height: 8),
             GestureDetector(
               onTap: () => _selectDate(context, false),
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(8),
@@ -498,12 +500,12 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(DateFormat('EEEE,dd MMM yyyy').format(_endDate)),
-                    Icon(Icons.keyboard_arrow_down),
+                    const Icon(Icons.keyboard_arrow_down),
                   ],
                 ),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               children: [
                
@@ -511,8 +513,8 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Discount Value'),
-                      SizedBox(height: 8),
+                      const Text('Discount Value'),
+                      const SizedBox(height: 8),
                       TextFormField(
                         controller: _discountValueController,
                         decoration: InputDecoration(
@@ -520,7 +522,7 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          contentPadding: EdgeInsets.symmetric(
+                          contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, 
                             vertical: 14,
                           ),
@@ -530,14 +532,14 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
                     ],
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
               
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Discount code'),
-                      SizedBox(height: 8),
+                      const Text('Discount code'),
+                      const SizedBox(height: 8),
                       TextFormField(
                         controller: _discountCodeController,
                         decoration: InputDecoration(
@@ -545,7 +547,7 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          contentPadding: EdgeInsets.symmetric(
+                          contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12, 
                             vertical: 14,
                           ),
@@ -560,19 +562,19 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
         ),
       ),
       bottomNavigationBar: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: ElevatedButton(
           onPressed: _isLoading ? null : () => _createDeal(context),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF1B4332),
-            padding: EdgeInsets.symmetric(vertical: 16),
+            backgroundColor: const Color(0xFF1B4332),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
             disabledBackgroundColor: Colors.grey[300],
           ),
           child: _isLoading
-              ? Row(
+              ? const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
@@ -594,7 +596,7 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
                     ),
                   ],
                 )
-              : Text(
+              : const Text(
                   'Create deal',
                   style: TextStyle(
                     color: Colors.white,

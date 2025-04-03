@@ -8,6 +8,8 @@ import 'Membershipdetails.dart';
 import 'select_services_page.dart';
 
 class CreateMembershipPage extends StatefulWidget {
+  const CreateMembershipPage({super.key});
+
   @override
   _CreateMembershipPageState createState() => _CreateMembershipPageState();
 }
@@ -110,7 +112,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
             .add(newMembership);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Membership created successfully')),
+          const SnackBar(content: Text('Membership created successfully')),
         );
         Navigator.pop(context);
       }
@@ -131,7 +133,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
         _priceController.text.isEmpty ||
         selectedServices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill all required fields')),
+        const SnackBar(content: Text('Please fill all required fields')),
       );
       return false;
     }
@@ -139,7 +141,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
 
     if (int.tryParse(_sessionsController.text) == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sessions must be a valid number')),
+        const SnackBar(content: Text('Sessions must be a valid number')),
       );
       return false;
     }
@@ -147,7 +149,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
 
     if (double.tryParse(_priceController.text) == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Price must be a valid number')),
+        const SnackBar(content: Text('Price must be a valid number')),
       );
       return false;
     }
@@ -160,19 +162,19 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("Create Membership", 
+        title: const Text("Create Membership", 
           style: TextStyle(color: Colors.black, fontSize: 18)),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.close, color: Colors.black),
+          icon: const Icon(Icons.close, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Stack(
         children: [
           SingleChildScrollView(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -188,7 +190,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
                   maxLines: 3,
                   maxLength: 400,
                 ),
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
 
                 _buildSectionTitle("Services and Sessions"),
                 _buildDropdown(
@@ -198,10 +200,10 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
                   onChanged: (value) => setState(() => selectedTier = value),
                   required: true,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 _buildServicesSelector(),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 _buildTextField(
                   controller: _sessionsController,
@@ -209,7 +211,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
                   keyboardType: TextInputType.number,
                   required: true,
                 ),
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
 
                 _buildSectionTitle("Price and Payment"),
                 _buildDropdown(
@@ -225,7 +227,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
                   prefix: "KES ",
                   required: true,
                 ),
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
 
                 ElevatedButton(
                   onPressed: _isLoading
@@ -235,33 +237,33 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => MembershipDetailsPage(),
+                            builder: (context) => const MembershipDetailsPage(),
                           ),
                         );
                       },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF23461A),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
                   child: _isLoading
                     ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(color: Colors.white))
                     : Text("Add", style: TextStyle(fontSize: 16)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF23461A),
-                    foregroundColor: Colors.white,
-                    minimumSize: Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
               ],
             ),
           ),
           if (_isLoading)
             Container(
               color: Colors.black.withOpacity(0.3),
-              child: Center(
+              child: const Center(
                 child: CircularProgressIndicator(),
               ),
             ),
@@ -275,7 +277,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
       padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
         ),
@@ -355,7 +357,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
         }
       },
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey),
           borderRadius: BorderRadius.circular(8),
@@ -369,7 +371,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
                 color: selectedServices.isEmpty ? Colors.grey[600] : Colors.black,
               ),
             ),
-            Text(
+            const Text(
               "Edit",
               style: TextStyle(
                 color: Color(0xFF23461A),

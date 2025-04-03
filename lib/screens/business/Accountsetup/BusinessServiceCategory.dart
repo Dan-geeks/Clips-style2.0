@@ -5,6 +5,8 @@ import 'package:collection/collection.dart';
 import 'BusinessPricing.dart'; 
 
 class ServiceCategoriesPage extends StatefulWidget {
+  const ServiceCategoriesPage({super.key});
+
   @override
   _ServiceCategoriesPageState createState() => _ServiceCategoriesPageState();
 }
@@ -247,7 +249,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              title: Text('Add Custom Service'),
+              title: const Text('Add Custom Service'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -260,7 +262,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
@@ -276,7 +278,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
                                 items: categoriesToDisplay.map((String category) {
                                   return DropdownMenuItem<String>(
                                     value: category,
-                                    child: Text(category, style: TextStyle(fontSize: 14)),
+                                    child: Text(category, style: const TextStyle(fontSize: 14)),
                                   );
                                 }).toList(),
                                 onChanged: (String? newValue) {
@@ -295,11 +297,11 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
                                 ),
                               ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       IconButton(
                         icon: Icon(
                           isAddingNewCategory ? Icons.list : Icons.add,
-                          color: Color(0xFF23461a),
+                          color: const Color(0xFF23461a),
                         ),
                         onPressed: () {
                           setStateDialog(() {
@@ -319,13 +321,12 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
               ),
               actions: [
                 TextButton(
-                  child: Text('Cancel'),
+                  child: const Text('Cancel'),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
                 ElevatedButton(
-                  child: Text('Add Service'),
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF23461a),
+                      backgroundColor: const Color(0xFF23461a),
                       foregroundColor: Colors.white),
                   onPressed: () async {
                     final String serviceName = serviceNameController.text.trim();
@@ -345,6 +346,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
                     await _addCustomService(categoryToUse, serviceName);
                     Navigator.of(context).pop();
                   },
+                  child: Text('Add Service'),
                 ),
               ],
             );
@@ -413,7 +415,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Text('Select Your Services'),
+        title: const Text('Select Your Services'),
         elevation: 0,
       ),
       body: Padding(
@@ -421,13 +423,13 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
         child: Column(
           children: [
             _buildProgressBar(),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             _buildSearchBar(),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             _buildNoServicesFound(),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             _buildCategorySelectionBar(),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Expanded(child: _buildServiceList()),
           ],
         ),
@@ -440,32 +442,32 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
+        const Text(
           "Can't find the services you \nare offering?",
           style: TextStyle(
             color: Colors.black87,
             fontSize: 12,
           ),
         ),
-        Container(
+        SizedBox(
           height: 45,
           child: ElevatedButton.icon(
             onPressed: _showAddServiceDialog,
-            icon: Icon(
+            icon: const Icon(
               Icons.add,
               color: Colors.white,
               size: 18,
             ),
-            label: Text(
+            label: const Text(
               'Add my services',
               style: TextStyle(fontSize: 14, color: Colors.white),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFF23461a),
+              backgroundColor: const Color(0xFF23461a),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
             ),
           ),
         ),
@@ -480,9 +482,9 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
         (index) => Expanded(
           child: Container(
             height: 8,
-            margin: EdgeInsets.only(right: 8),
+            margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: index < 3 ? Color(0xFF23461a) : Colors.grey[300],
+              color: index < 3 ? const Color(0xFF23461a) : Colors.grey[300],
               borderRadius: BorderRadius.circular(2.5),
             ),
           ),
@@ -492,25 +494,25 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
   }
 
   Widget _buildSearchBar() {
-    return Container(
+    return SizedBox(
       height: 50,
       child: TextField(
         decoration: InputDecoration(
           hintText: 'Search service by name',
-          prefixIcon: Icon(Icons.search),
+          prefixIcon: const Icon(Icons.search),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.black),
+            borderSide: const BorderSide(color: Colors.black),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.black),
+            borderSide: const BorderSide(color: Colors.black),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.black, width: 2),
+            borderSide: const BorderSide(color: Colors.black, width: 2),
           ),
-          contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
         ),
         onChanged: (value) => setState(() => searchQuery = value),
       ),
@@ -518,7 +520,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
   }
 
   Widget _buildCategorySelectionBar() {
-    return Container(
+    return SizedBox(
       height: 50,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -540,7 +542,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
               checkmarkColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: Colors.black),
+                side: const BorderSide(color: Colors.black),
               ),
               onSelected: (selected) {
                 setState(() => selectedCategory = categoriesToDisplay[index]);
@@ -577,7 +579,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
             ListTile(
               title: Text(
                 service,
-                style: TextStyle(fontWeight: FontWeight.w500),
+                style: const TextStyle(fontWeight: FontWeight.w500),
               ),
               trailing: GestureDetector(
                 onTap: () => toggleService(selectedCategory, service, !isSelected),
@@ -587,7 +589,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: isSelected ? Color(0xFF3338c2) : Colors.black,
+                      color: isSelected ? const Color(0xFF3338c2) : Colors.black,
                       width: 8,
                     ),
                   ),
@@ -596,7 +598,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
                           child: Container(
                             width: 14,
                             height: 14,
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               shape: BoxShape.circle,
                               color: Color.fromARGB(255, 255, 255, 255),
                             ),
@@ -618,17 +620,17 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 5.0),
         child: ElevatedButton(
-          child: Text(
-            'Continue',
-            style: TextStyle(color: Colors.white, fontSize: 16),
-          ),
           onPressed: _saveAndContinue,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF23461a),
-            padding: EdgeInsets.symmetric(vertical: 12),
+            backgroundColor: const Color(0xFF23461a),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
+          ),
+          child: Text(
+            'Continue',
+            style: TextStyle(color: Colors.white, fontSize: 16),
           ),
         ),
       ),

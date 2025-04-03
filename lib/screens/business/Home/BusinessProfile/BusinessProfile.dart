@@ -7,14 +7,16 @@ import 'LotusBusinessProfile/OpeniningHours.dart';
 import 'Servicelisting/Servicelisting.dart';
 import 'MarketDevelopment/Marketdevelopment.dart';
 import 'Analysis/Analysis.dart';
+import 'Staff/scheduleshifts.dart';
+import 'Staff/staff.dart';
 
 class BusinessProfile extends StatefulWidget {
   final VoidCallback? onUpdateComplete;
 
   const BusinessProfile({
-    Key? key,
+    super.key,
     this.onUpdateComplete,
-  }) : super(key: key);
+  });
 
   @override
   _BusinessProfileState createState() => _BusinessProfileState();
@@ -46,7 +48,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: EdgeInsets.symmetric(vertical: 8),
+        margin: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),
@@ -55,14 +57,14 @@ class _BusinessProfileState extends State<BusinessProfile> {
               color: Colors.grey.withOpacity(0.2),
               spreadRadius: 1,
               blurRadius: 3,
-              offset: Offset(0, 1),
+              offset: const Offset(0, 1),
             ),
           ],
         ),
         child: ListTile(
           leading: Icon(icon),
           title: Text(title),
-          trailing: showArrow ? Icon(Icons.arrow_forward_ios, size: 16) : null,
+          trailing: showArrow ? const Icon(Icons.arrow_forward_ios, size: 16) : null,
         ),
       ),
     );
@@ -98,7 +100,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
     
     switch (pageName) {
       case 'Business Profile':
-        page = OpeningHoursScreen ();
+        page = const OpeningHoursScreen ();
         break;
       case 'Service Listing':
         if (businessId != null) {
@@ -111,13 +113,13 @@ class _BusinessProfileState extends State<BusinessProfile> {
         }
         break;
       case 'Market Development':
-        page = MarketDevelopmentScreen();
-        break;
-      case 'Staff':
-        page = BusinessProfile ();
+        page = const MarketDevelopmentScreen();
         break;
       case 'Analysis':
-        page = BusinessAnalysis();
+        page = const BusinessAnalysis();
+        break;
+      case 'Staff':
+        page = const StaffScreen();
         break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
@@ -141,7 +143,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.notifications_none, color: Colors.black),
+            icon: const Icon(Icons.notifications_none, color: Colors.black),
             onPressed: () {
        
             },
@@ -151,11 +153,11 @@ class _BusinessProfileState extends State<BusinessProfile> {
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(25),
                   borderSide: BorderSide.none,
@@ -167,7 +169,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
           ),
           Expanded(
             child: ListView(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               children: [
                 _buildProfileItem(
                   title: 'Lotus Business Profile',
@@ -210,8 +212,8 @@ class _BusinessProfileState extends State<BusinessProfile> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Color.fromARGB(255, 0, 0, 0),
-        items: <BottomNavigationBarItem>[
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today),
             label: '',

@@ -97,7 +97,7 @@ class ReviewReply {
 }
 
 class BusinessReviews extends StatefulWidget {
-  BusinessReviews({Key? key}) : super(key: key);
+  const BusinessReviews({super.key});
 
   @override
   _BusinessReviewsState createState() => _BusinessReviewsState();
@@ -192,7 +192,7 @@ class _BusinessReviewsState extends State<BusinessReviews> {
       String documentId = (businessData['documentId'] ?? '').toString();
       if (documentId.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Business document not set.')),
+          const SnackBar(content: Text('Business document not set.')),
         );
         return;
       }
@@ -217,12 +217,12 @@ class _BusinessReviewsState extends State<BusinessReviews> {
       Navigator.pop(context);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Reply sent successfully')),
+        const SnackBar(content: Text('Reply sent successfully')),
       );
     } catch (e) {
       print('Error submitting reply: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send reply. Please try again.')),
+        const SnackBar(content: Text('Failed to send reply. Please try again.')),
       );
     }
   }
@@ -234,7 +234,7 @@ class _BusinessReviewsState extends State<BusinessReviews> {
         return Dialog(
           backgroundColor: Colors.white,
           child: Container(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -242,7 +242,7 @@ class _BusinessReviewsState extends State<BusinessReviews> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       'Reply to Review',
                       style: TextStyle(
                         fontSize: 18,
@@ -250,34 +250,34 @@ class _BusinessReviewsState extends State<BusinessReviews> {
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.close),
+                      icon: const Icon(Icons.close),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 _buildStarRating(review.rating),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(review.comment),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _replyController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Add a reply ...',
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.all(12),
                   ),
                   maxLines: 4,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => _submitReply(review),
-                  child: Text('Send Reply'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF2E5825),
+                    backgroundColor: const Color(0xFF2E5825),
                     foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
+                  child: Text('Send Reply'),
                 ),
               ],
             ),
@@ -290,7 +290,7 @@ class _BusinessReviewsState extends State<BusinessReviews> {
   @override
   Widget build(BuildContext context) {
     if (businessData.isEmpty) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -300,10 +300,10 @@ class _BusinessReviewsState extends State<BusinessReviews> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('Reviews', style: TextStyle(color: Colors.black)),
+        title: const Text('Reviews', style: TextStyle(color: Colors.black)),
       ),
       body: ListView(
         children: [
@@ -320,12 +320,12 @@ class _BusinessReviewsState extends State<BusinessReviews> {
       future: _ratingStatsFuture,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
         final stats = snapshot.data!;
         return Container(
           color: Colors.white,
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               Row(
@@ -334,17 +334,17 @@ class _BusinessReviewsState extends State<BusinessReviews> {
                 children: [
                   Text(
                     stats.averageRating.toStringAsFixed(1),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   _buildStarRating(stats.averageRating),
                 ],
               ),
               Text('${stats.totalReviews} reviews'),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               _buildRatingBars(stats.ratingDistribution),
             ],
           ),
@@ -378,20 +378,20 @@ class _BusinessReviewsState extends State<BusinessReviews> {
       children: [5, 4, 3, 2, 1].map((rating) {
         final count = distribution[rating] ?? 0;
         return Padding(
-          padding: EdgeInsets.symmetric(vertical: 2),
+          padding: const EdgeInsets.symmetric(vertical: 2),
           child: Row(
             children: [
               Text('$rating'),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Expanded(
                 child: LinearProgressIndicator(
                   value: count / safeMax,
                   backgroundColor: Colors.grey[200],
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.red),
                   minHeight: 8,
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text('$count'),
             ],
           ),
@@ -407,18 +407,18 @@ class _BusinessReviewsState extends State<BusinessReviews> {
       return Column(
         children: [
           Container(
-            margin: EdgeInsets.all(16),
-            padding: EdgeInsets.all(12),
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
+            child: const Text(
               "Clips&Styles guarantees that reviews with the 'Verified Clips&Styles user' tag have been added by registered Clips&Styles users who have had an appointment with the provider. A registered Clips&Styles user has the opportunity to add a review only after the service has been provided to them.",
               style: TextStyle(fontSize: 14, color: Colors.black87),
             ),
           ),
-          Center(child: Text("No reviews found")),
+          const Center(child: Text("No reviews found")),
         ],
       );
     }
@@ -431,11 +431,11 @@ class _BusinessReviewsState extends State<BusinessReviews> {
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator());
         }
         return ListView.builder(
           shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
+          physics: const NeverScrollableScrollPhysics(),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
             final reviewData =
@@ -443,10 +443,10 @@ class _BusinessReviewsState extends State<BusinessReviews> {
             final review = Review.fromMap(reviewData);
             return Card(
               elevation: 0,
-              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               color: Colors.white,
               child: Padding(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -456,10 +456,10 @@ class _BusinessReviewsState extends State<BusinessReviews> {
                           backgroundColor: Colors.grey[200],
                           child: Text(
                             review.userName.isNotEmpty ? review.userName[0] : '',
-                            style: TextStyle(color: Colors.black),
+                            style: const TextStyle(color: Colors.black),
                           ),
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,10 +468,10 @@ class _BusinessReviewsState extends State<BusinessReviews> {
                                 children: [
                                   Text(
                                     review.userName,
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                   if (review.isVerified)
-                                    Row(
+                                    const Row(
                                       children: [
                                         SizedBox(width: 4),
                                         Icon(Icons.verified, color: Colors.blue, size: 16),
@@ -485,21 +485,21 @@ class _BusinessReviewsState extends State<BusinessReviews> {
                               ),
                               Text(
                                 review.date,
-                                style: TextStyle(color: Colors.grey),
+                                style: const TextStyle(color: Colors.grey),
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     _buildStarRating(review.rating),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       'Service: ${review.serviceName}',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(review.comment),
                     StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
@@ -511,17 +511,18 @@ class _BusinessReviewsState extends State<BusinessReviews> {
                           .orderBy('timestamp')
                           .snapshots(),
                       builder: (context, repliesSnapshot) {
-                        if (!repliesSnapshot.hasData)
-                          return SizedBox.shrink();
+                        if (!repliesSnapshot.hasData) {
+                          return const SizedBox.shrink();
+                        }
                         final replies = repliesSnapshot.data!.docs
                             .map((doc) => ReviewReply.fromMap(doc.data() as Map<String, dynamic>))
                             .toList();
         
                         messagesBox.put(review.id, replies.map((r) => r.toMap()).toList());
-                        if (replies.isEmpty) return SizedBox.shrink();
+                        if (replies.isEmpty) return const SizedBox.shrink();
                         return Container(
-                          margin: EdgeInsets.only(top: 16),
-                          padding: EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(top: 16),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: Colors.grey[100],
                             borderRadius: BorderRadius.circular(8),
@@ -540,22 +541,22 @@ class _BusinessReviewsState extends State<BusinessReviews> {
                                           CircleAvatar(
                                             radius: 12,
                                             backgroundColor: Colors.grey[300],
-                                            child: Icon(
+                                            child: const Icon(
                                               Icons.storefront,
                                               size: 14,
                                               color: Colors.black54,
                                             ),
                                           ),
-                                          SizedBox(width: 8),
+                                          const SizedBox(width: 8),
                                           Text(
                                             reply.replierName,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 13,
                                             ),
                                           ),
-                                          SizedBox(width: 8),
-                                          Icon(
+                                          const SizedBox(width: 8),
+                                          const Icon(
                                             Icons.verified,
                                             size: 14,
                                             color: Colors.blue,
@@ -571,17 +572,17 @@ class _BusinessReviewsState extends State<BusinessReviews> {
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   Text(
                                     reply.replyText,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 13,
                                       color: Colors.black87,
                                     ),
                                   ),
                                   if (replies.last != reply)
                                     Padding(
-                                      padding: EdgeInsets.symmetric(vertical: 12),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
                                       child: Divider(
                                         height: 1,
                                         color: Colors.grey[300],
@@ -597,9 +598,9 @@ class _BusinessReviewsState extends State<BusinessReviews> {
                     TextButton(
                       onPressed: () => _showReplyDialog(context, review),
                       style: TextButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                      child: Row(
+                      child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.reply, size: 18, color: Colors.black87),

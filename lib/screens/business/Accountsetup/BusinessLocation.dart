@@ -4,6 +4,8 @@ import 'Businessmpascreen.dart';
 import 'BusinessDiscoverus.dart';
 
 class BusinessLocation extends StatefulWidget {
+  const BusinessLocation({super.key});
+
   @override
   _BusinessLocationState createState() => _BusinessLocationState();
 }
@@ -78,7 +80,7 @@ class _BusinessLocationState extends State<BusinessLocation> {
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -86,7 +88,7 @@ class _BusinessLocationState extends State<BusinessLocation> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Account Setup'),
+        title: const Text('Account Setup'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -104,29 +106,29 @@ class _BusinessLocationState extends State<BusinessLocation> {
                     height: 8,
                     margin: EdgeInsets.only(right: index < 7 ? 8 : 0),
                     decoration: BoxDecoration(
-                      color: index < 6 ? Color(0xFF23461a) : Colors.grey[300],
+                      color: index < 6 ? const Color(0xFF23461a) : Colors.grey[300],
                       borderRadius: BorderRadius.circular(2.5),
                     ),
                   ),
                 ),
               ),
             ),
-            SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 16),
+            const Text(
               'Set your location address',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Add your business location so your clients can easily find you.',
               style: TextStyle(color: Colors.grey[600]),
             ),
-            SizedBox(height: 24),
-            Text(
+            const SizedBox(height: 24),
+            const Text(
               'Where is your business located?',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             InkWell(
               onTap: _hasBusinessAddress ? () async {
                 await Navigator.push(
@@ -135,7 +137,7 @@ class _BusinessLocationState extends State<BusinessLocation> {
                 );
               } : null,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey[300]!),
                   borderRadius: BorderRadius.circular(8),
@@ -143,7 +145,7 @@ class _BusinessLocationState extends State<BusinessLocation> {
                 child: Row(
                   children: [
                     Icon(Icons.location_on, color: Colors.grey[600]),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         businessData?['address'] ?? 'Enter your business address',
@@ -154,9 +156,9 @@ class _BusinessLocationState extends State<BusinessLocation> {
                 ),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             CheckboxListTile(
-              title: Text("I don't have a business address (Mobile and online service only)"),
+              title: const Text("I don't have a business address (Mobile and online service only)"),
               value: !_hasBusinessAddress,
               onChanged: (bool? value) {
                 setState(() {
@@ -165,22 +167,22 @@ class _BusinessLocationState extends State<BusinessLocation> {
               },
               controlAffinity: ListTileControlAffinity.leading,
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
           ],
         ),
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ElevatedButton(
+          onPressed: () => _handleNavigationBasedOnAddress(context),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1E4620),
+            minimumSize: const Size(double.infinity, 50),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
           child: Text(
             'Continue',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          onPressed: () => _handleNavigationBasedOnAddress(context),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF1E4620),
-            minimumSize: Size(double.infinity, 50),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
       ),

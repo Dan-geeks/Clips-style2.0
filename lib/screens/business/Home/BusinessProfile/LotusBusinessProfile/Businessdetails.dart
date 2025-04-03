@@ -8,7 +8,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'Congratulations.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
-  const ProfileSetupScreen({Key? key}) : super(key: key);
+  const ProfileSetupScreen({super.key});
 
   @override
   _ProfileSetupScreenState createState() => _ProfileSetupScreenState();

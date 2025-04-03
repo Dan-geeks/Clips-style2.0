@@ -3,6 +3,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 
 class ServiceListingScreen extends StatefulWidget {
+  const ServiceListingScreen({super.key});
+
   @override
   _ServiceListingScreenState createState() => _ServiceListingScreenState();
 }
@@ -60,7 +62,9 @@ Future<void> _initializeData() async {
     for (var category in categoryList) {
       if (!category['isSelected']) continue;
       if (selectedCategory != 'All categories' &&
-          category['name'] != selectedCategory) continue;
+          category['name'] != selectedCategory) {
+        continue;
+      }
 
       final categoryName = category['name'];
       final services = category['services'] ?? [];
@@ -157,7 +161,7 @@ Future<void> _initializeData() async {
     List<String>? updatedServices = await showModalBottomSheet<List<String>>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => Container(
+      builder: (context) => SizedBox(
         height: MediaQuery.of(context).size.height * 0.8,
         child: _AddServiceSelector(
           initialSelected: currentSelected,
@@ -178,14 +182,14 @@ Future<void> _initializeData() async {
     List<String> currentSelected = _getAllSelectedServiceNames();
     if (currentSelected.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No services are currently selected.')),
+        const SnackBar(content: Text('No services are currently selected.')),
       );
       return;
     }
     List<String>? updatedServices = await showModalBottomSheet<List<String>>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => Container(
+      builder: (context) => SizedBox(
         height: MediaQuery.of(context).size.height * 0.8,
         child: _RemoveServiceSelector(
           initialSelected: currentSelected,
@@ -245,22 +249,22 @@ Future<void> _initializeData() async {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Service Listing',
           style: TextStyle(color: Colors.black, fontSize: 18),
         ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
  
                 Padding(
-                  padding: EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
                   child: Text(
                     'Manage the services you are offering in your business by adding or removing services.',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
@@ -268,7 +272,7 @@ Future<void> _initializeData() async {
                 ),
 
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
          
@@ -281,7 +285,7 @@ Future<void> _initializeData() async {
                           ),
                           child: TextField(
                             controller: _searchController,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               prefixIcon: Icon(Icons.search, size: 20),
                               hintText: 'Search Service',
                               border: InputBorder.none,
@@ -291,7 +295,7 @@ Future<void> _initializeData() async {
                           ),
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
        
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
@@ -302,13 +306,13 @@ Future<void> _initializeData() async {
                           ),
                         ),
                         onPressed: _showRemoveServicesBottomSheet,
-                        child: Text('Remove'),
+                        child: const Text('Remove'),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
              
                       ElevatedButton.icon(
-                        icon: Icon(Icons.add, size: 18),
-                        label: Text(
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text(
                           'Add',
                           style: TextStyle(color: Colors.white),
                         ),
@@ -317,23 +321,23 @@ Future<void> _initializeData() async {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                         ),
                         onPressed: _showAddServicesBottomSheet,
                       ),
                     ],
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
 
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: categories.map((category) {
                       final isSelected = selectedCategory == category;
                       return Padding(
-                        padding: EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.only(right: 8),
                         child: FilterChip(
                           label: Text(
                             category,
@@ -349,14 +353,14 @@ Future<void> _initializeData() async {
                           selectedColor: Colors.black,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(color: Colors.black),
+                            side: const BorderSide(color: Colors.black),
                           ),
                         ),
                       );
                     }).toList(),
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
             
                 Expanded(
                   child: ListView.builder(
@@ -373,16 +377,16 @@ Future<void> _initializeData() async {
                       final everyonePrice = service['everyonePrice'] as String;
 
                       return Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (showCategoryHeader)
                               Padding(
-                                padding: EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.only(bottom: 8),
                                 child: Text(
                                   service['category'],
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -395,7 +399,7 @@ Future<void> _initializeData() async {
                                 Container(
                                   width: 3,
                                   height: 60,
-                                  margin: EdgeInsets.only(right: 16),
+                                  margin: const EdgeInsets.only(right: 16),
                                   color: Colors.red,
                                 ),
                             
@@ -405,12 +409,12 @@ Future<void> _initializeData() async {
                                     children: [
                                       Text(
                                         service['name'],
-                                        style: TextStyle(fontWeight: FontWeight.w500),
+                                        style: const TextStyle(fontWeight: FontWeight.w500),
                                       ),
-                                      SizedBox(height: 4),
+                                      const SizedBox(height: 4),
                                       Text(
                                         service['duration'],
-                                        style: TextStyle(color: Colors.grey),
+                                        style: const TextStyle(color: Colors.grey),
                                       ),
                                     ],
                                   ),
@@ -424,13 +428,13 @@ Future<void> _initializeData() async {
                                           children: agePricing.map((ap) {
                                             return Text(
                                               '${ap['price']} ${ap['age']}',
-                                              style: TextStyle(fontSize: 12),
+                                              style: const TextStyle(fontSize: 12),
                                             );
                                           }).toList(),
                                         )
                                       : Text(
                                           everyonePrice,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w500,
                                           ),
@@ -463,11 +467,11 @@ class _AddServiceSelector extends StatefulWidget {
   final Function(List<String>) onSelected;
 
   const _AddServiceSelector({
-    Key? key,
+    super.key,
     required this.initialSelected,
     required this.businessData,
     required this.onSelected,
-  }) : super(key: key);
+  });
 
   @override
   __AddServiceSelectorState createState() => __AddServiceSelectorState();
@@ -564,7 +568,7 @@ class __AddServiceSelectorState extends State<_AddServiceSelector> {
   Widget build(BuildContext context) {
     final categoryFilterList = [
       'All categories',
-      ...categorizedServices.keys.toList()
+      ...categorizedServices.keys
     ];
     final filteredServices = _getFilteredServices();
 
@@ -572,8 +576,8 @@ class __AddServiceSelectorState extends State<_AddServiceSelector> {
       child: Column(
         children: [
 
-          Padding(
-            padding: const EdgeInsets.all(16.0),
+          const Padding(
+            padding: EdgeInsets.all(16.0),
             child: Text(
               'Add Services',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -587,7 +591,7 @@ class __AddServiceSelectorState extends State<_AddServiceSelector> {
               onChanged: (value) => setState(() => searchQuery = value),
               decoration: InputDecoration(
                 hintText: 'Search Service',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -596,11 +600,11 @@ class __AddServiceSelectorState extends State<_AddServiceSelector> {
               ),
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
         
           Container(
             height: 40,
-            margin: EdgeInsets.symmetric(horizontal: 16),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: categoryFilterList.length,
@@ -608,7 +612,7 @@ class __AddServiceSelectorState extends State<_AddServiceSelector> {
                 final cat = categoryFilterList[index];
                 final isSelected = (cat == selectedCategory);
                 return Padding(
-                  padding: EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: 8),
                   child: FilterChip(
                     label: Text(
                       cat,
@@ -630,11 +634,11 @@ class __AddServiceSelectorState extends State<_AddServiceSelector> {
               },
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
      
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               itemCount: filteredServices.length,
               itemBuilder: (context, index) {
                 final s = filteredServices[index];
@@ -662,18 +666,18 @@ class __AddServiceSelectorState extends State<_AddServiceSelector> {
           ),
 
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: ElevatedButton(
               onPressed: () {
                 widget.onSelected(localSelectedServices);
               },
-              child: Text('Done'),
               style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 48),
+                minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
+              child: Text('Done'),
             ),
           )
         ],
@@ -689,11 +693,11 @@ class _RemoveServiceSelector extends StatefulWidget {
   final Function(List<String>) onSelected;
 
   const _RemoveServiceSelector({
-    Key? key,
+    super.key,
     required this.initialSelected,
     required this.businessData,
     required this.onSelected,
-  }) : super(key: key);
+  });
 
   @override
   __RemoveServiceSelectorState createState() => __RemoveServiceSelectorState();
@@ -723,8 +727,8 @@ class __RemoveServiceSelectorState extends State<_RemoveServiceSelector> {
       child: Column(
         children: [
 
-          Padding(
-            padding: const EdgeInsets.all(16.0),
+          const Padding(
+            padding: EdgeInsets.all(16.0),
             child: Text(
               'Remove Services',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -738,7 +742,7 @@ class __RemoveServiceSelectorState extends State<_RemoveServiceSelector> {
               onChanged: (value) => setState(() => searchQuery = value),
               decoration: InputDecoration(
                 hintText: 'Search Selected Services',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -747,18 +751,18 @@ class __RemoveServiceSelectorState extends State<_RemoveServiceSelector> {
               ),
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
 
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               itemCount: filteredNames.length,
               itemBuilder: (context, index) {
                 final sName = filteredNames[index];
                 return ListTile(
                   title: Text(sName),
                   trailing: IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
+                    icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
   
                       setState(() {
@@ -772,18 +776,18 @@ class __RemoveServiceSelectorState extends State<_RemoveServiceSelector> {
           ),
 
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: ElevatedButton(
               onPressed: () {
                 widget.onSelected(localSelectedServices);
               },
-              child: Text('Done'),
               style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 48),
+                minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
+              child: Text('Done'),
             ),
           )
         ],

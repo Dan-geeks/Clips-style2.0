@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class AboutUsScreen extends StatefulWidget {
-  const AboutUsScreen({Key? key}) : super(key: key);
+  const AboutUsScreen({super.key});
 
   @override
   State<AboutUsScreen> createState() => _AboutUsScreenState();
@@ -183,7 +183,7 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                       controller: _aboutUsController,
                       maxLines: 8,
                       maxLength: 500,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: 'Tell your story...',
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.all(16),

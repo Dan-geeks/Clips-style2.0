@@ -5,6 +5,8 @@ import 'package:hive/hive.dart';
 
 
 class Packages extends StatefulWidget {
+  const Packages({super.key});
+
   @override
   _PackagesState createState() => _PackagesState();
 }
@@ -86,18 +88,18 @@ class _PackagesState extends State<Packages> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Select Services'),
-              SizedBox(height: 8),
+              const Text('Select Services'),
+              const SizedBox(height: 8),
               TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Search services...',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                   contentPadding:
-                      EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                 ),
                 onChanged: (value) {
                   setDialogState(() {
@@ -107,7 +109,7 @@ class _PackagesState extends State<Packages> {
               ),
             ],
           ),
-          content: Container(
+          content: SizedBox(
             width: double.maxFinite,
             height: MediaQuery.of(context).size.height * 0.4,
             child: ListView.builder(
@@ -120,7 +122,7 @@ class _PackagesState extends State<Packages> {
                   return Container();
                 }
                 return CheckboxListTile(
-                  title: Text(service, style: TextStyle(fontSize: 15)),
+                  title: Text(service, style: const TextStyle(fontSize: 15)),
                   value: _selectedServices.contains(service),
                   onChanged: (bool? value) {
                     setDialogState(() {
@@ -143,7 +145,7 @@ class _PackagesState extends State<Packages> {
                       });
                     });
                   },
-                  activeColor: Color(0xFF1B4332),
+                  activeColor: const Color(0xFF1B4332),
                 );
               },
             ),
@@ -155,7 +157,7 @@ class _PackagesState extends State<Packages> {
                 _searchController.clear();
                 _searchQuery = '';
               },
-              child: Text('Done', style: TextStyle(color: Color(0xFF1B4332))),
+              child: const Text('Done', style: TextStyle(color: Color(0xFF1B4332))),
             ),
           ],
         ),
@@ -168,7 +170,7 @@ class _PackagesState extends State<Packages> {
       context: context,
       initialDate: isStartDate ? _startDate : _endDate,
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
       setState(() {
@@ -180,7 +182,7 @@ class _PackagesState extends State<Packages> {
         } else {
           if (picked.isBefore(_startDate)) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('End date cannot be before start date')),
+              const SnackBar(content: Text('End date cannot be before start date')),
             );
             return;
           }
@@ -314,10 +316,10 @@ class _PackagesState extends State<Packages> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Create Service Package',
           style: TextStyle(
             color: Colors.black,
@@ -329,18 +331,18 @@ class _PackagesState extends State<Packages> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           children: [
-            Text(
+            const Text(
               'Package Details',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 16),
-            Text('Package name'),
-            SizedBox(height: 8),
+            const SizedBox(height: 16),
+            const Text('Package name'),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _packageNameController,
               decoration: InputDecoration(
@@ -349,7 +351,7 @@ class _PackagesState extends State<Packages> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -361,16 +363,16 @@ class _PackagesState extends State<Packages> {
                 return null;
               },
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Package description'),
+                const Text('Package description'),
                 Text('${_descriptionController.text.length}/1000',
-                    style: TextStyle(color: Colors.grey)),
+                    style: const TextStyle(color: Colors.grey)),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _descriptionController,
               maxLines: 4,
@@ -394,42 +396,42 @@ class _PackagesState extends State<Packages> {
                 setState(() {});
               },
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Included Services'),
+                const Text('Included Services'),
                 TextButton(
                   onPressed: () => _showServiceSelectionDialog(context),
-                  child: Text('Select Services',
+                  child: const Text('Select Services',
                       style: TextStyle(color: Color(0xFF1B4332))),
                 ),
               ],
             ),
             Container(
               width: double.infinity,
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(_selectedServices.join(', ')),
             ),
-            SizedBox(height: 16),
-            Text('Package validity period'),
-            SizedBox(height: 8),
+            const SizedBox(height: 16),
+            const Text('Package validity period'),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Start date'),
-                      SizedBox(height: 4),
+                      const Text('Start date'),
+                      const SizedBox(height: 4),
                       GestureDetector(
                         onTap: () => _selectDate(context, true),
                         child: Container(
-                          padding: EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 14),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade300),
@@ -439,7 +441,7 @@ class _PackagesState extends State<Packages> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(DateFormat('MMM dd, yyyy').format(_startDate)),
-                              Icon(Icons.calendar_today, size: 18),
+                              const Icon(Icons.calendar_today, size: 18),
                             ],
                           ),
                         ),
@@ -447,17 +449,17 @@ class _PackagesState extends State<Packages> {
                     ],
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('End date'),
-                      SizedBox(height: 4),
+                      const Text('End date'),
+                      const SizedBox(height: 4),
                       GestureDetector(
                         onTap: () => _selectDate(context, false),
                         child: Container(
-                          padding: EdgeInsets.symmetric(
+                          padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 14),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey.shade300),
@@ -467,7 +469,7 @@ class _PackagesState extends State<Packages> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(DateFormat('MMM dd, yyyy').format(_endDate)),
-                              Icon(Icons.calendar_today, size: 18),
+                              const Icon(Icons.calendar_today, size: 18),
                             ],
                           ),
                         ),
@@ -477,9 +479,9 @@ class _PackagesState extends State<Packages> {
                 ),
               ],
             ),
-            SizedBox(height: 16),
-            Text('Package Price'),
-            SizedBox(height: 8),
+            const SizedBox(height: 16),
+            const Text('Package Price'),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _packageValueController,
               decoration: InputDecoration(
@@ -489,9 +491,9 @@ class _PackagesState extends State<Packages> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter a package price';
@@ -509,20 +511,20 @@ class _PackagesState extends State<Packages> {
         ),
       ),
       bottomNavigationBar: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: ElevatedButton(
           onPressed:
               _isLoading ? null : () => _createPackage(context),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF1B4332),
-            padding: EdgeInsets.symmetric(vertical: 16),
+            backgroundColor: const Color(0xFF1B4332),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
             disabledBackgroundColor: Colors.grey[300],
           ),
           child: _isLoading
-              ? Row(
+              ? const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
@@ -544,7 +546,7 @@ class _PackagesState extends State<Packages> {
                     ),
                   ],
                 )
-              : Text(
+              : const Text(
                   'Create Package',
                   style: TextStyle(
                     color: Colors.white,

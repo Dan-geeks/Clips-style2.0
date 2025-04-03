@@ -5,17 +5,19 @@ import 'package:hive/hive.dart';
 import 'BusinessDiscoverus.dart';
 
 class MapScreen extends StatefulWidget {
+  const MapScreen({super.key});
+
   @override
   _MapScreenState createState() => _MapScreenState();
 }
 
 class _MapScreenState extends State<MapScreen> {
-  final LatLng _initialPosition = LatLng(-1.2921, 36.8219); 
-  LatLng _selectedPosition = LatLng(-1.2921, 36.8219);
+  final  LatLng _initialPosition = LatLng(-1.2921, 36.8219); 
+  LatLng _selectedPosition = const LatLng(-1.2921, 36.8219);
   String _address = '';
   Set<Marker> _markers = {};
   GoogleMapController? _mapController;
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   late Box appBox;
   Map<String, dynamic> businessData = {};
@@ -49,7 +51,7 @@ class _MapScreenState extends State<MapScreen> {
       _selectedPosition = position;
       _markers = {
         Marker(
-          markerId: MarkerId('selected_location'),
+          markerId: const MarkerId('selected_location'),
           position: position,
           draggable: true,
           onDragEnd: (newPosition) {
@@ -149,7 +151,7 @@ class _MapScreenState extends State<MapScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Text('Account Setup'),
+        title: const Text('Account Setup'),
         elevation: 0,
       ),
       body: SafeArea(
@@ -167,64 +169,64 @@ class _MapScreenState extends State<MapScreen> {
                       height: 8,
                       margin: EdgeInsets.only(right: index < 7 ? 8 : 0),
                       decoration: BoxDecoration(
-                        color: index < 7 ? Color(0xFF23461a) : Colors.grey[300],
+                        color: index < 7 ? const Color(0xFF23461a) : Colors.grey[300],
                         borderRadius: BorderRadius.circular(2.5),
                       ),
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: 10),
-              Text(
+              const SizedBox(height: 10),
+              const Text(
                 'Set your location address',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 16),
-              Text(
+              const SizedBox(height: 16),
+              const Text(
                 'Add your business location so your clients can easily find you',
                 style: TextStyle(fontSize: 16),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
               Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _searchController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: 'Search for a location',
                         border: OutlineInputBorder(),
                       ),
                       onSubmitted: (_) => _searchLocation(),
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: _searchLocation,
-                    child: Text('Search'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF23461a),
+                      backgroundColor: const Color(0xFF23461a),
                       foregroundColor: Colors.white,
                     ),
+                    child: Text('Search'),
                   ),
                 ],
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
              
               Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(_address),
               ),
-              SizedBox(height: 16),
-              Text(
+              const SizedBox(height: 16),
+              const Text(
                 'Move the pin to the right location',
                 style: TextStyle(fontSize: 16),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
        
               Expanded(
                 child: ClipRRect(
@@ -249,22 +251,22 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ),
               ),
-              SizedBox(height: 5),
+              const SizedBox(height: 5),
 
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _saveLocation,
-                  child: Text(
-                    'Save Location',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF23461a),
-                    padding: EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: const Color(0xFF23461a),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                  ),
+                  child: Text(
+                    'Save Location',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
               )

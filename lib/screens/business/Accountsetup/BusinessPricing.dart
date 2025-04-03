@@ -3,6 +3,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'Businessteamsize.dart';
 
 class PricingPage extends StatefulWidget {
+  const PricingPage({super.key});
+
   @override
   _PricingPageState createState() => _PricingPageState();
 }
@@ -58,7 +60,7 @@ Future<void> _loadData() async {
         }
         
       
-        services.forEach((service) {
+        for (var service in services) {
 
           String? duration = businessData!['durations']?[service];
           durationControllers[service] = TextEditingController(
@@ -88,7 +90,7 @@ Future<void> _loadData() async {
           } else {
             serviceAgeRanges[service] = [AgeRangePrice()];
           }
-        });
+        }
 
 
         selectedAudienceType = businessData!['audienceType'] ?? 'Everyone';
@@ -112,7 +114,7 @@ Future<void> _loadData() async {
     businessData!['durations'] = businessData!['durations'] ?? {};
     businessData!['pricing'] = businessData!['pricing'] ?? {};
 
-    services.forEach((service) {
+    for (var service in services) {
       print("Saving pricing for service: $service");
       if (durationControllers[service]?.text != null) {
         print("Duration for $service: ${durationControllers[service]?.text}");
@@ -155,12 +157,12 @@ Future<void> _loadData() async {
 
 
       businessData!['pricing'][service] = existingPricing;
-    });
+    }
 
     await appBox.put('businessData', businessData);
   } catch (e) {
     print('Error saving pricing data: $e');
-    throw e;
+    rethrow;
   }
 }
 
@@ -172,7 +174,7 @@ Future<void> _loadData() async {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: services.map((service) => Padding(
-          padding: EdgeInsets.only(right: 8),
+          padding: const EdgeInsets.only(right: 8),
           child: ChoiceChip(
             label: Text(
               service,
@@ -187,8 +189,8 @@ Future<void> _loadData() async {
               });
             },
             backgroundColor: Colors.grey[200],
-            selectedColor: Color(0xFF23461a),
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            selectedColor: const Color(0xFF23461a),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
         )).toList(),
       ),
@@ -200,7 +202,7 @@ Future<void> _loadData() async {
     if (selectedService == null) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
+          padding: const EdgeInsets.symmetric(vertical: 20),
           child: Text(
             'Select a service to set its duration and pricing',
             style: TextStyle(
@@ -218,25 +220,25 @@ Future<void> _loadData() async {
         Row(
           children: [
             Text(
-              'Duration for ${selectedService}',
-              style: TextStyle(
+              'Duration for $selectedService',
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
 
             if (selectedAudienceType == 'Everyone')
               Text(
-                'Price for ${selectedService}',
-                style: TextStyle(
+                'Price for $selectedService',
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
           ],
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
@@ -252,11 +254,11 @@ Future<void> _loadData() async {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   hintText: 'e.g., 1 hr, 30 min',
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             if (selectedAudienceType == 'Everyone')
               Expanded(
                 child: TextField(
@@ -272,7 +274,7 @@ Future<void> _loadData() async {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     hintText: 'Enter price',
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     prefixText: 'KSH ',
                   ),
                 ),
@@ -295,8 +297,8 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
   }
 
   return Container(
-    margin: EdgeInsets.only(bottom: 16),
-    padding: EdgeInsets.all(16),
+    margin: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       border: Border.all(color: Colors.grey[300]!),
       borderRadius: BorderRadius.circular(12),
@@ -310,7 +312,7 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
           children: [
             Text(
               'Age Range ${index + 1}',
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.w500,
                 fontSize: 16,
               ),
@@ -318,13 +320,13 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
             
             if (serviceAgeRanges[selectedService]!.length > 1)
               IconButton(
-                icon: Icon(Icons.remove_circle_outline),
+                icon: const Icon(Icons.remove_circle_outline),
                 onPressed: () => _removeAgeRange(selectedService!, index),
                 color: Colors.red,
               ),
           ],
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
@@ -348,11 +350,11 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Expanded(
               child: TextField(
                 controller: ageRange.maxAgeController,
@@ -374,16 +376,16 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
           ],
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         TextField(
           controller: ageRange.priceController,
-          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (value) {
             setState(() {});
           },
@@ -398,7 +400,7 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),  
       ],
@@ -408,31 +410,31 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
  
 
   Widget _buildCustomAgeRangePricing() {
-    if (selectedService == null) return SizedBox.shrink();
+    if (selectedService == null) return const SizedBox.shrink();
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: 24),
+        const SizedBox(height: 24),
         Text(
-          'Age-based pricing for ${selectedService}',
-          style: TextStyle(
+          'Age-based pricing for $selectedService',
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
 
         ...serviceAgeRanges[selectedService]!.asMap().entries.map((entry) {
           int index = entry.key;
           AgeRangePrice ageRange = entry.value;
           return _buildAgeRangeFields(index, ageRange);
-        }).toList(),
+        }),
         Center(
           child: TextButton.icon(
             onPressed: () => _addNewAgeRange(selectedService!),
-            icon: Icon(Icons.add_circle_outline, color: Color(0xFF23461a)),
-            label: Text(
+            icon: const Icon(Icons.add_circle_outline, color: Color(0xFF23461a)),
+            label: const Text(
               'Add Age Range',
               style: TextStyle(color: Color(0xFF23461a)),
             ),
@@ -450,7 +452,7 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
         serviceAgeRanges[service]!.add(AgeRangePrice());
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Please fill in the current age range before adding a new one'),
             backgroundColor: Colors.orange,
           ),
@@ -503,7 +505,7 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: Text(
+        title: const Text(
           'Account Setup',
           style: TextStyle(color: Colors.black, fontSize: 18),
         ),
@@ -511,7 +513,7 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -524,43 +526,43 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
                       height: 8,
                       margin: EdgeInsets.only(right: index < 7 ? 8 : 0),
                       decoration: BoxDecoration(
-                        color: index < 4 ? Color(0xFF23461a) : Colors.grey[300],
+                        color: index < 4 ? const Color(0xFF23461a) : Colors.grey[300],
                         borderRadius: BorderRadius.circular(2.5),
                       ),
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               
-              Text(
+              const Text(
                 'Set the Duration and pricing',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
 
          
               _buildServiceChips(services),
-              SizedBox(height: 32),
+              const SizedBox(height: 32),
 
 
               _buildDurationAndPriceFields(),
-              SizedBox(height: 32),
+              const SizedBox(height: 32),
 
-              Text(
+              const Text(
                 'Select the Audience type of pricing',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               
               RadioListTile<String>(
-                title: Text('Everyone'),
+                title: const Text('Everyone'),
                 value: 'Everyone',
                 groupValue: selectedAudienceType,
                 onChanged: (value) {
@@ -569,10 +571,10 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
                   });
                 },
                 contentPadding: EdgeInsets.zero,
-                activeColor: Color(0xFF23461a),
+                activeColor: const Color(0xFF23461a),
               ),
               RadioListTile<String>(
-                title: Text('Customize by age'),
+                title: const Text('Customize by age'),
                 value: 'Customize',
                 groupValue: selectedAudienceType,
                 onChanged: (value) {
@@ -581,13 +583,13 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
                   });
                 },
                 contentPadding: EdgeInsets.zero,
-                activeColor: Color(0xFF23461a),
+                activeColor: const Color(0xFF23461a),
               ),
 
               if (selectedAudienceType == 'Customize' && selectedService != null) 
                 Column(
                   children: [
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     _buildCustomAgeRangePricing(),
                   ],
                 ),
@@ -596,22 +598,22 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
         ),
       ),
       bottomNavigationBar: Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: ElevatedButton(
           onPressed: _saveAndContinue,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF23461a),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
           child: Text(
             'Continue',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
               color: Colors.white,
-            ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF23461a),
-            padding: EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
             ),
           ),
         ),
@@ -621,11 +623,17 @@ Widget _buildAgeRangeFields(int index, AgeRangePrice ageRange) {
 
   @override
   void dispose() {
-    durationControllers.values.forEach((controller) => controller.dispose());
-    priceControllers.values.forEach((controller) => controller.dispose());
-    serviceAgeRanges.values.forEach((ageRanges) {
-      ageRanges.forEach((ageRange) => ageRange.dispose());
-    });
+    for (var controller in durationControllers.values) {
+      controller.dispose();
+    }
+    for (var controller in priceControllers.values) {
+      controller.dispose();
+    }
+    for (var ageRanges in serviceAgeRanges.values) {
+      for (var ageRange in ageRanges) {
+        ageRange.dispose();
+      }
+    }
     super.dispose();
   }
 }

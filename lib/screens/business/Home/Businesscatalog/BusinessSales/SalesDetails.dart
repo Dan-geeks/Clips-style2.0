@@ -6,9 +6,9 @@ class SaleDetailsPage extends StatelessWidget {
   final Map<String, dynamic> saleData;
 
   const SaleDetailsPage({
-    Key? key,
+    super.key,
     required this.saleData,
-  }) : super(key: key);
+  });
 
 
   String formatDate(DateTime date) {
@@ -76,12 +76,12 @@ class SaleDetailsPage extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.more_vert, color: Colors.black),
+            icon: const Icon(Icons.more_vert, color: Colors.black),
             onPressed: () {},
           ),
         ],
@@ -94,24 +94,24 @@ class SaleDetailsPage extends StatelessWidget {
             children: [
           
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: getStatusColor(status),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
                   status,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
 
           
-              Text(
+              const Text(
                 'Sale',
                 style: TextStyle(
                   fontSize: 24,
@@ -126,21 +126,21 @@ class SaleDetailsPage extends StatelessWidget {
                 ),
               ),
               
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               
 
-              Text(
+              const Text(
                 'Details',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
 
               
               Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey[300]!),
                   borderRadius: BorderRadius.circular(12),
@@ -156,7 +156,7 @@ class SaleDetailsPage extends StatelessWidget {
                           ? Text(saleData['clientName']?[0] ?? 'C')
                           : null,
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,7 +172,7 @@ class SaleDetailsPage extends StatelessWidget {
                               ),
                               Text(
                                 saleData['clientName'] ?? 'N/A',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w500,
                                   fontSize: 14,
                                 ),
@@ -190,7 +190,7 @@ class SaleDetailsPage extends StatelessWidget {
                               ),
                               Text(
                                 saleData['clientEmail'] ?? 'N/A',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w500,
                                   fontSize: 14,
                                 ),
@@ -208,7 +208,7 @@ class SaleDetailsPage extends StatelessWidget {
                               ),
                               Text(
                                 saleData['clientPhone'] ?? 'N/A',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w500,
                                   fontSize: 14,
                                 ),
@@ -222,7 +222,7 @@ class SaleDetailsPage extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
 
  
               Row(
@@ -233,13 +233,13 @@ class SaleDetailsPage extends StatelessWidget {
                     label: 'Email',
                     icon: Icons.email_outlined,
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   _buildContactButton(
                     onPressed: () => handleText(context, saleData['clientPhone'] ?? ''),
                     label: 'Text',
                     icon: Icons.message_outlined,
                   ),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   _buildContactButton(
                     onPressed: () => handleCall(context, saleData['clientPhone'] ?? ''),
                     label: 'Call',
@@ -248,11 +248,11 @@ class SaleDetailsPage extends StatelessWidget {
                 ],
               ),
 
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
 
            
               Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey[300]!),
                   borderRadius: BorderRadius.circular(12),
@@ -262,7 +262,7 @@ class SaleDetailsPage extends StatelessWidget {
                   children: [
                     Text(
                       'Sale #${saleData['saleId'] ?? '1'}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -274,7 +274,7 @@ class SaleDetailsPage extends StatelessWidget {
                         fontSize: 14,
                       ),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     ...(saleData['services'] as List? ?? []).map((service) => 
                       Column(
                         children: [
@@ -283,11 +283,11 @@ class SaleDetailsPage extends StatelessWidget {
                             children: [
                               Text(
                                 service['name'] ?? '',
-                                style: TextStyle(fontSize: 14),
+                                style: const TextStyle(fontSize: 14),
                               ),
                               Text(
                                 'KES ${service['price']?.toString() ?? '0'}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.w500,
                                   fontSize: 14,
                                 ),
@@ -301,35 +301,35 @@ class SaleDetailsPage extends StatelessWidget {
                               fontSize: 12,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                         ],
                       ),
-                    ).toList(),
-                    Divider(height: 24),
+                    ),
+                    const Divider(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
+                        const Text(
                           'Total',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(
                           'KES ${saleData['total']?.toString() ?? '0'}',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           'Paid with ${saleData['paymentMethod'] ?? 'Cash'}',
-                          style: TextStyle(fontSize: 14),
+                          style: const TextStyle(fontSize: 14),
                         ),
                         Text(
                           'KES ${saleData['amountPaid']?.toString() ?? '0'}',
-                          style: TextStyle(fontSize: 14),
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ],
                     ),
@@ -344,11 +344,11 @@ class SaleDetailsPage extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
 
         
               Container(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey[300]!),
                   borderRadius: BorderRadius.circular(12),
@@ -356,17 +356,17 @@ class SaleDetailsPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Staff Member',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
                       saleData['staffMember'] ?? 'N/A',
-                      style: TextStyle(fontSize: 14),
+                      style: const TextStyle(fontSize: 14),
                     ),
                   ],
                 ),

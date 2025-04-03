@@ -9,6 +9,8 @@ import 'package:intl/intl.dart';
 enum DateRangeType { day, week, month, year }
 
 class SalesListPage extends StatefulWidget {
+  const SalesListPage({super.key});
+
   @override
   _SalesListPageState createState() => _SalesListPageState();
 }
@@ -145,7 +147,7 @@ class _SalesListPageState extends State<SalesListPage> {
             saleDate.day == _selectedDate.day;
       case DateRangeType.week:
         DateTime firstDayOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
-        DateTime lastDayOfWeek = firstDayOfWeek.add(Duration(days: 6));
+        DateTime lastDayOfWeek = firstDayOfWeek.add(const Duration(days: 6));
         return !saleDate.isBefore(firstDayOfWeek) && !saleDate.isAfter(lastDayOfWeek);
       case DateRangeType.month:
         return saleDate.year == _selectedDate.year && saleDate.month == _selectedDate.month;
@@ -159,7 +161,7 @@ class _SalesListPageState extends State<SalesListPage> {
 
   String _getWeekDates(DateTime date) {
     final firstDayOfWeek = date.subtract(Duration(days: date.weekday - 1));
-    final lastDayOfWeek = firstDayOfWeek.add(Duration(days: 6));
+    final lastDayOfWeek = firstDayOfWeek.add(const Duration(days: 6));
     final startDate = DateFormat('d MMM').format(firstDayOfWeek);
     final endDate = DateFormat('d MMM yyyy').format(lastDayOfWeek);
     return '$startDate - $endDate';
@@ -524,13 +526,13 @@ class _SalesListPageState extends State<SalesListPage> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.more_vert, color: Colors.black),
+            icon: const Icon(Icons.more_vert, color: Colors.black),
             onPressed: () {},
           ),
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
          
@@ -548,7 +550,7 @@ class _SalesListPageState extends State<SalesListPage> {
                           child: TextField(
                             controller: _searchController,
                             onChanged: _filterSales,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               prefixIcon: Icon(Icons.search, color: Colors.grey),
                               hintText: 'Search by sale or client',
                               border: InputBorder.none,
@@ -557,14 +559,14 @@ class _SalesListPageState extends State<SalesListPage> {
                           ),
                         ),
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
   
                       InkWell(
                         key: _dateButtonKey,
                         onTap: _showDateRangeMenu,
                         child: Container(
                           height: 45,
-                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey[300]!),
                             borderRadius: BorderRadius.circular(8),
@@ -572,8 +574,8 @@ class _SalesListPageState extends State<SalesListPage> {
                           child: Row(
                             children: [
                               Text(_dateRangeText),
-                              SizedBox(width: 8),
-                              Icon(Icons.calendar_today, size: 16),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.calendar_today, size: 16),
                             ],
                           ),
                         ),
@@ -610,7 +612,7 @@ class _SalesListPageState extends State<SalesListPage> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                 ],
         
                 Expanded(
@@ -620,7 +622,7 @@ class _SalesListPageState extends State<SalesListPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.point_of_sale, size: 64, color: Colors.grey[400]),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
                               Text(
                                 'No sales found',
                                 style: TextStyle(
@@ -629,7 +631,7 @@ class _SalesListPageState extends State<SalesListPage> {
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Text(
                                 'Your sales will appear here',
                                 style: TextStyle(
@@ -642,11 +644,11 @@ class _SalesListPageState extends State<SalesListPage> {
                         )
                       : ListView.builder(
                           itemCount: filteredSales.length,
-                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           itemBuilder: (context, index) {
                             final sale = filteredSales[index];
                             return Container(
-                              padding: EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
                                 border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
                               ),
@@ -663,20 +665,20 @@ class _SalesListPageState extends State<SalesListPage> {
                                     flex: 2,
                                     child: Text(
                                       sale['client'],
-                                      style: TextStyle(fontWeight: FontWeight.w500),
+                                      style: const TextStyle(fontWeight: FontWeight.w500),
                                     ),
                                   ),
                                   Expanded(
                                     flex: 2,
                                     child: Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
                                         color: getStatusColor(sale['status']),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Text(
                                         sale['status'],
-                                        style: TextStyle(color: Colors.white, fontSize: 10),
+                                        style: const TextStyle(color: Colors.white, fontSize: 10),
                                         textAlign: TextAlign.center,
                                       ),
                                     ),
@@ -689,7 +691,7 @@ class _SalesListPageState extends State<SalesListPage> {
                                     flex: 2,
                                     child: Text(
                                       sale['total'],
-                                      style: TextStyle(fontWeight: FontWeight.w500),
+                                      style: const TextStyle(fontWeight: FontWeight.w500),
                                     ),
                                   ),
                                 ],

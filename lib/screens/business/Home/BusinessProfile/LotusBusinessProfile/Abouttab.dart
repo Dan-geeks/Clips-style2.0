@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class BusinessProfileAboutTab extends StatefulWidget {
-  const BusinessProfileAboutTab({Key? key}) : super(key: key);
+  const BusinessProfileAboutTab({super.key});
 
   @override
   State<BusinessProfileAboutTab> createState() =>
@@ -158,7 +158,7 @@ class BusinessProfileAboutTabState extends State<BusinessProfileAboutTab> {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

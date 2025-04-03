@@ -22,6 +22,8 @@ class Deal {
 }
 
 class LastMinuteOffer extends StatefulWidget {
+  const LastMinuteOffer({super.key});
+
   @override
   _LastMinuteOfferState createState() => _LastMinuteOfferState();
 }
@@ -108,17 +110,17 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Select Services'),
-              SizedBox(height: 8),
+              const Text('Select Services'),
+              const SizedBox(height: 8),
               TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Search services...',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  contentPadding: EdgeInsets.symmetric(
+                  contentPadding: const EdgeInsets.symmetric(
                     vertical: 8,
                     horizontal: 12,
                   ),
@@ -131,7 +133,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
               ),
             ],
           ),
-          content: Container(
+          content: SizedBox(
             width: double.maxFinite,
             height: MediaQuery.of(context).size.height * 0.4,
             child: ListView.builder(
@@ -144,7 +146,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                   return Container();
                 }
                 return CheckboxListTile(
-                  title: Text(service, style: TextStyle(fontSize: 15)),
+                  title: Text(service, style: const TextStyle(fontSize: 15)),
                   value: _selectedServices.contains(service),
                   onChanged: (bool? value) {
                     setDialogState(() {
@@ -169,7 +171,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                       });
                     });
                   },
-                  activeColor: Color(0xFF1B4332),
+                  activeColor: const Color(0xFF1B4332),
                 );
               },
             ),
@@ -177,7 +179,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -185,7 +187,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                 _searchController.clear();
                 _searchQuery = '';
               },
-              child: Text('Done', style: TextStyle(color: Color(0xFF1B4332))),
+              child: const Text('Done', style: TextStyle(color: Color(0xFF1B4332))),
             ),
           ],
         ),
@@ -345,10 +347,10 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Last-minute offer',
           style: TextStyle(
             color: Colors.black,
@@ -360,19 +362,19 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           children: [
-            Text(
+            const Text(
               'Customize las-minute offer',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-            Text('Flash sale name'),
-            SizedBox(height: 8),
+            const Text('Flash sale name'),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _offerNameController,
               decoration: InputDecoration(
@@ -385,7 +387,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -395,18 +397,18 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
               },
             ),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Description'),
+                const Text('Description'),
                 Text(
                   '${_descriptionController.text.length}/1000',
-                  style: TextStyle(color: Colors.grey),
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _descriptionController,
               maxLines: 4,
@@ -420,16 +422,16 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
               onChanged: (value) {
                 setState(() {});
               },
             ),
 
-            SizedBox(height: 24),
-            Text('Apply promotion to'),
-            SizedBox(height: 8),
+            const SizedBox(height: 24),
+            const Text('Apply promotion to'),
+            const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
@@ -439,21 +441,21 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                 title: Text(_selectedServices.join(', ')),
                 trailing: TextButton(
                   onPressed: () => _showServiceSelectionDialog(context, null),
-                  child: Text(
+                  child: const Text(
                     'Edit',
                     style: TextStyle(color: Color(0xFF1B4332)),
                   ),
                 ),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
               ),
             ),
 
-            SizedBox(height: 24),
-            Text(
+            const SizedBox(height: 24),
+            const Text(
               'Last - Minute Discount and time',
               style: TextStyle(fontWeight: FontWeight.w500),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Reduce the price by a fixed amount and choose the time before appointment needs to book to get this offer',
               style: TextStyle(
@@ -461,7 +463,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                 fontSize: 13,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             Row(
               children: [
@@ -469,8 +471,8 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Discount Value'),
-                      SizedBox(height: 8),
+                      const Text('Discount Value'),
+                      const SizedBox(height: 8),
                       TextFormField(
                         controller: _discountValueController,
                         decoration: InputDecoration(
@@ -484,7 +486,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                             borderSide: BorderSide(color: Colors.grey.shade300),
                           ),
                           contentPadding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                              const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                         ),
                         keyboardType: TextInputType.number,
                         validator: (value) {
@@ -503,13 +505,13 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                     ],
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Discount code'),
-                      SizedBox(height: 8),
+                      const Text('Discount code'),
+                      const SizedBox(height: 8),
                       TextFormField(
                         controller: _discountCodeController,
                         decoration: InputDecoration(
@@ -522,7 +524,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(color: Colors.grey.shade300),
                           ),
-                          contentPadding: EdgeInsets.symmetric(
+                          contentPadding: const EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 14,
                           ),
@@ -534,9 +536,9 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
               ],
             ),
 
-            SizedBox(height: 24),
-            Text('Before appointment time'),
-            SizedBox(height: 8),
+            const SizedBox(height: 24),
+            const Text('Before appointment time'),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _hoursBeforeController,
               decoration: InputDecoration(
@@ -550,7 +552,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                   borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
                 contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
               keyboardType: TextInputType.number,
               validator: (value) {
@@ -561,9 +563,9 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
               },
             ),
 
-            SizedBox(height: 24),
-            Text('Validity in days'),
-            SizedBox(height: 8),
+            const SizedBox(height: 24),
+            const Text('Validity in days'),
+            const SizedBox(height: 8),
             TextFormField(
               controller: _validityDaysController,
               decoration: InputDecoration(
@@ -577,7 +579,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                   borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
                 contentPadding:
-                    EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
               keyboardType: TextInputType.number,
               validator: (value) {
@@ -589,19 +591,19 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
         ),
       ),
       bottomNavigationBar: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: ElevatedButton(
           onPressed: _isLoading ? null : () => _createLastMinuteOffer(context, null),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF1B4332),
-            padding: EdgeInsets.symmetric(vertical: 16),
+            backgroundColor: const Color(0xFF1B4332),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
             disabledBackgroundColor: Colors.grey[300],
           ),
           child: _isLoading
-              ? Row(
+              ? const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
@@ -623,7 +625,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
                     ),
                   ],
                 )
-              : Text(
+              : const Text(
                   'Create deal',
                   style: TextStyle(
                     color: Colors.white,

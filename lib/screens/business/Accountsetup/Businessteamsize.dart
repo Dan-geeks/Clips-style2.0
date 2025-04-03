@@ -4,6 +4,8 @@ import 'Businessteammembers.dart';
 
 
 class TeamSize extends StatefulWidget {
+  const TeamSize({super.key});
+
   @override
   _TeamSizeState createState() => _TeamSizeState();
 }
@@ -62,7 +64,7 @@ class _TeamSizeState extends State<TeamSize> {
       await appBox.put('businessData', businessData);
     } catch (e) {
       print('Error saving team size data: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -153,7 +155,7 @@ class _TeamSizeState extends State<TeamSize> {
     try {
       if (selectedTeamSize == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Please select a team size'),
             backgroundColor: Colors.orange,
           ),

@@ -9,6 +9,8 @@ import './BusinessSales/Businesssales.dart';
 import '../Businessclient/Businesscient.dart';
 import '../BusinessProfile/BusinessProfile.dart';
 class BusinessCatalog extends StatefulWidget {
+  const BusinessCatalog({super.key});
+
   @override
   _BusinessCatalogState createState() => _BusinessCatalogState();
 }
@@ -18,17 +20,17 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
 
   Widget _buildCatalogItem(String title, String subtitle, {VoidCallback? onTap}) {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: Colors.grey.withOpacity(0.3)),
       ),
       child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         title: Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
           ),
@@ -40,7 +42,7 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
             color: Colors.grey[600],
           ),
         ),
-        trailing: Icon(Icons.arrow_forward, color: Colors.grey),
+        trailing: const Icon(Icons.arrow_forward, color: Colors.grey),
         onTap: onTap,
       ),
     );
@@ -66,7 +68,7 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
     if (index == 3) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => BusinessProfile()),
+        MaterialPageRoute(builder: (context) => const BusinessProfile()),
       );
     }
   }
@@ -76,7 +78,7 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Row(
+        title: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
@@ -94,7 +96,7 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
         backgroundColor: Colors.white,
         elevation: 0,
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(1.0),
+          preferredSize: const Size.fromHeight(1.0),
           child: Container(
             color: Colors.grey.withOpacity(0.2),
             height: 1.0,
@@ -102,7 +104,7 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
         ),
       ),
       body: ListView(
-        padding: EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
           _buildCatalogItem(
             'Sales Summary',
@@ -110,7 +112,7 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => SalesSummaryScreen()),
+                MaterialPageRoute(builder: (context) => const SalesSummaryScreen()),
               );
             },
           ),
@@ -120,7 +122,7 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AppointmentsScreen()),
+                MaterialPageRoute(builder: (context) => const AppointmentsScreen()),
               );
             },
           ),
@@ -169,8 +171,8 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Color.fromARGB(255, 0, 0, 0),
-        items: <BottomNavigationBarItem>[
+        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today),
             label: '',

@@ -36,42 +36,88 @@ class Deal {
   });
 
   Map<String, dynamic> toMap() {
-  return {
-    'name': name,
-    'discount': discount,
- 'startDate': DateTime.parse(startDate).toIso8601String(),  
-    'endDate': DateTime.parse(endDate).toIso8601String(),
-    'isActive': isActive,
-    'description': description,
-    'services': services,
-    'discountCode': discountCode,
-    'type': type,
-    'packageValue': packageValue,
-    'createdAt': createdAt != null ? createdAt!.toIso8601String() : null,
-  };
-}
+    return {
+      'id': id,
+      'name': name,
+      'discount': discount,
+      'startDate': startDate,
+      'endDate': endDate,
+      'isActive': isActive,
+      'description': description,
+      'services': services,
+      'discountCode': discountCode,
+      'type': type,
+      'packageValue': packageValue,
+      'createdAt': createdAt?.toIso8601String(),
+    };
+  }
 
+  // Modified to safely handle Map<dynamic, dynamic> from Hive
+  factory Deal.fromMap(dynamic mapData) {
+    if (mapData == null) {
+      throw ArgumentError('Cannot create Deal from null map');
+    }
+    
+    // Convert to Map<String, dynamic> if needed
+    final Map<String, dynamic> map = {};
+    if (mapData is Map) {
+      mapData.forEach((dynamic key, dynamic value) {
+        if (key != null) {
+          map[key.toString()] = value;
+        }
+      });
+    } else {
+      throw ArgumentError('Expected a Map to create Deal');
+    }
 
-    factory Deal.fromMap(Map<String, dynamic> map) {
+    List<String> servicesList = [];
+    if (map['services'] != null) {
+      if (map['services'] is List) {
+        servicesList = (map['services'] as List).map((item) => item.toString()).toList();
+      }
+    }
+    
+    double? packageValueDouble;
+    if (map['packageValue'] != null) {
+      packageValueDouble = double.tryParse(map['packageValue'].toString());
+    }
+    
+    DateTime? createdAtDate;
+    if (map['createdAt'] != null && map['createdAt'] is String) {
+      try {
+        createdAtDate = DateTime.parse(map['createdAt'] as String);
+      } catch (e) {
+        // Handle invalid date format
+        print('Error parsing createdAt date: $e');
+      }
+    }
+
     return Deal(
       id: map['id']?.toString() ?? '',
       name: map['name']?.toString() ?? '',
       discount: map['discount']?.toString() ?? '',
       startDate: map['startDate']?.toString() ?? '',
       endDate: map['endDate']?.toString() ?? '',
-      isActive: map['isActive'] ?? true,
+      isActive: map['isActive'] == true,
       description: map['description']?.toString() ?? '',
-      services: List<String>.from(map['services'] ?? []),
+      services: servicesList,
       discountCode: map['discountCode']?.toString() ?? '',
       type: map['type']?.toString() ?? 'promotional_deal',
-      packageValue: map['packageValue']?.toDouble(),
-      createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt'] as String) : null,
+      packageValue: packageValueDouble,
+      createdAt: createdAtDate,
     );
   }
 
-
-   factory Deal.fromFirestore(DocumentSnapshot doc) {
+  factory Deal.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
+    
+    List<String> servicesList = [];
+    if (data['services'] != null) {
+      if (data['services'] is List) {
+        servicesList = (data['services'] as List).map((item) => item.toString()).toList();
+      }
+    }
+    
     return Deal(
       id: doc.id,
       name: data['name']?.toString() ?? '',
@@ -80,14 +126,13 @@ class Deal {
       endDate: data['endDate'] is Timestamp ? (data['endDate'] as Timestamp).toDate().toString() : data['endDate']?.toString() ?? '',
       isActive: data['isActive'] ?? true,
       description: data['description']?.toString() ?? '',
-      services: List<String>.from(data['services'] ?? []),
+      services: servicesList,
       discountCode: data['discountCode']?.toString() ?? '',
       type: data['type']?.toString() ?? 'promotional_deal',
       packageValue: data['packageValue']?.toDouble(),
       createdAt: data['createdAt'] is Timestamp ? (data['createdAt'] as Timestamp).toDate() : null,
     );
   }
-
 
   Deal copyWith({
     String? id,
@@ -154,7 +199,7 @@ class Deal {
 class BusinessDealsNav extends StatefulWidget {
   final Deal? newDeal;
 
-  const BusinessDealsNav({Key? key, this.newDeal}) : super(key: key);
+  const BusinessDealsNav({super.key, this.newDeal});
 
   @override
   State<BusinessDealsNav> createState() => _BusinessDealsNavState();
@@ -198,7 +243,8 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
 
   Future<void> _updateHiveCache(String type, List<Deal> items) async {
     try {
-      await appBox.put(type, items.map((item) => item.toMap()).toList());
+      final List<Map<String, dynamic>> serializedItems = items.map((item) => item.toMap()).toList();
+      await appBox.put(type, serializedItems);
     } catch (e) {
       print('Error updating Hive cache: $e');
       if (mounted) {
@@ -233,14 +279,26 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
       return;
     }
 
- 
-    final cachedDeals = appBox.get('deals') ?? [];
+    // Get cached deals from Hive with proper type handling
+    final List<dynamic> cachedDeals = appBox.get('deals') ?? [];
     if (cachedDeals.isNotEmpty) {
-      setState(() {
-        deals = List<Deal>.from(cachedDeals.map((deal) => Deal.fromMap(deal)));
-      });
+      try {
+        final List<Deal> parsedDeals = cachedDeals.map((dealData) {
+          try {
+            return Deal.fromMap(dealData);
+          } catch (e) {
+            print('Error parsing cached deal: $e');
+            return null;
+          }
+        }).whereType<Deal>().toList();
+        
+        setState(() {
+          deals = parsedDeals;
+        });
+      } catch (e) {
+        print('Error processing cached deals: $e');
+      }
     }
-
     
     _dealsSubscription = FirebaseFirestore.instance
         .collection('businesses')
@@ -281,14 +339,26 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
       return;
     }
 
-    // Get cached packages from Hive
-    final cachedPackages = appBox.get('packages') ?? [];
+    // Get cached packages from Hive with proper type handling
+    final List<dynamic> cachedPackages = appBox.get('packages') ?? [];
     if (cachedPackages.isNotEmpty) {
-      setState(() {
-        deals.addAll(List<Deal>.from(cachedPackages.map((pkg) => Deal.fromMap(pkg))));
-      });
+      try {
+        final List<Deal> parsedPackages = cachedPackages.map((packageData) {
+          try {
+            return Deal.fromMap(packageData);
+          } catch (e) {
+            print('Error parsing cached package: $e');
+            return null;
+          }
+        }).whereType<Deal>().toList();
+        
+        setState(() {
+          deals.addAll(parsedPackages);
+        });
+      } catch (e) {
+        print('Error processing cached packages: $e');
+      }
     }
-
 
     _packagesSubscription = FirebaseFirestore.instance
         .collection('businesses')
@@ -301,21 +371,26 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
         try {
           final packageDeals = snapshot.docs.map((doc) {
             final data = doc.data();
-            return Deal(
-              id: doc.id,
-              name: data['packageName'] ?? '',
-              discount: '',
-              startDate: (data['startDate'] as Timestamp).toDate().toString(),
-              endDate: (data['endDate'] as Timestamp).toDate().toString(),
-              isActive: data['status'] == 'active',
-              description: data['description'] ?? '',
-              services: List<String>.from(data['services'] ?? []),
-              discountCode: '',
-              type: 'package',
-              packageValue: data['packageValue']?.toDouble(),
-              createdAt: data['createdAt'] is Timestamp ? (data['createdAt'] as Timestamp).toDate() : null,
-            );
-          }).toList();
+            try {
+              return Deal(
+                id: doc.id,
+                name: data['packageName']?.toString() ?? '',
+                discount: '',
+                startDate: data['startDate'] is Timestamp ? (data['startDate'] as Timestamp).toDate().toString() : '',
+                endDate: data['endDate'] is Timestamp ? (data['endDate'] as Timestamp).toDate().toString() : '',
+                isActive: data['status'] == 'active',
+                description: data['description']?.toString() ?? '',
+                services: data['services'] is List ? List<String>.from(data['services'].map((s) => s.toString())) : [],
+                discountCode: '',
+                type: 'package',
+                packageValue: data['packageValue'] != null ? double.tryParse(data['packageValue'].toString()) : null,
+                createdAt: data['createdAt'] is Timestamp ? (data['createdAt'] as Timestamp).toDate() : null,
+              );
+            } catch (e) {
+              print('Error creating Deal object from package data: $e');
+              return null;
+            }
+          }).whereType<Deal>().toList();
 
           await _updateHiveCache('packages', packageDeals);
           
@@ -337,87 +412,91 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
       }
     });
   }
- String _formatValidityPeriod(String startDateStr, String endDateStr) {
-  try {
-    DateTime startDate;
-    DateTime endDate;
 
-   
-    if (startDateStr.contains('at')) {
-      startDate = DateTime.parse(startDateStr.split(' at')[0]);
-      endDate = DateTime.parse(endDateStr.split(' at')[0]);
-    } else {
-    
-      try {
-        startDate = DateFormat('MMM dd, yyyy').parse(startDateStr);
-        endDate = DateFormat('MMM dd, yyyy').parse(endDateStr);
-      } catch (_) {
-     
-        final fixMissingSpace = RegExp(r'([A-Za-z]{3})(\d{1,2},)');
-        final fixedStart = startDateStr.replaceAllMapped(fixMissingSpace, (m) => '${m[1]} ${m[2]}');
-        final fixedEnd = endDateStr.replaceAllMapped(fixMissingSpace, (m) => '${m[1]} ${m[2]}');
+  String _formatValidityPeriod(String startDateStr, String endDateStr) {
+    try {
+      DateTime startDate;
+      DateTime endDate;
 
-        startDate = DateFormat('MMM dd, yyyy').parse(fixedStart);
-        endDate = DateFormat('MMM dd, yyyy').parse(fixedEnd);
+      if (startDateStr.isEmpty || endDateStr.isEmpty) {
+        return 'Not specified';
       }
-    }
+      
+      if (startDateStr.contains('at')) {
+        startDate = DateTime.parse(startDateStr.split(' at')[0]);
+        endDate = DateTime.parse(endDateStr.split(' at')[0]);
+      } else {
+        try {
+          startDate = DateFormat('MMM dd, yyyy').parse(startDateStr);
+          endDate = DateFormat('MMM dd, yyyy').parse(endDateStr);
+        } catch (_) {
+          final fixMissingSpace = RegExp(r'([A-Za-z]{3})(\d{1,2},)');
+          final fixedStart = startDateStr.replaceAllMapped(fixMissingSpace, (m) => '${m[1]} ${m[2]}');
+          final fixedEnd = endDateStr.replaceAllMapped(fixMissingSpace, (m) => '${m[1]} ${m[2]}');
 
-    final diff = endDate.difference(startDate);
+          try {
+            startDate = DateFormat('MMM dd, yyyy').parse(fixedStart);
+            endDate = DateFormat('MMM dd, yyyy').parse(fixedEnd);
+          } catch (e) {
+            return '$startDateStr - $endDateStr';
+          }
+        }
+      }
 
-    if (diff.inDays > 0) {
-      final days = diff.inDays;
-      final hours = diff.inHours.remainder(24);
-      return '$days days${hours > 0 ? ' $hours hours' : ''}';
-    } else if (diff.inHours > 0) {
-      final hours = diff.inHours;
-      final minutes = diff.inMinutes.remainder(60);
-      return '$hours hours${minutes > 0 ? ' $minutes minutes' : ''}';
-    } else {
-      return '${diff.inMinutes} minutes';
+      final diff = endDate.difference(startDate);
+
+      if (diff.inDays > 0) {
+        final days = diff.inDays;
+        final hours = diff.inHours.remainder(24);
+        return '$days days${hours > 0 ? ' $hours hours' : ''}';
+      } else if (diff.inHours > 0) {
+        final hours = diff.inHours;
+        final minutes = diff.inMinutes.remainder(60);
+        return '$hours hours${minutes > 0 ? ' $minutes minutes' : ''}';
+      } else {
+        return '${diff.inMinutes} minutes';
+      }
+    } catch (e) {
+      print('Error formatting validity period: $e');
+      return '$startDateStr - $endDateStr';
     }
-  } catch (e) {
-    print('Error formatting validity period: $e');
-    return '$startDateStr - $endDateStr';
   }
-}
-
 
   Future<void> _handleAddDeal() async {
-  final businessId = appBox.get('userId');
-  if (businessId == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Business ID not found')),
-    );
-    return;
-  }
-
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Add New'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.local_offer, color: Colors.blue),
-              title: Text('Deal'),
-              onTap: () {
-                Navigator.pop(context); 
-               
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => BusinessDealsMain()),
-                );
-              },
-            ),
-          ],
-        ),
+    final businessId = appBox.get('userId');
+    if (businessId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Business ID not found')),
       );
-    },
-  );
-}
+      return;
+    }
 
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Add New'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.local_offer, color: Colors.blue),
+                title: const Text('Deal'),
+                onTap: () {
+                  Navigator.pop(context);
+                  
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => BusinessDealsMain()),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _refreshData() async {
     setState(() => _isLoading = true);
@@ -481,21 +560,26 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
     if (mounted) {
       final packageDeals = snapshot.docs.map((doc) {
         final data = doc.data();
-        return Deal(
-          id: doc.id,
-          name: data['packageName'] ?? '',
-          discount: '',
-          startDate: (data['startDate'] as Timestamp).toDate().toString(),
-          endDate: (data['endDate'] as Timestamp).toDate().toString(),
-          isActive: data['status'] == 'active',
-          description: data['description'] ?? '',
-          services: List<String>.from(data['services'] ?? []),
-          discountCode: '',
-          type: 'package',
-          packageValue: data['packageValue']?.toDouble(),
-          createdAt: data['createdAt'] is Timestamp ? (data['createdAt'] as Timestamp).toDate() : null,
-        );
-      }).toList();
+        try {
+          return Deal(
+            id: doc.id,
+            name: data['packageName']?.toString() ?? '',
+            discount: '',
+            startDate: data['startDate'] is Timestamp ? (data['startDate'] as Timestamp).toDate().toString() : '',
+            endDate: data['endDate'] is Timestamp ? (data['endDate'] as Timestamp).toDate().toString() : '',
+            isActive: data['status'] == 'active',
+            description: data['description']?.toString() ?? '',
+            services: data['services'] is List ? List<String>.from(data['services'].map((s) => s.toString())) : [],
+            discountCode: '',
+            type: 'package',
+            packageValue: data['packageValue'] != null ? double.tryParse(data['packageValue'].toString()) : null,
+            createdAt: data['createdAt'] is Timestamp ? (data['createdAt'] as Timestamp).toDate() : null,
+          );
+        } catch (e) {
+          print('Error creating Deal object from package data: $e');
+          return null;
+        }
+      }).whereType<Deal>().toList();
 
       await _updateHiveCache('packages', packageDeals);
       
@@ -505,6 +589,7 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
       });
     }
   }
+
   Widget _buildDealCard(Deal deal) {
     return Card(
       color: Colors.white,
@@ -574,7 +659,7 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
             const SizedBox(height: 8),
             if (deal.type == 'package') ...[
               Text(
-                'Value: KES ${deal.packageValue?.toStringAsFixed(2)}',
+                'Value: KES ${deal.packageValue?.toStringAsFixed(2) ?? "N/A"}',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -715,8 +800,8 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
                           .delete();
 
                       final cachedPackages = appBox.get('packages') ?? [];
-                      final updatedPackages = List<Map<String, dynamic>>.from(cachedPackages)
-                          .where((pkg) => pkg['id'] != deal.id)
+                      final updatedPackages = (cachedPackages as List)
+                          .where((pkg) => pkg is Map && pkg['id'] != deal.id)
                           .toList();
                       await appBox.put('packages', updatedPackages);
                     } else {
@@ -728,8 +813,8 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
                           .delete();
 
                       final cachedDeals = appBox.get('deals') ?? [];
-                      final updatedDeals = List<Map<String, dynamic>>.from(cachedDeals)
-                          .where((d) => d['id'] != deal.id)
+                      final updatedDeals = (cachedDeals as List)
+                          .where((d) => d is Map && d['id'] != deal.id)
                           .toList();
                       await appBox.put('deals', updatedDeals);
                     }
@@ -758,6 +843,7 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
   Widget _buildFilterChip(String label, String? filterValue) {
     final isSelected = _selectedFilter == filterValue;
     return FilterChip(

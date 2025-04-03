@@ -10,6 +10,8 @@ import 'package:hive/hive.dart';
 import 'dart:developer';
 
 class Businesssignup extends StatefulWidget {
+  const Businesssignup({super.key});
+
   @override
   _BusinesssignupState createState() => _BusinesssignupState();
 }
@@ -49,7 +51,7 @@ class _BusinesssignupState extends State<Businesssignup> {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return Center(child: CircularProgressIndicator());
+        return const Center(child: CircularProgressIndicator());
       },
     );
 
@@ -97,7 +99,7 @@ class _BusinesssignupState extends State<Businesssignup> {
       if (emailCheck.docs.isNotEmpty) {
         Navigator.pop(context); 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("An account with this email already exists")),
+          const SnackBar(content: Text("An account with this email already exists")),
         );
         return;
       }
@@ -168,7 +170,7 @@ class _BusinesssignupState extends State<Businesssignup> {
     } catch (e) {
       Navigator.pop(context); 
       print('Error during authentication: $e');
-      throw e;
+      rethrow;
     }
 
   } on FirebaseAuthException catch (e) {
@@ -197,7 +199,7 @@ class _BusinesssignupState extends State<Businesssignup> {
     
     print('Unexpected error during Google sign in: $e');
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("An unexpected error occurred during sign in")),
+      const SnackBar(content: Text("An unexpected error occurred during sign in")),
     );
   }
 }
@@ -219,7 +221,7 @@ class _BusinesssignupState extends State<Businesssignup> {
     bool phoneExists = await _checkPhoneNumber(phone);
     if (phoneExists) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("This phone number is already registered")),
+        const SnackBar(content: Text("This phone number is already registered")),
       );
       return;
     }
@@ -260,47 +262,47 @@ class _BusinesssignupState extends State<Businesssignup> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text('Business Sign Up', style: TextStyle(color: Colors.black)),
+        title: const Text('Business Sign Up', style: TextStyle(color: Colors.black)),
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.all(15.0),
+          padding: const EdgeInsets.all(15.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Image.asset('assets/Businessprofile.jpg', height: 150),
-              SizedBox(height: 24),
-              Text(
+              const SizedBox(height: 24),
+              const Text(
                 'Enter your phone number',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               TextField(
                 controller: _phoneController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Phone number',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.phone,
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               ElevatedButton(
+                onPressed: _signUpWithPhone,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF23461a),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
                 child: Text('Continue',
                   style: TextStyle(fontSize: 18, color: Colors.white),
                 ),
-                onPressed: _signUpWithPhone,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF23461a),
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                ),
               ),
-              SizedBox(height: 16),
-              Row(
+              const SizedBox(height: 16),
+              const Row(
                 children: [
                   Expanded(child: Divider()),
                   Padding(
@@ -310,40 +312,40 @@ class _BusinesssignupState extends State<Businesssignup> {
                   Expanded(child: Divider()),
                 ],
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               _buildSocialButton(
                 'Continue with Apple',
                 'assets/appleicon.svg',
                 () {},
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               _buildSocialButton(
                 'Continue with Google',
                 'assets/Google.svg',
                 () => _signInWithGoogle(context),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               _buildSocialButton(
                 'Continue with Facebook',
                 'assets/Facebookicon.svg',
                 () {},
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               _buildSocialButton(
                 'Continue with Email',
                 'assets/email.svg',
                 () => Navigator.pop(context),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Center(
                 child: RichText(
                   text: TextSpan(
-                    style: TextStyle(color: Colors.black),
+                    style: const TextStyle(color: Colors.black),
                     children: [
-                      TextSpan(text: 'Already have an account? '),
+                      const TextSpan(text: 'Already have an account? '),
                       TextSpan(
                         text: 'Log in',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
                         ),
@@ -365,6 +367,11 @@ class _BusinesssignupState extends State<Businesssignup> {
 
   Widget _buildSocialButton(String text, String iconPath, VoidCallback onPressed) {
     return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        side: const BorderSide(color: Colors.grey),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -372,11 +379,6 @@ class _BusinesssignupState extends State<Businesssignup> {
           SizedBox(width: 8),
           Text(text),
         ],
-      ),
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        side: BorderSide(color: Colors.grey),
       ),
     );
   }
@@ -386,7 +388,7 @@ class VerificationPage extends StatefulWidget {
   final String verificationId;
   final String phoneNumber;
 
-  VerificationPage({required this.verificationId, required this.phoneNumber});
+  const VerificationPage({super.key, required this.verificationId, required this.phoneNumber});
 
   @override
   _VerificationPageState createState() => _VerificationPageState();
@@ -430,7 +432,7 @@ class _VerificationPageState extends State<VerificationPage> {
       _resendTimer = 30;
     });
     Future.doWhile(() async {
-      await Future.delayed(Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 1));
       setState(() {
         if (_resendTimer > 0) {
           _resendTimer--;
@@ -462,7 +464,7 @@ class _VerificationPageState extends State<VerificationPage> {
         },
         codeSent: (String verificationId, int? resendToken) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Verification code resent")),
+            const SnackBar(content: Text("Verification code resent")),
           );
         },
         codeAutoRetrievalTimeout: (String verificationId) {},
@@ -480,7 +482,7 @@ class _VerificationPageState extends State<VerificationPage> {
 
     if (code.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please enter a 6-digit code")),
+        const SnackBar(content: Text("Please enter a 6-digit code")),
       );
       return;
     }
@@ -561,10 +563,9 @@ class _VerificationPageState extends State<VerificationPage> {
             });
 
        
-       ;
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Invalid verification code")),
+          const SnackBar(content: Text("Invalid verification code")),
         );
       }
     } catch (e) {
@@ -588,7 +589,7 @@ class _VerificationPageState extends State<VerificationPage> {
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
         maxLength: 1,
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           counterText: "",
           border: InputBorder.none,
         ),
@@ -607,38 +608,38 @@ class _VerificationPageState extends State<VerificationPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
+            const Text(
               'Verification',
               style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 40),
-            Text(
+            const SizedBox(height: 40),
+            const Text(
               'Please Enter the 6-digit code sent to\nyour phone number',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16),
             ),
-            SizedBox(height: 32),
+            const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: List.generate(6, (index) => _buildCodeInput(index)),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
+                const Text(
                   "If you didn't receive the code please click",
                   style: TextStyle(color: Colors.grey, fontSize: 10)
                 ),
@@ -647,25 +648,25 @@ class _VerificationPageState extends State<VerificationPage> {
                   child: Text(
                     _isResendActive ? "Resend Code" : "Wait $_resendTimer seconds",
                     style: TextStyle(
-                      color: _isResendActive ? Color(0xFF23461a) : Colors.grey
+                      color: _isResendActive ? const Color(0xFF23461a) : Colors.grey
                     )
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _verifyCode,
-              child: Text(
-                'Continue',
-                style: TextStyle(fontSize: 18, color: Colors.white)
-              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF23461a),
-                padding: EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: const Color(0xFF23461a),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(35),
                 ),
+              ),
+              child: Text(
+                'Continue',
+                style: TextStyle(fontSize: 18, color: Colors.white)
               ),
             ),
           ],

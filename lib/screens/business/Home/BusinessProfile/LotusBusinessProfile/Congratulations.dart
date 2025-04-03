@@ -4,7 +4,7 @@ import 'FinalBusinessProfile.dart';
 
 
 class Congratulations extends StatelessWidget {
-  const Congratulations({Key? key}) : super(key: key);
+  const Congratulations({super.key});
 
   void _copyToClipboard(BuildContext context, String text) {
     Clipboard.setData(ClipboardData(text: text));
@@ -73,12 +73,12 @@ class Congratulations extends StatelessWidget {
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
+              child: const Row(
                 children: [
                   Expanded(
                     child: Text(
                       shareLink,
-                      style: const TextStyle(color: Colors.black54),
+                      style: TextStyle(color: Colors.black54),
                     ),
                   ),
                 ],
@@ -94,9 +94,9 @@ class Congratulations extends StatelessWidget {
                   border: Border.all(color: Colors.grey[300]!),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
                       'Share link',
                       style: TextStyle(
@@ -122,9 +122,9 @@ class Congratulations extends StatelessWidget {
                   border: Border.all(color: Colors.grey[300]!),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
                       'Generate QR code',
                       style: TextStyle(
@@ -143,7 +143,7 @@ class Congratulations extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) =>  FinalBusinessProfile())),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) =>  const FinalBusinessProfile())),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF23461a),
                   padding: const EdgeInsets.symmetric(vertical: 16),

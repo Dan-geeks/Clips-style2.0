@@ -6,7 +6,7 @@ import 'Teammember/Teammember.dart';
 import 'Serivices/Services.dart';
 
 class EditBusinessProfile extends StatelessWidget {
-  const EditBusinessProfile({Key? key}) : super(key: key);
+  const EditBusinessProfile({super.key});
 
   @override
   Widget build(BuildContext context) {

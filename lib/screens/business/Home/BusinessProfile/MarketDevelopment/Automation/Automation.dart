@@ -6,6 +6,8 @@ import 'Createappointmentreminder.dart';
 import 'WelcomeClientAutomation.dart';
 
 class BusinessMarketAutomation extends StatefulWidget {
+  const BusinessMarketAutomation({super.key});
+
   @override
   _BusinessMarketAutomationState createState() =>
       _BusinessMarketAutomationState();
@@ -234,7 +236,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
       setState(() {});
     } catch (e) {
       print('Error saving data: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -279,7 +281,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
   void _addNewCard(String section) {
     if (_titleController.text.isEmpty || _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Please fill in all fields'),
           backgroundColor: Colors.red,
         ),
@@ -326,7 +328,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
   void _showSuccessSnackbar() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('New automation created successfully!'),
+        content: const Text('New automation created successfully!'),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
         action: SnackBarAction(
@@ -348,11 +350,11 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Appointment updates',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('businesses')
@@ -361,10 +363,12 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                 .doc('appointments')
                 .snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting)
-                return Center(child: CircularProgressIndicator());
-              if (snapshot.hasError)
-                return Text('Error fetching appointment data');
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return const Text('Error fetching appointment data');
+              }
 
       
               List<Map<String, dynamic>> appointmentsList =
@@ -421,9 +425,9 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.calendar_today_outlined,
+                const Icon(Icons.calendar_today_outlined,
                     color: Colors.blue, size: 24),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,17 +438,17 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                           Expanded(
                             child: Text(
                               appointment['title'],
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.w600),
                             ),
                           ),
                           PopupMenuButton(
-                            icon: Icon(Icons.more_vert, color: Colors.grey),
+                            icon: const Icon(Icons.more_vert, color: Colors.grey),
                             itemBuilder: (context) => [
-                              PopupMenuItem(child: Text('Edit'), value: 'edit'),
+                              const PopupMenuItem(value: 'edit', child: Text('Edit')),
                               PopupMenuItem(
-                                  child: Text(isEnabled ? 'Disable' : 'Enable'),
-                                  value: 'toggle'),
+                                  value: 'toggle',
+                                  child: Text(isEnabled ? 'Disable' : 'Enable')),
                             ],
                             onSelected: (value) async {
                               if (value == 'edit') {
@@ -482,7 +486,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         appointment['description'],
                         style:
@@ -494,11 +498,11 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
               ],
             ),
             if (appointment['channels'] != null) ...[
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Icon(Icons.mail_outline, size: 16, color: Colors.grey[600]),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     'Via ${(appointment['channels'] as List).join(', ')}',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
@@ -506,9 +510,9 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                 ],
               ),
             ],
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: isEnabled ? Colors.green[50] : Colors.grey[100],
                 borderRadius: BorderRadius.circular(4),
@@ -589,8 +593,8 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.celebration_outlined, color: Colors.blue, size: 24),
-                SizedBox(width: 12),
+                const Icon(Icons.celebration_outlined, color: Colors.blue, size: 24),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -601,19 +605,19 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                           Expanded(
                             child: Text(
                               milestone['title'],
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.w600),
                             ),
                           ),
                           PopupMenuButton(
-                            icon: Icon(Icons.more_vert, color: Colors.grey),
+                            icon: const Icon(Icons.more_vert, color: Colors.grey),
                             itemBuilder: (context) => [
-                              PopupMenuItem(child: Text('Edit'), value: 'edit'),
+                              const PopupMenuItem(value: 'edit', child: Text('Edit')),
                               PopupMenuItem(
+                                  value: 'toggle',
                                   child: Text(milestone['isEnabled']
                                       ? 'Disable'
-                                      : 'Enable'),
-                                  value: 'toggle'),
+                                      : 'Enable')),
                             ],
                             onSelected: (value) {
                               if (value == 'edit') {
@@ -623,7 +627,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         milestone['description'],
                         style:
@@ -635,11 +639,11 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
               ],
             ),
             if (milestone['timing'] != null) ...[
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     'Sends ${milestone['timing']}',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
@@ -648,11 +652,11 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
               ),
             ],
             if (milestone['expiry'] != null) ...[
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Icon(Icons.event_available, size: 16, color: Colors.grey[600]),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     'Expires after ${milestone['expiry']}',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
@@ -661,11 +665,11 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
               ),
             ],
             if (milestone['services'] != null) ...[
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Icon(Icons.list_alt, size: 16, color: Colors.grey[600]),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Applied to: ${(milestone['services'] as List).join(', ')}',
@@ -675,9 +679,9 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                 ],
               ),
             ],
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: milestone['isEnabled']
                     ? Colors.green[50]
@@ -707,11 +711,11 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Reminders',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('businesses')
@@ -720,9 +724,10 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                 .doc('reminders')
                 .snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting)
-                return Center(child: CircularProgressIndicator());
-              if (snapshot.hasError) return Text('Error fetching reminders');
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) return const Text('Error fetching reminders');
 
               List<Map<String, dynamic>> allReminders = List.from(reminderCards);
 
@@ -756,7 +761,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
               );
             },
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           _buildCreateNewButton('Reminders'),
         ],
       ),
@@ -779,9 +784,9 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.notifications_outlined,
+                const Icon(Icons.notifications_outlined,
                     color: Colors.blue, size: 24),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -792,14 +797,14 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                           Expanded(
                             child: Text(
                               reminderData['title'],
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontSize: 16, fontWeight: FontWeight.w600),
                             ),
                           ),
-                          Icon(Icons.more_vert, color: Colors.grey),
+                          const Icon(Icons.more_vert, color: Colors.grey),
                         ],
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         reminderData['description'],
                         style:
@@ -810,12 +815,12 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             if (reminderData.containsKey('advanceNotice'))
               Row(
                 children: [
                   Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     'Sends ${_formatDuration(reminderData['advanceNotice'])} before appointment',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
@@ -827,7 +832,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
               Row(
                 children: [
                   Icon(Icons.mail_outline, size: 16, color: Colors.grey[600]),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
                     'Via ${(reminderData['channels'] as List).join(', ')}',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
@@ -838,7 +843,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
               Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.grey[50],
                     borderRadius: BorderRadius.circular(8),
@@ -850,9 +855,9 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                   ),
                 ),
               ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: isEnabled ? Colors.green[50] : Colors.grey[100],
                 borderRadius: BorderRadius.circular(4),
@@ -889,9 +894,9 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.calendar_today_outlined,
+                const Icon(Icons.calendar_today_outlined,
                     color: Colors.blue, size: 24),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -903,15 +908,15 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                           Expanded(
                             child: Text(
                               title,
-                              style: TextStyle(
+                              style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600),
                             ),
                           ),
-                          Icon(Icons.more_vert, color: Colors.grey),
+                          const Icon(Icons.more_vert, color: Colors.grey),
                         ],
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         description,
                         style: TextStyle(
@@ -922,10 +927,10 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                 ),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Container(
               padding:
-                  EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: isEnabled
                     ? Colors.green[50]
@@ -964,7 +969,7 @@ Widget _buildCreateNewButton(String section) {
             final result = await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => AppointmentReminderSetup(),
+                builder: (context) => const AppointmentReminderSetup(),
               ),
             );
             if (result == true) {
@@ -987,14 +992,14 @@ Widget _buildCreateNewButton(String section) {
           }
         },
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+        child: const Padding(
+          padding: EdgeInsets.all(16.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.add_circle_outline, color: Colors.blue, size: 20),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 'Create New',
                 style: TextStyle(
                   color: Colors.blue,
@@ -1027,28 +1032,28 @@ Widget _buildCreateNewButton(String section) {
                   decoration: InputDecoration(
                     labelText: 'Title',
                     hintText: 'Enter $section title',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 TextField(
                   controller: _descriptionController,
                   decoration: InputDecoration(
                     labelText: 'Description',
                     hintText: 'Enter $section description',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
                   ),
                   maxLines: 3,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: selectedTriggerType,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Trigger Type',
                     border: OutlineInputBorder(),
                   ),
-                  hint: Text('Select trigger type'),
-                  items: [
+                  hint: const Text('Select trigger type'),
+                  items: const [
                     DropdownMenuItem(
                         value: 'time', child: Text('Time-based')),
                     DropdownMenuItem(
@@ -1067,7 +1072,7 @@ Widget _buildCreateNewButton(String section) {
           ),
           actions: [
             TextButton(
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
               onPressed: () {
                 _titleController.clear();
                 _descriptionController.clear();
@@ -1076,12 +1081,12 @@ Widget _buildCreateNewButton(String section) {
               },
             ),
             ElevatedButton(
-              child: Text('Create'),
               onPressed: () => _addNewCard(section),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
               ),
+              child: Text('Create'),
             ),
           ],
         );
@@ -1093,12 +1098,12 @@ Widget _buildCreateNewButton(String section) {
   Widget build(BuildContext context) {
     final documentId = FirebaseAuth.instance.currentUser?.uid;
     if (_isLoading) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
     if (documentId == null) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(child: Text('No user logged in.')),
       );
     }
@@ -1107,10 +1112,10 @@ Widget _buildCreateNewButton(String section) {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(
+        title: const Text(
           'Automation',
           style: TextStyle(
               color: Colors.black,
@@ -1136,13 +1141,13 @@ Widget _buildCreateNewButton(String section) {
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
-                              title: Text('Learn More'),
-                              content: Text(
+                              title: const Text('Learn More'),
+                              content: const Text(
                                 'Automation helps you manage client communications efficiently by sending timely reminders, updates, and other personalized messages.',
                               ),
                               actions: [
                                 TextButton(
-                                  child: Text("Close",
+                                  child: const Text("Close",
                                       style: TextStyle(color: Colors.blue)),
                                   onPressed: () =>
                                       Navigator.of(context).pop(),
@@ -1161,7 +1166,7 @@ Widget _buildCreateNewButton(String section) {
                               style: TextStyle(
                                   color: Colors.grey[600], fontSize: 14),
                             ),
-                            TextSpan(
+                            const TextSpan(
                               text: 'Learn More',
                               style: TextStyle(
                                   color: Colors.blue, fontSize: 14),
@@ -1174,10 +1179,10 @@ Widget _buildCreateNewButton(String section) {
                 ],
               ),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
    
             _buildRemindersSection(documentId),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -1185,31 +1190,31 @@ Widget _buildCreateNewButton(String section) {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildAppointmentSection(documentId),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   _buildAppointmentUpdateCard(
                     'New Appointment',
                     'Reach out to clients when their appointment is booked for them',
                     true,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildAppointmentUpdateCard(
                     'Rescheduled appointments',
                     'Automatically sends to clients when their appointment start time is changed',
                     true,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildAppointmentUpdateCard(
                     'Cancelled appointment',
                     'Automatically sends to clients when their appointment is cancelled',
                     true,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildAppointmentUpdateCard(
                     'Did not show up',
                     'Automatically sends to clients when their appointment is marked as no-shows',
                     true,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildAppointmentUpdateCard(
                     'Thank you for visiting',
                     'Reach out to clients when their appointment is checked out, with a link to leave a review',
@@ -1218,25 +1223,25 @@ Widget _buildCreateNewButton(String section) {
                 ],
               ),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
    
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Waitlist updates',
                     style: TextStyle(
                         fontSize: 20, fontWeight: FontWeight.w600),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   _buildAppointmentUpdateCard(
                     'Joined the waitlist',
                     'Automatically sends to clients when they join the waitlist',
                     true,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildAppointmentUpdateCard(
                     'Time slot available',
                     'Automatically sends to clients when a time slot becomes available to book',
@@ -1245,31 +1250,31 @@ Widget _buildCreateNewButton(String section) {
                 ],
               ),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
     
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Increase bookings',
                     style: TextStyle(
                         fontSize: 20, fontWeight: FontWeight.w600),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   _buildAppointmentUpdateCard(
                     'Reminder to rebook',
                     'Reminds your clients to rebook a few weeks after their last appointment',
                     true,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildAppointmentUpdateCard(
                     'Celebrate birthdays',
                     'Surprise clients on their special day, a proven way\nto boost client loyalty and retention.',
                     true,
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 12),
                   _buildAppointmentUpdateCard(
                     'Win back lapsed clients',
                     'Reach clients that you haven\'t seen for a while and encourage them to book their next appointment',
@@ -1278,24 +1283,24 @@ Widget _buildCreateNewButton(String section) {
                 ],
               ),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
    
           Padding(
   padding: const EdgeInsets.symmetric(horizontal: 16.0),
   child: Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
+      const Text(
         'Celebrate Milestone',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
       ),
-      SizedBox(height: 16),
+      const SizedBox(height: 16),
       _buildMilestoneSection(documentId),
     ],
   ),
 ),
 
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
           ],
         ),
       ),

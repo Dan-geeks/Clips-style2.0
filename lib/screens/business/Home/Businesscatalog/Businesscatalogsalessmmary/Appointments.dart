@@ -11,7 +11,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class AppointmentsScreen extends StatefulWidget {
-  const AppointmentsScreen({Key? key}) : super(key: key);
+  const AppointmentsScreen({super.key});
 
   @override
   State<AppointmentsScreen> createState() => _AppointmentsScreenState();
@@ -212,7 +212,7 @@ void _startFirestoreListener() {
                       child: Text(year.toString()),
                     ),
                   ),
-                )).toList(),
+                )),
               ],
             ),
           ),
@@ -880,7 +880,7 @@ void _startFirestoreListener() {
                           ],
                         ),
                       );
-                    }).toList(),
+                    }),
                 ],
               ),
             ),

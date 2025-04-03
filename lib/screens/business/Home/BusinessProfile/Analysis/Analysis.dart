@@ -10,7 +10,7 @@ import 'Perfomancedashboard.dart';
 
 
 class BusinessAnalysis extends StatefulWidget {
-  const BusinessAnalysis({Key? key}) : super(key: key);
+  const BusinessAnalysis({super.key});
 
   @override
   State<BusinessAnalysis> createState() => _BusinessAnalysisState();
@@ -58,7 +58,7 @@ class _BusinessAnalysisState extends State<BusinessAnalysis> {
       case 2: 
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) =>  AppointmentsScreen()),
+          MaterialPageRoute(builder: (context) =>  const AppointmentsScreen()),
         ).then((_) {
           setState(() => _selectedIndex = 0);
         });
@@ -160,7 +160,7 @@ class _BusinessAnalysisState extends State<BusinessAnalysis> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>  BusinessDashboardPerformance(),
+        builder: (context) =>  const BusinessDashboardPerformance(),
       ),
     );
   },
@@ -173,10 +173,10 @@ class _BusinessAnalysisState extends State<BusinessAnalysis> {
     padding: const EdgeInsets.all(16),
     child: Row(
       children: [
-        Expanded(
+        const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 'Performance Dashboard',
                 style: TextStyle(

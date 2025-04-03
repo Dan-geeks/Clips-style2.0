@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'Subscription.dart'; 
 class MembershipDetailsPage extends StatefulWidget {
-  const MembershipDetailsPage({Key? key}) : super(key: key);
+  const MembershipDetailsPage({super.key});
 
   @override
   _MembershipDetailsPageState createState() => _MembershipDetailsPageState();
@@ -176,7 +176,7 @@ class _MembershipDetailsPageState extends State<MembershipDetailsPage> {
                       style: const TextStyle(fontSize: 15),
                     ),
                   );
-                }).toList(),
+                }),
                 const SizedBox(height: 16),
                 Text(
                   'Number of Sessions',
