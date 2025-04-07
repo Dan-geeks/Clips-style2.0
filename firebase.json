@@ -1,1 +1,41 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"lotus-76761","appId":"1:337048471338:android:ce5cba3640361a75130053","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"lotus-76761","configurations":{"android":"1:337048471338:android:ce5cba3640361a75130053","ios":"1:337048471338:ios:44c8889588d040ab130053","macos":"1:337048471338:ios:44c8889588d040ab130053","web":"1:337048471338:web:173bb139f96ba4b5130053","windows":"1:337048471338:web:a37c0dd595d8883f130053"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "lotus-76761",
+          "appId": "1:337048471338:android:ce5cba3640361a75130053",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "lotus-76761",
+          "configurations": {
+            "android": "1:337048471338:android:ce5cba3640361a75130053",
+            "ios": "1:337048471338:ios:44c8889588d040ab130053",
+            "macos": "1:337048471338:ios:44c8889588d040ab130053",
+            "web": "1:337048471338:web:173bb139f96ba4b5130053",
+            "windows": "1:337048471338:web:a37c0dd595d8883f130053"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ]
+}

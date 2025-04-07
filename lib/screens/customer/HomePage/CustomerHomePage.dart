@@ -13,6 +13,7 @@ import 'Notificationpage.dart';
 import '../Booking/BookingOptions.dart';
 import 'package:intl/intl.dart';
 import './Profile/Profile.dart';
+import './Categories/Categories.dart';
 
 class CustomerHomePage extends StatefulWidget {
   @override
@@ -1443,7 +1444,15 @@ if (businesses != null && businesses is List) {
         context,
         MaterialPageRoute(builder: (context) => ProfilePage()),
       );
-    } else {
+    } if(index == 1) {
+      // Navigate to Categories page
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => CategorySelectionPage ()),
+      );
+  
+    }
+    else {
       // Handle other tab selections as needed
       setState(() {
           _currentIndex = index;

@@ -44,6 +44,11 @@ dependencies:
   share_plus: ^10.1.4
   collection: ^1.18.0
   cached_network_image: ^3.4.1
+  table_calendar: ^3.2.0
+  pinput: ^5.0.1
+  local_auth: ^2.3.0
+  flutter_secure_storage: ^9.2.4
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:
@@ -87,7 +92,9 @@ flutter:
     - assets/eyebrows.jpg
     - assets/congratulations.png
     - assets/loyaltypoints.png
-  
+    - assets/image.png
+    - assets/image1.png
+    - assets/image2.png
 
 
 

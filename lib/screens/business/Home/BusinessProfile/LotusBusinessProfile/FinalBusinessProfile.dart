@@ -8,6 +8,7 @@ import 'Abouttab.dart';
 import 'Businessprofileimage.dart';
 import 'EditBusinessProfile/EditBusinessprofilescreen.dart';
 import 'package:collection/collection.dart';
+import '../BusinessProfile.dart';
 
 class FinalBusinessProfile extends StatefulWidget {
   const FinalBusinessProfile({super.key});
@@ -18,42 +19,47 @@ class FinalBusinessProfile extends StatefulWidget {
 
 class _FinalBusinessProfileState extends State<FinalBusinessProfile>
     with SingleTickerProviderStateMixin {
+  // ... your existing state variables and methods (_tabController, businessData, etc.) ...
   late TabController _tabController;
-  bool _isUploading = false;
-  final ImagePicker _picker = ImagePicker();
-  final GlobalKey<BusinessProfileAboutTabState> _aboutTabKey =
-      GlobalKey<BusinessProfileAboutTabState>();
-
   late Box appBox;
-  
   Map<String, dynamic> businessData = {};
   String selectedCategory = '';
+   bool _isUploading = false;
+  final ImagePicker _picker = ImagePicker();
+   final GlobalKey<BusinessProfileAboutTabState> _aboutTabKey =
+      GlobalKey<BusinessProfileAboutTabState>();
+
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(() {
+     _tabController.addListener(() {
       setState(() {});
       if (_tabController.index == 3) {
+        // Refresh data if needed when About tab is selected
         _aboutTabKey.currentState?.refreshData();
       }
     });
-
-    
-    _initializeHive().then((_) {
-      _syncWithFirebase();
-    });
+    _initializeHive().then((_) => _syncWithFirebase());
   }
 
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
-  Future<void> _initializeHive() async {
+  // --- Paste your existing methods here ---
+  // _initializeHive, _syncWithFirebase, _uploadFeedImage, _pickAndUploadFeedImage,
+  // _buildFeedsGrid, _buildServicesList, _buildTeamMembersList, _handleProfileUpdate
+  // ... (Implementation of these methods) ...
+   Future<void> _initializeHive() async {
     try {
       appBox = Hive.box('appBox');
       businessData = appBox.get('businessData') ?? {};
       print('Loaded businessData from Hive: $businessData');
 
-   
       if (businessData.containsKey('categories')) {
         List categories = businessData['categories'];
         print('Found ${categories.length} categories in businessData.');
@@ -97,19 +103,22 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
           .get();
 
       if (docSnapshot.exists) {
-      
         Map<String, dynamic> remoteData =
             docSnapshot.data() as Map<String, dynamic>;
-        businessData = remoteData;
+        // Convert Timestamps to DateTime or String before merging/saving
+        remoteData.forEach((key, value) {
+          if (value is Timestamp) {
+            remoteData[key] = value.toDate().toIso8601String(); // Example conversion
+          }
+        });
+        businessData = {...businessData, ...remoteData}; // Merge, prioritizing remote data
         print('Synced businessData from Firebase: $businessData');
 
-     
         if (businessData.containsKey('categories') &&
             (businessData['categories'] as List).isNotEmpty) {
           selectedCategory = businessData['categories'][0]['name'] ?? '';
           print('Updated selectedCategory from Firebase data: $selectedCategory');
         }
- 
         await appBox.put('businessData', businessData);
         setState(() {});
       }
@@ -134,19 +143,19 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
       TaskSnapshot taskSnapshot = await uploadTask;
       String downloadURL = await taskSnapshot.ref.getDownloadURL();
 
- 
+      // Update Firestore
       await FirebaseFirestore.instance
           .collection('businesses')
           .doc(userId)
           .update({
-        'Feeds': FieldValue.arrayUnion([downloadURL])
+        'feedImages': FieldValue.arrayUnion([downloadURL]) // Use feedImages key
       });
 
-
+      // Update local data and Hive
       List<String> feedImages =
-          List<String>.from(businessData['feedImages'] ?? []);
+          List<String>.from(businessData['feedImages'] ?? []); // Use feedImages key
       feedImages.add(downloadURL);
-      businessData['feedImages'] = feedImages;
+      businessData['feedImages'] = feedImages; // Use feedImages key
       await appBox.put('businessData', businessData);
 
       return downloadURL;
@@ -171,7 +180,7 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Feed image uploaded successfully!')),
           );
-          setState(() {}); 
+          setState(() {}); // Refresh UI to show the new image
         }
       }
     } catch (e) {
@@ -184,20 +193,22 @@ class _FinalBusinessProfileState extends State<FinalBusinessProfile>
   Widget _buildFeedsGrid(List<dynamic> feeds) {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        crossAxisCount: 2, // Adjust cross axis count if needed
         mainAxisSpacing: 8,
         crossAxisSpacing: 8,
         childAspectRatio: 1,
       ),
-      itemCount: feeds.length + 1,
+      itemCount: feeds.length + 1, // +1 for the add button
       itemBuilder: (context, index) {
         if (index < feeds.length) {
+          // Display existing feed image
           String feedImageUrl = feeds[index];
           return ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(feedImageUrl, fit: BoxFit.cover),
           );
         } else {
+          // Display the "Add Photo" button
           return GestureDetector(
             onTap: _isUploading ? null : _pickAndUploadFeedImage,
             child: Container(
@@ -231,55 +242,61 @@ Widget _buildServicesList() {
 
   List categoriesData = businessData['categories'];
 
-
+  // Create a map to hold services grouped by category
   Map<String, List<Map<String, dynamic>>> servicesByCategory = {};
 
+  // Populate the map
   for (var category in categoriesData) {
-    if (category.containsKey('services')) {
-      List services = category['services'];
-      List<Map<String, dynamic>> selectedServices = services
-          .where((service) => service['isSelected'] == true)
-          .map<Map<String, dynamic>>((service) => {
-                'name': service['name'] ?? '',
-           
-                'fallbackDuration': service['duration'] ?? 'Duration not set',
-   
-                'fallbackPrice': service['price'] ?? 'Price not set',
-                'ageRange': service['ageRange'] ?? 'All',
-              })
-          .toList();
+     if (category is Map && category.containsKey('services')) { // Check if category is a Map
+        List services = category['services'];
+        // Filter only selected services
+        List<Map<String, dynamic>> selectedServices = services
+            .where((service) => service is Map && service['isSelected'] == true) // Check if service is a Map
+            .map<Map<String, dynamic>>((service) => {
+                  'name': service['name'] ?? '',
+                  // Provide fallbacks if duration/price might be missing
+                  'fallbackDuration': service['duration'] ?? 'Duration not set',
+                  'fallbackPrice': service['price'] ?? 'Price not set',
+                  'ageRange': service['ageRange'] ?? 'All', // Handle potential missing ageRange
+                })
+            .toList();
 
-      if (selectedServices.isNotEmpty) {
-        servicesByCategory[category['name']] = selectedServices;
-      }
-    }
+        // Only add category if it has selected services
+        if (selectedServices.isNotEmpty) {
+          servicesByCategory[category['name']] = selectedServices;
+        }
+     }
   }
 
   if (servicesByCategory.isEmpty) {
     return const Center(child: Text('No selected services found'));
   }
 
-  
+  // Helper to get the actual price from the 'pricing' map
   String getPriceForService(String serviceName, String fallbackPrice) {
-    String price = fallbackPrice;
+    String price = fallbackPrice; // Default to fallback
     if (businessData.containsKey('pricing') &&
         businessData['pricing'][serviceName] != null) {
       var pricingData = businessData['pricing'][serviceName];
-      if (pricingData.containsKey('Everyone')) {
-        price = pricingData['Everyone'].toString();
-      } else if (pricingData.containsKey('Customize')) {
-        List customPricing = pricingData['Customize'];
-        if (customPricing.isNotEmpty) {
-          price = customPricing[0]['price'].toString();
-        }
-      }
+       if (pricingData is Map) { // Check if pricingData is a Map
+          if (pricingData.containsKey('Everyone')) {
+            price = pricingData['Everyone'].toString();
+          } else if (pricingData.containsKey('Customize')) {
+            // Handle customized pricing if necessary, e.g., take the first price
+            List customPricing = pricingData['Customize'];
+            if (customPricing.isNotEmpty && customPricing[0] is Map) { // Check if first item is a Map
+              price = customPricing[0]['price'].toString();
+            }
+          }
+       }
     }
-    return price;
+    // Ensure KES prefix
+    return price.startsWith('KES') ? price : 'KES $price';
   }
 
-
+  // Helper to get the actual duration from the 'durations' map
   String getDurationForService(String serviceName, String fallbackDuration) {
-    String duration = fallbackDuration;
+    String duration = fallbackDuration; // Default to fallback
     if (businessData.containsKey('durations') &&
         businessData['durations'][serviceName] != null) {
       duration = businessData['durations'][serviceName].toString();
@@ -287,10 +304,10 @@ Widget _buildServicesList() {
     return duration;
   }
 
-
+  // Build the list view with sections
   List<Widget> serviceSections = [];
   servicesByCategory.forEach((categoryName, serviceList) {
-
+    // Add category header
     serviceSections.add(
       Padding(
         padding: const EdgeInsets.only(bottom: 8.0),
@@ -301,7 +318,7 @@ Widget _buildServicesList() {
       ),
     );
 
-  
+    // Add services under this category
     for (var service in serviceList) {
       String displayPrice = getPriceForService(
           service['name'], service['fallbackPrice']);
@@ -310,17 +327,18 @@ Widget _buildServicesList() {
 
       serviceSections.add(
         Card(
-          elevation: 0,
-          shadowColor: Colors.transparent, 
+          elevation: 0, // Flat design
+          shadowColor: Colors.transparent, // No shadow
           margin: const EdgeInsets.only(bottom: 16),
-          color: Colors.white, 
+          color: Colors.white, // Explicit white background
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Service Name and Duration
                 Expanded(
-                  flex: 3,
+                  flex: 3, // Give more space to name/duration
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -328,10 +346,10 @@ Widget _buildServicesList() {
                         service['name'],
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
-                        overflow: TextOverflow.ellipsis,
+                        overflow: TextOverflow.ellipsis, // Prevent overflow
                       ),
                       const SizedBox(height: 4),
-        
+                      // Display Duration
                       Text(
                         displayDuration,
                         style: TextStyle(
@@ -340,19 +358,22 @@ Widget _buildServicesList() {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 8), // Space between columns
+                // Price and Age Range (Right Aligned)
                 Expanded(
-                  flex: 3,
+                  flex: 3, // Adjust flex factor as needed
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
+                      // Display Price
                       Text(
-                        'Kes $displayPrice',
+                        displayPrice, // Use the fetched/fallback price
                         style: const TextStyle(
                             fontWeight: FontWeight.w500, fontSize: 14),
-                        textAlign: TextAlign.end,
+                        textAlign: TextAlign.end, // Align text to the right
                       ),
                       const SizedBox(height: 4),
+                      // Display Age Range
                       Text(
                         service['ageRange'],
                         style: TextStyle(
@@ -367,6 +388,7 @@ Widget _buildServicesList() {
         ),
       );
     }
+    // Add space after each category section
     serviceSections.add(const SizedBox(height: 16));
   });
 
@@ -375,8 +397,6 @@ Widget _buildServicesList() {
     children: serviceSections,
   );
 }
-
-
 
 
   Widget _buildTeamMembersList() {
@@ -421,119 +441,134 @@ Widget _buildServicesList() {
   }
 
   void _handleProfileUpdate() {
-
+    // Refresh data from Hive after returning from edit screen
     _initializeHive();
   }
 
+
   @override
   Widget build(BuildContext context) {
-    if (businessData['userId'] == null) {
+    // Ensure businessData is loaded before building UI
+    if (businessData.isEmpty) {
+      // Show loading or placeholder while initializing
       return const Scaffold(
         backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Center(
-            child: Text(
-              'Business Profile Not Found.\nPlease complete your registration first.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.red),
-            ),
-          ),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
-    final List<String> feedImages =
-        List<String>.from(businessData['feedImages'] ?? []);
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  const Spacer(),
-                  Expanded(
-                    flex: 2,
-                    child: Center(
-                      child: Text(
-                        businessData['businessName'] ?? 'Business Name',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
+    // Use PopScope to control back navigation
+    return PopScope(
+      canPop: false, // Prevent default back behavior
+      onPopInvoked: (bool didPop) async {
+        if (!didPop) {
+          print("PopScope: Back navigation intercepted. Navigating to BusinessProfile.");
+          // *** Manually navigate to BusinessProfile and clear the stack ***
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const BusinessProfile()),
+            (Route<dynamic> route) => false, // Removes all routes before BusinessProfile
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Header with Edit Button
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  children: [
+                    // Use Navigator.maybePop to trigger PopScope
+                    IconButton(
+                       icon: const Icon(Icons.arrow_back, color: Colors.black),
+                       // Use maybePop to allow PopScope to intercept
+                       onPressed: () => Navigator.maybePop(context),
+                    ),
+                    const Spacer(),
+                    Expanded(
+                      flex: 2,
+                      child: Center(
+                        child: Text(
+                          businessData['businessName'] ?? 'Business Name',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF23461a),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextButton(
-                      onPressed: () async {
-                      
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const EditBusinessProfile(),
-                          ),
-                        );
-                        setState(() {});
-                      },
-                      child: const Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        child: Text('Edit Profile',
-                            style:
-                                TextStyle(color: Colors.white, fontSize: 14)),
+                    // Edit Profile Button
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF23461a),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextButton(
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const EditBusinessProfile(),
+                            ),
+                          );
+                          _handleProfileUpdate(); // Refresh data after edit
+                        },
+                        child: const Padding(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          child: Text('Edit Profile',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 14)),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            BusinessProfileImage(imageUrl: businessData['profileImageUrl']),
-            TabBar(
-              controller: _tabController,
-              labelColor: Colors.black,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: const Color(0xFF23461a),
-              tabs: const [
-                Tab(text: 'Feeds'),
-                Tab(text: 'Services'),
-                Tab(text: 'Team'),
-                Tab(text: 'About'),
-              ],
-            ),
-            Expanded(
-              child: TabBarView(
+              // Business Profile Image
+              BusinessProfileImage(imageUrl: businessData['profileImageUrl']),
+              // Tab Bar
+              TabBar(
                 controller: _tabController,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _buildFeedsGrid(feedImages),
-                  ),
-                  _buildServicesList(),
-                  _buildTeamMembersList(),
-      
-                  BusinessProfileAboutTab(key: _aboutTabKey),
+                labelColor: Colors.black,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: const Color(0xFF23461a),
+                tabs: const [
+                  Tab(text: 'Feeds'),
+                  Tab(text: 'Services'),
+                  Tab(text: 'Team'),
+                  Tab(text: 'About'),
                 ],
               ),
-            ),
-          ],
+              // Tab Bar View
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    // Feeds Tab
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: _buildFeedsGrid(businessData['feedImages'] ?? []),
+                    ),
+                    // Services Tab
+                    _buildServicesList(),
+                    // Team Tab
+                    _buildTeamMembersList(),
+                    // About Tab
+                    BusinessProfileAboutTab(key: _aboutTabKey),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 }
