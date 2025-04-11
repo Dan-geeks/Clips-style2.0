@@ -1,4 +1,4 @@
-package com.example.clipsandstyles2
+package com.example.clipsandstyles3
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
