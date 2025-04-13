@@ -313,3 +313,48 @@ exports.checkWalletDepositStatus = onRequest({cors: true, maxInstances: 10}, asy
     });
   }
 });
+
+
+// eslint-disable-next-line
+exports.businessBuyGoodsCallback = onRequest({cors: true, maxInstances: 10}, async (request, response) => {
+  try {
+    if (request.method !== "POST") {
+      return response.status(405).send("Method Not Allowed");
+    }
+    // eslint-disable-next-line
+    console.log("Received Business Buy Goods callback:", JSON.stringify(request.body));
+    const {Result} = request.body;
+    if (!Result) {
+      // eslint-disable-next-line
+      console.error("Invalid callback payload structure - missing Result object");
+      // Try alternate structure
+      console.log("Trying alternate payload structure...");
+      console.log("Full request body:", JSON.stringify(request.body));
+      // Store the raw callback data anyway for analysis
+      const db = admin.firestore();
+      // eslint-disable-next-line
+      const callbackRef = db.collection("b2bCallbacks").doc(new Date().toISOString());
+      await callbackRef.set({
+        rawPayload: request.body,
+        receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      return response.status(200).send("OK"); // Still return 200 to M-Pesa
+    }
+    const db = admin.firestore();
+    // eslint-disable-next-line
+    const docId = (Result.TransactionID || Result.ConversationID || new Date().toISOString());
+    // eslint-disable-next-line
+    const callbackRef = db.collection("b2bCallbacks").doc(docId);
+    await callbackRef.set({
+      rawPayload: request.body,
+      receivedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    console.log(`Callback data stored with ID: ${callbackRef.id}`);
+    // Always respond with 200 OK to M-Pesa
+    response.status(200).send("OK");
+  } catch (error) {
+    console.error("Error processing Business Buy Goods callback:", error);
+    // Still return 200 to M-Pesa to acknowledge receipt
+    response.status(200).send("OK");
+  }
+});

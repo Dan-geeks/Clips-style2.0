@@ -142,78 +142,81 @@ class _WalletPageState extends State<WalletPage> {
   }
 
   // Show PIN authentication dialog
-  Future<bool> _showPinAuthenticationDialog() async {
-    final TextEditingController pinController = TextEditingController();
-    bool isPinComplete = false;
+// Show PIN authentication dialog
+Future<bool> _showPinAuthenticationDialog() async {
+  final TextEditingController pinController = TextEditingController();
+  bool isPinComplete = false;
 
-    bool? result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Enter PIN'),
-          content: StatefulBuilder(
-              builder: (BuildContext context, StateSetter setStateDialog) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Pinput(
-                      length: 4,
-                      controller: pinController,
-                      autofocus: true,
-                      obscureText: true,
-                      obscuringCharacter: '•',
-                      defaultPinTheme: PinTheme(
-                        width: 56,
-                        height: 60,
-                        textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                        decoration: BoxDecoration(
-                          color: kPinInputBackground,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onCompleted: (pin) {
-                        setStateDialog(() {
-                          isPinComplete = true;
-                        });
-                      },
-                      onChanged: (value) {
-                        if (value.length < 4 && isPinComplete) {
-                          setStateDialog(() {
-                            isPinComplete = false;
-                          });
-                        }
-                      },
+  bool? result = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Enter PIN'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Pinput(
+                  length: 4,
+                  controller: pinController,
+                  autofocus: true,
+                  obscureText: true,
+                  obscuringCharacter: '•',
+                  defaultPinTheme: PinTheme(
+                    width: 56,
+                    height: 60,
+                    textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    decoration: BoxDecoration(
+                      color: kPinInputBackground,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
-                );
-              }
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
+                  ),
+                  onCompleted: (pin) {
+                    setState(() {
+                      isPinComplete = true;
+                    });
+                    print("PIN complete: $isPinComplete"); // Debug print
+                  },
+                  onChanged: (value) {
+                    if (value.length < 4 && isPinComplete) {
+                      setState(() {
+                        isPinComplete = false;
+                      });
+                    }
+                    print("PIN changed: $value, complete: $isPinComplete"); // Debug print
+                  },
+                ),
+              ],
             ),
-            StatefulBuilder(
-              builder: (BuildContext context, StateSetter setStateDialog) {
-                return TextButton(
-                  child: const Text('Verify'),
-                  onPressed: isPinComplete ? () async {
-                    final bool isValid = await _verifyPin(pinController.text);
-                    Navigator.of(context).pop(isValid);
-                  } : null,
-                );
-              }
-            ),
-          ],
-        );
-      },
-    );
-    return result ?? false;
-   }
-
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Cancel'),
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+              ),
+              TextButton(
+                child: const Text('Verify'),
+                onPressed: isPinComplete ? () async {
+                  print("Verify button pressed"); // Debug print
+                  final bool isValid = await _verifyPin(pinController.text);
+                  Navigator.of(context).pop(isValid);
+                } : null,
+                style: TextButton.styleFrom(
+                  // Make the enabled button more distinct
+                  backgroundColor: isPinComplete ? kPrimaryButtonColor.withOpacity(0.1) : null,
+                ),
+              ),
+            ],
+          );
+        }
+      );
+    },
+  );
+  return result ?? false;
+}
   // Verify PIN against stored hash
   Future<bool> _verifyPin(String enteredPin) async {
     try {

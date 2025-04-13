@@ -1,0 +1,2 @@
+C:/Users/Dan/Devs/Clips-style2.0/android/app/.cxx/Debug/68301t73/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/Dan/Devs/Clips-style2.0/android/app/.cxx/Debug/68301t73/arm64-v8a/CMakeFiles/rebuild_cache.dir

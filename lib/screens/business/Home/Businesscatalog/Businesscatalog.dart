@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/intl.dart'; // <<< Import intl
+
 import '../Businesshomepage.dart';
 import 'Businesscatalogsalessmmary/Salessummary.dart';
 import 'Businesscatalogsalessmmary/Appointments.dart';
 import 'Subscription/Subscription.dart';
 import 'Subscription/CreateMembership.dart';
 import './BusinessSales/Businesssales.dart';
-import '../Businessclient/Businesscient.dart';
+// *** IMPORT THE NEW CLIENT LIST SCREEN ***
+import '../Businessclient/businessforallclient.dart'; // Adjust path if needed
 import '../BusinessProfile/BusinessProfile.dart';
+
 class BusinessCatalog extends StatefulWidget {
   const BusinessCatalog({super.key});
 
@@ -16,7 +20,7 @@ class BusinessCatalog extends StatefulWidget {
 }
 
 class _BusinessCatalogState extends State<BusinessCatalog> {
-  int _selectedIndex = 1;
+  int _selectedIndex = 1; // Catalog tab is index 1
 
   Widget _buildCatalogItem(String title, String subtitle, {VoidCallback? onTap}) {
     return Container(
@@ -48,36 +52,60 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
     );
   }
 
+  // --- MODIFIED: _onItemTapped ---
   void _onItemTapped(int index) {
+    if (_selectedIndex == index) return; // Don't rebuild if tapping the current tab
+
+    // Update the selected index visually first
     setState(() {
       _selectedIndex = index;
     });
 
-    if (index == 0) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => BusinessHomePage()),
-      );
-    }
-    if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) =>BusinessClient()),
-      );
-    }
-    if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const BusinessProfile()),
-      );
+    // Perform navigation based on the new index
+    switch (index) {
+      case 0: // Home
+        Navigator.pushReplacement( // Use pushReplacement
+          context,
+          MaterialPageRoute(builder: (context) => const BusinessHomePage()),
+        );
+        break;
+      case 1: // Catalog (Current Screen)
+        // Do nothing or maybe refresh data if needed
+        print("Already on Catalog Tab");
+        break;
+      case 2: // Clients
+        // 1. Get the current date (zero out time part)
+        final DateTime currentDate = DateTime.now();
+        final DateTime dateToPass = DateTime(currentDate.year, currentDate.month, currentDate.day);
+        print("Navigating to Clients tab from Catalog with date: ${DateFormat('yyyy-MM-dd').format(dateToPass)}");
+
+        // 2. Navigate to BusinessClient, passing the current date
+        Navigator.pushReplacement( // Use pushReplacement
+          context,
+          MaterialPageRoute(
+            builder: (context) => BusinessClient(selectedDate: dateToPass),
+          ),
+        );
+        break;
+      case 3: // Profile
+        Navigator.pushReplacement( // Use pushReplacement
+          context,
+          MaterialPageRoute(builder: (context) => const BusinessProfile()),
+        );
+        break;
+      default:
+        // Should not happen with fixed bottom navigation
+        break;
     }
   }
+ // --- END MODIFIED: _onItemTapped ---
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        automaticallyImplyLeading: false, // Remove default back button
         title: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -89,7 +117,7 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(width: 8),
+            SizedBox(width: 8), // Add spacing if needed
           ],
         ),
         centerTitle: true,
@@ -110,7 +138,7 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
             'Sales Summary',
             'See Daily, weekly, monthly and yearly totals of sales made and payment collected',
             onTap: () {
-              Navigator.push(
+              Navigator.push( // Use push for sub-pages within catalog
                 context,
                 MaterialPageRoute(builder: (context) => const SalesSummaryScreen()),
               );
@@ -120,7 +148,7 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
             'Appointments',
             'See all of your Appointments booked daily, weekly, monthly and yearly',
             onTap: () {
-              Navigator.push(
+              Navigator.push( // Use push for sub-pages within catalog
                 context,
                 MaterialPageRoute(builder: (context) => const AppointmentsScreen()),
               );
@@ -130,21 +158,27 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
             'Subscription',
             'See and edit your subscriptions here',
             onTap: () async {
-     
-              Box appBox = Hive.box('appBox');
-              List<dynamic>? membershipsData = appBox.get('memberships');
+              // Use try-catch for robustness
+              try {
+                 Box appBox = Hive.box('appBox');
+                 List<dynamic>? membershipsData = appBox.get('memberships');
 
-            
-              if (membershipsData != null && membershipsData.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => MembershipPage()),
-                );
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CreateMembershipPage()),
-                );
+                 if (membershipsData != null && membershipsData.isNotEmpty) {
+                   Navigator.push( // Use push for sub-pages within catalog
+                     context,
+                     MaterialPageRoute(builder: (context) => MembershipPage()),
+                   );
+                 } else {
+                   Navigator.push( // Use push for sub-pages within catalog
+                     context,
+                     MaterialPageRoute(builder: (context) => CreateMembershipPage()),
+                   );
+                 }
+              } catch (e) {
+                 print("Error accessing Hive or memberships: $e");
+                  ScaffoldMessenger.of(context).showSnackBar(
+                     SnackBar(content: Text('Error loading subscription data: $e')),
+                   );
               }
             },
           ),
@@ -152,7 +186,7 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
             'Sales',
             'View your sales',
             onTap: () {
-              Navigator.push(
+              Navigator.push( // Use push for sub-pages within catalog
                 context,
                 MaterialPageRoute(builder: (context) => SalesListPage()),
               );
@@ -162,10 +196,14 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
             'My Loyalty Points',
             'See your loyalty points',
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => BusinessCatalog()),
-              );
+              // Navigate or show relevant page
+               ScaffoldMessenger.of(context).showSnackBar(
+                 SnackBar(content: Text('Loyalty Points page not implemented yet')),
+               );
+              // Navigator.push(
+              //   context,
+              //   MaterialPageRoute(builder: (context) => BusinessCatalog()), // Example: Stays here?
+              // );
             },
           ),
         ],
@@ -174,27 +212,33 @@ class _BusinessCatalogState extends State<BusinessCatalog> {
         backgroundColor: const Color.fromARGB(255, 0, 0, 0),
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
+            icon: Icon(Icons.calendar_today_outlined), // Use outlined
+            activeIcon: Icon(Icons.calendar_today), // Use filled for active
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.label),
+            icon: Icon(Icons.label_outline), // Use outlined
+            activeIcon: Icon(Icons.label), // Use filled for active
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: Icon(Icons.people_outline), // Use outlined
+            activeIcon: Icon(Icons.people), // Use filled for active
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view),
+            icon: Icon(Icons.grid_view_outlined), // Use outlined
+            activeIcon: Icon(Icons.grid_view_rounded), // Use filled for active
             label: '',
           ),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.grey,
+        unselectedItemColor: Colors.grey[600], // Use a specific grey
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
+        showSelectedLabels: false, // Hide labels
+        showUnselectedLabels: false, // Hide labels
       ),
     );
   }

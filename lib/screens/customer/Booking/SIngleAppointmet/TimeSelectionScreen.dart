@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart'; // Keep this import
 import 'dart:math';
 import 'FirstVisitScreen.dart';
 import '../../CustomerService/AppointmentService.dart';
@@ -37,18 +37,20 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
   bool _isLoading = true;
   Map<String, List<String>> _bookedTimeSlots = {};
   final AppointmentTransactionService _appointmentService = AppointmentTransactionService();
-  
+
   // For calendar view
   Map<String, BookingStatus> _monthAvailability = {};
 
   // Standardized time slot arrays
   final List<String> _morningSlots = ['8:00', '8:45', '9:30', '10:15', '11:00', '11:45', '12:30'];
- final List<String> _afternoonAndEveningSlots = [
-    '1:15', '2:00', '2:45', '3:30', '4:15', '5:00', '5:45', '6:30', '7:15', '8:00 PM', '8:45 PM', '9:15'
+  // --- <<< MODIFICATION: Added " PM" to afternoon/evening slots >>> ---
+  final List<String> _afternoonAndEveningSlots = [
+    '1:15 PM', '2:00 PM', '2:45 PM', '3:30 PM', '4:15 PM', '5:00 PM', '5:45 PM', '6:30 PM', '7:15 PM', '8:00 PM', '8:45 PM', '9:15 PM'
   ];
-  
+  // --- <<< END MODIFICATION >>> ---
+
   List<DateTime> _weekDays = [];
-  
+
   @override
   void initState() {
     super.initState();
@@ -57,19 +59,19 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
     _loadMonthAvailability();
     _loadBookedTimeSlots();
   }
-  
+
   void _generateWeekDays() {
     // Get the current day
     DateTime now = DateTime.now();
-    
+
     // Find the Monday of this week
     DateTime monday = now.subtract(Duration(days: now.weekday - 1));
-    
+
     // Generate days from Monday to Saturday (6 days)
-    _weekDays = List.generate(6, (index) => 
+    _weekDays = List.generate(6, (index) =>
       DateTime(monday.year, monday.month, monday.day + index)
     );
-    
+
     // Set selected date to today if it's in this week, otherwise to Monday
     if (now.isAfter(_weekDays.first) && now.isBefore(_weekDays.last.add(Duration(days: 1)))) {
       _selectedDate = DateTime(now.year, now.month, now.day);
@@ -77,26 +79,26 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       _selectedDate = _weekDays.first;
     }
   }
-  
+
   Future<void> _loadBookedTimeSlots() async {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
-      // Format date as YYYY-MM-DD for service query
+      // Format date as yyyy-MM-DD for service query
       String dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
-      
+
       // Get professional ID (if any)
       String? professionalId = widget.isAnyProfessional ? null : widget.selectedProfessional?['id'];
-      
+
       // Get booked time slots from service
       List<String> bookedTimes = await _getBookedTimeSlotsFromService(
-        dateString, 
+        dateString,
         professionalId,
         widget.isAnyProfessional
       );
-      
+
       setState(() {
         _bookedTimeSlots[dateString] = bookedTimes;
         _isLoading = false;
@@ -106,7 +108,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       setState(() {
         _isLoading = false;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error loading availability: ${e.toString()}'),
@@ -115,17 +117,17 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       );
     }
   }
-  
+
   // Standardized method to get booked time slots
   Future<List<String>> _getBookedTimeSlotsFromService(
-    String date, 
+    String date,
     String? professionalId,
     bool isAnyProfessional
   ) async {
     try {
       // Get professional count
       int professionalCount = _getProfessionalCount();
-      
+
       return await _appointmentService.getBookedTimeSlots(
         businessId: widget.shopId,
         date: date,
@@ -138,16 +140,16 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       return [];
     }
   }
-  
+
   Future<void> _loadMonthAvailability() async {
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       // Clear previous data
       _monthAvailability = {};
-      
+
       // Get availability for the entire month
       Map<String, BookingStatus> availability = await _appointmentService.getMonthlyAvailability(
         businessId: widget.shopId,
@@ -156,14 +158,14 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
         isAnyProfessional: widget.isAnyProfessional,
         professionalCount: _getProfessionalCount(),
       );
-      
+
       if (mounted) {
         setState(() {
           _monthAvailability = availability;
           _isLoading = false;
         });
       }
-      
+
       print('Month availability loaded: ${_monthAvailability.length} days with data');
     } catch (e) {
       print('Error loading month availability: $e');
@@ -174,23 +176,26 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       }
     }
   }
-  
+
   // Standardized method to get professional count
   int _getProfessionalCount() {
-    if (widget.shopData.containsKey('teamMembers') && 
+    if (widget.shopData.containsKey('teamMembers') &&
         widget.shopData['teamMembers'] is List) {
       int count = widget.shopData['teamMembers'].length;
       return count > 0 ? count : 1;
     }
     return 1; // Default to 1 if no team members data
   }
-  
+
   bool _isTimeBooked(String time) {
     String dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
-    return _bookedTimeSlots.containsKey(dateString) && 
-           _bookedTimeSlots[dateString]!.contains(time);
+    // Ensure comparison is case-insensitive and ignores potential AM/PM
+    String timeToCheck = time.replaceAll(RegExp(r'\s*(AM|PM)', caseSensitive: false), '').trim();
+    List<String>? booked = _bookedTimeSlots[dateString]?.map((t) => t.replaceAll(RegExp(r'\s*(AM|PM)', caseSensitive: false), '').trim()).toList();
+
+    return booked?.contains(timeToCheck) ?? false;
   }
-  
+
   Future<void> _confirmBooking() async {
     if (_selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -198,15 +203,15 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       );
       return;
     }
-    
+
     try {
-      // If "Any Professional" was selected, we need to assign a random available professional
+      // If "Any Professional" was selected, assign a random available professional
       Map<String, dynamic>? finalProfessional = widget.selectedProfessional;
-      
+
       if (widget.isAnyProfessional) {
         finalProfessional = await _assignRandomProfessional();
       }
-      
+
       // Create booking data
       Map<String, dynamic> bookingData = {
         'businessId': widget.shopId,
@@ -215,16 +220,53 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
         'professionalId': finalProfessional?['id'] ?? 'any',
         'professionalName': finalProfessional?['displayName'] ?? 'Any Professional',
         'appointmentDate': DateFormat('yyyy-MM-dd').format(_selectedDate),
-        'appointmentTime': _selectedTime,
-        'status': 'pending',
         'createdAt': DateTime.now().toIso8601String(),
-        'customerId': 'current_user_id',
-        'customerName': 'Current User',
-        // Include shop image URL and shop data
+        'customerId': 'current_user_id', // Replace with actual user ID
+        'customerName': 'Current User',   // Replace with actual user name
         'profileImageUrl': widget.shopData['profileImageUrl'],
         'shopData': widget.shopData,
       };
-      
+
+      // --- <<< FORMAT TIME WITH AM/PM >>> ---
+      String formattedTime = _selectedTime!; // Default to original if formatting fails
+      try {
+        String timeStr = _selectedTime!;
+        bool isPM = timeStr.toLowerCase().contains('pm'); // Check if PM is already present
+        timeStr = timeStr.replaceAll(RegExp(r'\s*(AM|PM)', caseSensitive: false), '').trim();
+
+        List<String> parts = timeStr.split(':');
+        int hour = int.parse(parts[0]);
+        int minute = int.parse(parts[1]);
+
+         // Determine AM/PM based on hour if not explicitly stated (like for morning slots)
+        if (!isPM && !timeStr.toLowerCase().contains('am')) { // Only determine if AM/PM isn't already there
+             if (hour < 8 || hour == 12) { // Times from 12 PM onwards and before 8 AM are PM? (Adjust logic if needed)
+                 isPM = true;
+            } else { // Times from 8 AM to 11:45 AM
+                 isPM = false;
+            }
+        }
+
+        // Convert to 24-hour for DateTime parsing, only needed if you want to create a DateTime object
+        int hour24 = hour;
+        if (isPM && hour < 12) hour24 += 12;
+        if (!isPM && hour == 12) hour24 = 0; // Handle 12 AM case if necessary
+
+        // Create a DateTime object just for formatting (date part doesn't matter)
+        DateTime parsedTime = DateTime(2023, 1, 1, hour24, minute);
+
+        // Format the time with AM/PM using intl package
+        formattedTime = DateFormat('h:mm a').format(parsedTime); // e.g., "8:45 AM", "1:15 PM"
+        print('Formatted time: $formattedTime');
+
+      } catch (e) {
+         print('Error formatting time for bookingData: $e');
+         formattedTime = _selectedTime!; // Keep the original _selectedTime if formatting fails
+      }
+      bookingData['appointmentTime'] = formattedTime;
+      // --- <<< END FORMAT TIME >>> ---
+
+
       // Navigate to the first visit screen
       Navigator.push(
         context,
@@ -236,7 +278,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
           ),
         ),
       );
-      
+
     } catch (e) {
       print('Error preparing booking: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -247,34 +289,37 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       );
     }
   }
-  
+
   Future<Map<String, dynamic>?> _assignRandomProfessional() async {
     // If shopData has team members, select a random available one
-    if (widget.shopData.containsKey('teamMembers') && 
+    if (widget.shopData.containsKey('teamMembers') &&
         widget.shopData['teamMembers'] is List &&
         widget.shopData['teamMembers'].isNotEmpty) {
-      
+
       List<dynamic> availableProfessionals = [];
       String dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
-      
+
       for (var professional in widget.shopData['teamMembers']) {
         if (professional is Map && professional.containsKey('id') && professional['id'] != null) {
           String professionalId = professional['id'];
-          
+
           // Use the service to check if this time slot is booked for this professional
           List<String> bookedTimes = await _getBookedTimeSlotsFromService(
             dateString,
             professionalId,
             false
           );
-          
+
+          // Normalize the selected time to check against booked times
+          String selectedTimeToCompare = _selectedTime!.replaceAll(RegExp(r'\s*(AM|PM)', caseSensitive: false), '').trim();
+
           // If this time is NOT booked for this professional, add them to available list
-          if (!bookedTimes.contains(_selectedTime)) {
+          if (!bookedTimes.map((t) => t.replaceAll(RegExp(r'\s*(AM|PM)', caseSensitive: false), '').trim()).contains(selectedTimeToCompare)) {
             availableProfessionals.add(professional);
           }
         }
       }
-      
+
       // If available professionals found, select a random one
       if (availableProfessionals.isNotEmpty) {
         final random = Random();
@@ -282,7 +327,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
             availableProfessionals[random.nextInt(availableProfessionals.length)]);
       }
     }
-    
+
     // Default fallback - create a basic professional object
     return {
       'id': 'default_professional',
@@ -290,22 +335,22 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       'role': 'Service Provider'
     };
   }
-  
+
   void _handleDateChange(DateTime date) {
     setState(() {
       _selectedDate = date;
       _selectedTime = null; // Reset time selection when date changes
     });
-    
+
     _loadBookedTimeSlots();
   }
-  
+
   // Standardized calendar dialog
   void _showCalendarDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (context, setStateDialog) { // <<< Use setStateDialog
           return Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: Container(
@@ -324,10 +369,14 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                         ),
                       ),
                       Spacer(),
+                       IconButton( // Add close button
+                        icon: Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
                     ],
                   ),
                   SizedBox(height: 20),
-                  
+
                   // Month navigation
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -335,7 +384,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                       IconButton(
                         icon: Icon(Icons.chevron_left),
                         onPressed: () {
-                          setState(() {
+                          setStateDialog(() { // <<< Use setStateDialog
                             // Move to previous month
                             _selectedDate = DateTime(_selectedDate.year, _selectedDate.month - 1, 1);
                           });
@@ -344,13 +393,13 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                         },
                       ),
                       Text(
-                        DateFormat('MMMM yyyy').format(_selectedDate),
+                        DateFormat('MMMM yyyy').format(_selectedDate), // <<< Use yyyy for year
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: Icon(Icons.chevron_right),
                         onPressed: () {
-                          setState(() {
+                          setStateDialog(() { // <<< Use setStateDialog
                             // Move to next month
                             _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + 1, 1);
                           });
@@ -360,16 +409,16 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                       ),
                     ],
                   ),
-                  
+
                   // Days of week headers
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                      children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'] // <<< Corrected order
                           .map((day) => SizedBox(
                             width: 30,
-                            child: Text(day, 
+                            child: Text(day,
                               style: TextStyle(fontWeight: FontWeight.bold),
                               textAlign: TextAlign.center,
                             ),
@@ -377,10 +426,10 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                           .toList(),
                     ),
                   ),
-                  
+
                   // Calendar grid
                   Container(
-                    height: 300,
+                    height: 300, // Adjust height as needed
                     child: GridView.builder(
                       shrinkWrap: true,
                       physics: NeverScrollableScrollPhysics(),
@@ -394,22 +443,23 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                         if (index < _getFirstDayOffset()) {
                           return Container();
                         }
-                        
+
                         // Calculate day number
                         final dayNumber = index - _getFirstDayOffset() + 1;
-                        
+
                         // Get that day's date
                         final date = DateTime(_selectedDate.year, _selectedDate.month, dayNumber);
                         final dateStr = DateFormat('yyyy-MM-dd').format(date);
-                        
-                        // Check if this is the selected date
-                        bool isSelected = date.year == _selectedDate.year && 
-                                         date.month == _selectedDate.month && 
-                                         date.day == _selectedDate.day;
-                        
+
+                        // Check if this is the selected date on the main screen
+                        bool isSelectedOnMainScreen =
+                                date.year == this._selectedDate.year && // <<< Use this._selectedDate
+                                date.month == this._selectedDate.month &&
+                                date.day == this._selectedDate.day;
+
                         // Get booking status for this day - use real data from the service
                         final BookingStatus status = _monthAvailability[dateStr] ?? BookingStatus.available;
-                        
+
                         // Determine color based on status
                         Color circleColor;
                         switch (status) {
@@ -424,16 +474,14 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                             circleColor = Colors.grey.shade300;
                             break;
                         }
-                        
+
                         return GestureDetector(
-                          onTap: () {
+                           onTap: () {
                             // Only allow selection if not fully booked
                             if (status != BookingStatus.fullyBooked) {
-                              _selectedDate = date;
-                              
                               // Close dialog and load times for this date
                               Navigator.pop(context);
-                              _loadBookedTimeSlots();
+                              _handleDateChange(date); // <<< Use _handleDateChange
                             }
                           },
                           child: Container(
@@ -441,14 +489,14 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: circleColor,
-                              border: isSelected ? Border.all(color: Colors.black, width: 2) : null,
+                              border: isSelectedOnMainScreen ? Border.all(color: Colors.black, width: 2) : null, // <<< Highlight selected date from main screen
                             ),
                             child: Center(
                               child: Text(
                                 dayNumber.toString(),
                                 style: TextStyle(
                                   color: Colors.black,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  fontWeight: isSelectedOnMainScreen ? FontWeight.bold : FontWeight.normal,
                                 ),
                               ),
                             ),
@@ -457,7 +505,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                       },
                     ),
                   ),
-                  
+
                   // Legend
                   Padding(
                     padding: EdgeInsets.only(top: 16),
@@ -478,7 +526,8 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       ),
     );
   }
-  
+
+
   // Standardized legend item
   Widget _buildLegendItem(String label, Color color) {
     return Row(
@@ -496,21 +545,22 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       ],
     );
   }
-  
+
   // Helper methods for calendar
   int _getDaysInMonth() {
     return DateTime(_selectedDate.year, _selectedDate.month + 1, 0).day;
   }
-  
+
   int _getFirstDayOffset() {
-    return DateTime(_selectedDate.year, _selectedDate.month, 1).weekday % 7;
+    // Ensure weekday starts from 0 (Sunday) to match GridView's index
+     return DateTime(_selectedDate.year, _selectedDate.month, 1).weekday % 7;
   }
-  
+
   // Standardized time slot builder
   Widget _buildTimeSlot(String time) {
     bool isBooked = _isTimeBooked(time);
     bool isSelected = _selectedTime == time;
-    
+
     return InkWell(
       onTap: isBooked ? null : () {
         setState(() {
@@ -520,29 +570,35 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isBooked ? Colors.red : (isSelected ? Colors.red : Colors.transparent),
+          // --- <<< MODIFICATION: Updated Colors >>> ---
+          color: isSelected ? Color(0xFF23461a) : (isBooked ? Colors.grey[300] : Colors.white),
           border: Border.all(
-            color: isBooked ? Colors.red : Colors.grey[300]!,
+            color: isBooked ? Colors.grey[300]! : (isSelected ? Color(0xFF23461a) : Colors.grey[400]!),
           ),
+          // --- <<< END MODIFICATION >>> ---
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           time,
           style: TextStyle(
-            color: isBooked || isSelected ? Colors.white : Colors.black,
+            // --- <<< MODIFICATION: Updated Text Colors >>> ---
+            color: isBooked ? Colors.grey[500] : (isSelected ? Colors.white : Colors.black),
+             decoration: isBooked ? TextDecoration.lineThrough : TextDecoration.none, // Add strikethrough if booked
+            // --- <<< END MODIFICATION >>> ---
           ),
         ),
       ),
     );
   }
-  
+
+
   @override
   Widget build(BuildContext context) {
     // Get professional name
     String professionalName = widget.isAnyProfessional
         ? "Any Professional"
         : widget.selectedProfessional?['displayName'] ?? "Professional";
-    
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -562,7 +618,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Day of week header with date and current time (tappable)
-                    GestureDetector(
+                     GestureDetector(
                       onTap: () => _showCalendarDialog(context),
                       child: Container(
                         padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -587,7 +643,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                                   width: 8,
                                   height: 8,
                                   decoration: BoxDecoration(
-                                    color: Colors.red,
+                                    color: Colors.red, // Consider making this dynamic based on availability
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -624,7 +680,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                       ),
                     ),
                     SizedBox(height: 24),
-                    
+
                     // Morning slots section
                     Text(
                       'Morning',
@@ -647,7 +703,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                       ),
                     ),
                     SizedBox(height: 24),
-                    
+
                     // Afternoon and Evening slots section
                     Text(
                       'Afternoon and Evening',
@@ -670,21 +726,22 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                       ),
                     ),
                     SizedBox(height: 24),
-                    
+
                     // Legend for booked slots
                     Row(
                       children: [
                         Container(
                           width: 16,
                           height: 16,
-                          color: Colors.red,
+                          color: Colors.grey[300], // Match booked color in legend
+                          child: Center(child: Text('X', style: TextStyle(color: Colors.grey[500], fontSize: 10, fontWeight: FontWeight.bold))) // Add X to indicate booked
                         ),
                         SizedBox(width: 8),
                         Text('Booked spaces')
                       ],
                     ),
                     SizedBox(height: 16),
-                    
+
                     // Waitlist option
                     Row(
                       children: [
@@ -710,7 +767,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                       ],
                     ),
                     SizedBox(height: 24),
-                    
+
                     // Confirm button
                     SizedBox(
                       width: double.infinity,

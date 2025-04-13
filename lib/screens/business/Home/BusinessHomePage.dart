@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// Removed GoogleSignIn import as it wasn't used here
 import 'package:intl/intl.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
@@ -9,7 +8,9 @@ import './Businesscatalog/Businesscatalog.dart';
 import 'Businessclient/Businesscient.dart';
 import 'dart:async';
 import './BusinessProfile/BusinessProfile.dart';
-import 'Notification/Notifiactionscreen.dart'; // Corrected spelling if needed
+import 'Notification/Notifiactionscreen.dart';
+import 'Businessclient/Businesscient.dart';
+import 'Businessclient/Businessforallclient.dart';
 
 class BusinessHomePage extends StatefulWidget {
   const BusinessHomePage({super.key});
@@ -19,506 +20,641 @@ class BusinessHomePage extends StatefulWidget {
 }
 
 class _BusinessHomePageState extends State<BusinessHomePage> with WidgetsBindingObserver {
+  // Controllers
   final ScrollController _horizontalController = ScrollController();
   final ScrollController _verticalController = ScrollController();
 
+  // Navigation and date selection
   int _selectedIndex = 0;
   DateTime _selectedDate = DateTime.now();
 
+  // Data
   List<Map<String, dynamic>> staffMembers = [];
+  List<Map<String, dynamic>> _appointments = [];
+  Map<String, dynamic> businessData = {};
+  String? _businessId;
+  late Box appBox;
 
-  final List<String> timeSlots = [
-    '08:00', '08:45', '09:30', '10:15', '11:00', '11:45', '12:30', '13:15'
-    // Add more slots if needed
+  // Time slots for schedule - now dynamic
+  List<String> timeSlots = [
+    '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', 
+    '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'
   ];
 
-  late Box appBox;
-  Map<String, dynamic> businessData = {};
+  // State tracking
+  bool _isInitialized = false;
+  bool _isLoading = true;
 
+  // Firebase streams
   Stream<DocumentSnapshot<Map<String, dynamic>>>? _businessStream;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _businessSubscription;
-
-  bool _isInitialized = false;
-  // Added loading state for clarity during data fetching
-  bool _isLoading = true;
+  StreamSubscription<QuerySnapshot>? _appointmentsSubscription;
 
   @override
   void initState() {
     super.initState();
-    print('⭐ BusinessHomePage - initState called');
+    print('🚀 BusinessHomePage - initState called');
     WidgetsBinding.instance.addObserver(this);
+    
+    // Set the selected date to the start of the day to avoid timezone issues
+    _selectedDate = DateTime(
+      DateTime.now().year,
+      DateTime.now().month,
+      DateTime.now().day,
+      0, 0, 0
+    );
+    print('📅 Initial selected date set to: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}');
+    
     _initializeHomePage();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    print('⭐ BusinessHomePage - AppLifecycleState changed to: $state');
-    if (state == AppLifecycleState.resumed) {
-      print('⭐ App resumed - refreshing data');
-      // Consider if refreshing both Hive and Firestore listener is needed here
-      // For now, let's just reload staff which primarily uses Hive data.
-      _loadStaffMembers();
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    print('⭐ BusinessHomePage - didChangeDependencies called');
-    // This can sometimes be called multiple times, be cautious about reloading heavily here.
-    // Let's comment out the reload here for now, as initState and Firestore listener should handle updates.
-    // if (_isInitialized) {
-    //   print('⭐ BusinessHomePage - Reloading data in didChangeDependencies (currently commented out)');
-    //   // _loadStaffMembers();
-    // }
-  }
-
-  // Start Firestore listener for real-time updates
-  void _startFirestoreListener() {
-    print('⭐ BusinessHomePage - _startFirestoreListener called');
-
-    // Cancel any existing subscription first
-    if (_businessSubscription != null) {
-      print('⭐ Cancelling existing Firestore subscription');
-      _businessSubscription!.cancel();
-      _businessSubscription = null;
-    }
-
-    // --- CRITICAL: Get userId from the businessData map ---
-    final userId = businessData['userId']; // Use the key saved in Hive
-    print('⭐ Starting Firestore listener for user ID fetched from Hive: $userId');
-
-    if (userId == null) {
-      print('❌ Error: Cannot start Firestore listener - userId is null in businessData from Hive!');
-      // Optionally show an error to the user or attempt to re-fetch from Auth
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: Could not get business ID to sync data.')),
-        );
-        // Consider logging out or redirecting if userId is essential and missing
-      }
-      return;
-    }
-
-    try {
-      print("⭐ Listening to Firestore path: businesses/$userId");
-      _businessStream = FirebaseFirestore.instance
-          .collection('businesses')
-          .doc(userId)
-          .snapshots();
-
-      _businessSubscription = _businessStream!.listen((docSnapshot) async {
-        print('⭐ Received Firestore update for user $userId. Document exists: ${docSnapshot.exists}');
-
-        if (docSnapshot.exists && docSnapshot.data() != null) {
-          print('⭐ Firestore document exists with data (Listener)'); // Added (Listener) for clarity
-
-          Map<String, dynamic> firestoreData = docSnapshot.data()!;
-
-          // --- ADDED PRINT STATEMENT (Listener) ---
-          print('⭐ RAW FIRESTORE DATA (Listener Update): ${firestoreData.toString()}');
-          // --- END OF ADDED PRINT (Listener) ---
-
-          print('⭐ Firestore Data Received Preview (Listener): ${firestoreData.toString().substring(0, (firestoreData.toString().length > 200 ? 200 : firestoreData.toString().length))}...'); // Log preview
-
-          // Merge Firestore data with existing Hive data (Firestore takes precedence for updated fields)
-          // Keep local 'teamMembers' if Firestore's is missing/empty to prevent accidental deletion
-           List<dynamic>? existingTeamMembers = businessData['teamMembers'];
-           if (existingTeamMembers != null && existingTeamMembers.isNotEmpty &&
-               (firestoreData['teamMembers'] == null || (firestoreData['teamMembers'] as List).isEmpty)) {
-             print('⭐ Preserving existing team members from local data (${existingTeamMembers.length} members) as Firestore has none.');
-             firestoreData['teamMembers'] = existingTeamMembers;
-           }
-
-
-          // Update the local state variable
-          businessData = firestoreData;
-          // Ensure userId and documentId are present from the listener source if needed
-          businessData['userId'] = userId; // Keep the original userId used for listening
-          businessData['documentId'] = docSnapshot.id; // Firestore Doc ID
-
-          print('⭐ Updated local businessData variable from Firestore (Listener)');
-
-          try {
-            // Convert Timestamps before saving to Hive IF needed (depends on adapter setup)
-            // Map<String, dynamic> hiveReadyData = Map.from(businessData);
-            // hiveReadyData.updateAll((key, value) => value is Timestamp ? value.toDate().toIso8601String() : value);
-            await appBox.put('businessData', businessData); // Save the merged data
-            print('⭐ Successfully updated Hive with new business data from Firestore (Listener)');
-          } catch (e) {
-            print('❌ Error saving Firestore data to Hive (Listener): $e');
-          }
-
-          if (mounted) {
-            print('⭐ Widget is mounted, reloading staff members after Firestore update (Listener)');
-            await _loadStaffMembers(); // Reload staff based on potentially updated data
-             // Also trigger a rebuild of the main widget if other businessData changed
-             setState(() {
-                print('⭐ Triggering setState after Firestore update (Listener)');
-             });
-          } else {
-            print('⚠️ Widget is NOT mounted after Firestore update, skipping staff reload/setState (Listener)');
-          }
-        } else {
-          print('⚠️ Firestore document does not exist or has no data for userId: $userId (Listener)');
-          // Handle case where the business document might have been deleted
-          if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                 SnackBar(content: Text('Business data not found in the database.')),
-              );
-              // Consider logging out or navigating away
-          }
-        }
-      }, onError: (error) {
-        print('❌ Error in Firestore listener: $error');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error syncing data: $error')),
-          );
-        }
-      });
-
-      print('⭐ Firestore listener successfully started for businesses/$userId');
-    } catch (e) {
-      print('❌ Exception when setting up Firestore listener: $e');
-    }
-  }
-
   Future<void> _initializeHomePage() async {
-    print('⭐ BusinessHomePage - _initializeHomePage called (Fetch First Strategy)');
-     if (!mounted) return;
-    setState(() => _isLoading = true);
-
-    String? userId; // Variable to hold userId
-
+    print('🔍 Initializing home page...');
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
     try {
-      // 1. Get Hive box
-      print('⭐ Opening/accessing Hive box appBox');
-       try {
-         if (!Hive.isBoxOpen('appBox')) {
-            print("   Hive box 'appBox' is not open, opening now...");
-            appBox = await Hive.openBox('appBox');
-            print("   Hive box 'appBox' opened successfully.");
-         } else {
-            appBox = Hive.box('appBox');
-            print("   Hive box 'appBox' was already open.");
-         }
-       } catch (e) {
-         print("❌ Error opening Hive box 'appBox': $e");
-         // Handle critical error
-         if(mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error accessing local storage.')));
-            setState(() => _isLoading = false);
-         }
-         return;
-       }
-
-      // 2. Get userId (Priority: Hive -> Auth)
-      var loadedData = appBox.get('businessData');
-      if (loadedData is Map && loadedData['userId'] != null) {
-          userId = loadedData['userId'];
-          print('⭐ Found userId in existing Hive data: $userId');
+      // Initialize Hive
+      if (!Hive.isBoxOpen('appBox')) {
+        appBox = await Hive.openBox('appBox');
       } else {
-          final currentUser = FirebaseAuth.instance.currentUser;
-          if (currentUser != null) {
-              userId = currentUser.uid;
-              print('⭐ Found userId from FirebaseAuth fallback: $userId');
-          }
+        appBox = Hive.box('appBox');
       }
-
-      // Stop if no userId is found
-      if (userId == null) {
-        print('❌ Error: Cannot get userId. Cannot proceed.');
-         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: User session not found.')));
-           // Optionally navigate to login
-         }
-         setState(() => _isLoading = false);
-        return;
-      }
-      print('⭐ Using userId: $userId for initialization.');
-
-      // --- MODIFICATION START: Fetch from Firestore FIRST ---
-      print('⭐ Attempting initial fetch from Firestore: businesses/$userId');
-      try {
-        DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
-            .collection('businesses')
-            .doc(userId)
-            .get();
-
-        if (docSnapshot.exists && docSnapshot.data() != null) {
-          print('⭐ Initial Firestore fetch successful. Document exists.');
-          // Update local state businessData with fresh data
-          businessData = docSnapshot.data() as Map<String, dynamic>;
-          businessData['userId'] = userId; // Ensure userId is included
-          businessData['documentId'] = docSnapshot.id; // Add Firestore doc ID
-
-          // --- ADDED PRINT STATEMENT (Initial Fetch) ---
-          print('⭐ RAW FIRESTORE DATA (Initial Fetch): ${businessData.toString()}');
-          // --- END OF ADDED PRINT (Initial Fetch) ---
-
-          print('⭐ Updated local businessData state from initial Firestore fetch.');
-          print('⭐ Team members count in Firestore data: ${businessData['teamMembers']?.length ?? 0}'); // Keep this check
-
-
-          // Update Hive with this fresh data
-          // Convert Timestamps BEFORE saving to Hive if adapter isn't robust
-          // Map<String, dynamic> hiveReadyData = Map.from(businessData);
-          // hiveReadyData.updateAll((key, value) => value is Timestamp ? value.toDate().toIso8601String() : value);
-          await appBox.put('businessData', businessData); // Use the state variable directly if adapter handles Timestamps
-          print('⭐ Saved fresh data from initial Firestore fetch to Hive.');
-
-        } else {
-          print('⚠️ Initial Firestore fetch: Document does not exist for userId: $userId');
-          // Initialize local state (important!) and Hive
-          businessData = {'userId': userId}; // Minimal initialization
-          await appBox.put('businessData', businessData);
+      
+      // Get userId from Hive or Firebase Auth
+      String? userId;
+      var loadedData = appBox.get('businessData');
+      
+      if (loadedData is Map && loadedData['userId'] != null) {
+        userId = loadedData['userId'];
+        businessData = Map<String, dynamic>.from(loadedData);
+      } else {
+        final currentUser = FirebaseAuth.instance.currentUser;
+        userId = currentUser?.uid;
+        
+        if (userId != null) {
+          businessData = {'userId': userId};
         }
-      } catch (e) {
-         print('❌ Error during initial Firestore fetch: $e');
-         // Fallback to using whatever might be in Hive (which might be {})
-         var hiveData = appBox.get('businessData');
-         if (hiveData is Map) {
-           businessData = Map<String, dynamic>.from(hiveData);
-           // Ensure userId is still present if loaded from potentially older Hive data
-           businessData['userId'] ??= userId;
-           print('⭐ Falling back to potentially stale Hive data due to fetch error.');
-         } else {
-           businessData = {'userId': userId}; // Minimal init on error + no Hive data
-           print('⭐ Initializing minimal data due to fetch error and no Hive data.');
-         }
-         if(mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Could not fetch latest data. Using cached info.')),
-            );
-         }
       }
-      // --- MODIFICATION END ---
-
-      // 3. Load Staff Members using the potentially updated businessData
-      print('⭐ Loading staff members using potentially updated businessData.');
-      await _loadStaffMembers(); // Now uses fresh data if fetch was successful
-
-      // 4. Start Firestore Listener for subsequent updates
-       if (_businessSubscription == null) {
-          print('⭐ Starting Firestore listener for real-time updates.');
-          _startFirestoreListener();
-       } else {
-          print('⭐ Firestore listener already seems active.');
-       }
-
+      
+      if (userId == null) {
+        throw Exception("Unable to get user ID");
+      }
+      
+      _businessId = userId;
+      
+      // Load staff members
+      await _loadStaffMembers();
+      
+      // Fetch appointments for the current date
+      _fetchAppointmentsForDate(_selectedDate);
+      
       _isInitialized = true;
-      print('⭐ BusinessHomePage initialization complete (Fetch First Strategy)');
-
     } catch (e) {
-      print('❌ Error in _initializeHomePage (Fetch First Strategy): $e');
+      print('❌ Error initializing: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error initializing home page: $e')),
+          SnackBar(content: Text('Error initializing: $e'))
         );
       }
     } finally {
-      // Ensure loading indicator is turned off
       if (mounted) {
         setState(() {
-           _isLoading = false;
-           print('⭐ Initialization finished (Fetch First Strategy), isLoading set to false.');
+          _isLoading = false;
         });
       }
     }
   }
 
+  // Parse time string to DateTime for comparison
+  DateTime? _parseTimeString(String timeStr) {
+    try {
+      // Strip any whitespace
+      timeStr = timeStr.trim();
+      
+      // Get current date as base
+      DateTime baseDate = DateTime(2022, 1, 1);
+      
+      // Handle different formats
+      if (timeStr.toLowerCase().contains('am') || timeStr.toLowerCase().contains('pm')) {
+        // Handle 12-hour format like "5:45 PM"
+        String period = timeStr.toLowerCase().contains('pm') ? 'PM' : 'AM';
+        timeStr = timeStr.replaceAll(RegExp(r'[aApP][mM]'), '').trim();
+        
+        List<String> parts = timeStr.split(':');
+        if (parts.length == 2) {
+          int hour = int.tryParse(parts[0]) ?? 0;
+          int minute = int.tryParse(parts[1]) ?? 0;
+          
+          // Convert to 24-hour
+          if (period == 'PM' && hour < 12) hour += 12;
+          if (period == 'AM' && hour == 12) hour = 0;
+          
+          return DateTime(baseDate.year, baseDate.month, baseDate.day, hour, minute);
+        }
+      } else {
+        // Handle 24-hour format or simple numbers
+        if (timeStr.contains(':')) {
+          List<String> parts = timeStr.split(':');
+          if (parts.length == 2) {
+            int hour = int.tryParse(parts[0]) ?? 0;
+            int minute = int.tryParse(parts[1]) ?? 0;
+            return DateTime(baseDate.year, baseDate.month, baseDate.day, hour, minute);
+          }
+        } else {
+          // Handle simple numeric like "5"
+          int hour = int.tryParse(timeStr) ?? 0;
+          return DateTime(baseDate.year, baseDate.month, baseDate.day, hour, 0);
+        }
+      }
+    } catch (e) {
+      print('❌ Error parsing time string "$timeStr": $e');
+    }
+    return null;
+  }
+
+  // Generate dynamic time slots based on appointments
+  void _generateDynamicTimeSlots() {
+    if (_appointments.isEmpty) {
+      // Just use default slots if no appointments
+      print('📊 No appointments found, using default time slots');
+      return;
+    }
+    
+    try {
+      // Collect all appointment times
+      List<DateTime?> appointmentTimes = [];
+      
+      for (var appointment in _appointments) {
+        String? appointmentTime = appointment['appointmentTime'];
+        if (appointmentTime != null) {
+          DateTime? parsedTime = _parseTimeString(appointmentTime);
+          if (parsedTime != null) {
+            appointmentTimes.add(parsedTime);
+            print('⏰ Parsed appointment time: $appointmentTime -> ${DateFormat('HH:mm').format(parsedTime)}');
+          }
+        }
+      }
+      
+      if (appointmentTimes.isEmpty) {
+        print('⚠️ No valid appointment times could be parsed, keeping default slots');
+        return;
+      }
+      
+      // Sort appointment times
+      appointmentTimes.sort((a, b) => a!.compareTo(b!));
+      
+      // Find earliest and latest times
+      DateTime earliest = appointmentTimes.first!;
+      DateTime latest = appointmentTimes.last!;
+      
+      // Add buffer before and after
+      earliest = earliest.subtract(Duration(hours: 1));
+      latest = latest.add(Duration(hours: 1));
+      
+      // Round to nearest hour for clean slots
+      earliest = DateTime(
+        earliest.year, earliest.month, earliest.day, 
+        earliest.hour, 0, 0
+      );
+      
+      latest = DateTime(
+        latest.year, latest.month, latest.day, 
+        latest.hour, 0, 0
+      );
+      
+      // Create slots every 45 minutes
+      List<String> newSlots = [];
+      DateTime current = earliest;
+      
+      while (current.isBefore(latest) || current.isAtSameMomentAs(latest)) {
+        newSlots.add(DateFormat('HH:mm').format(current));
+        current = current.add(Duration(minutes: 45));
+      }
+      
+      if (newSlots.isNotEmpty) {
+        setState(() {
+          timeSlots = newSlots;
+          print('📊 Generated ${timeSlots.length} dynamic time slots from ${DateFormat('HH:mm').format(earliest)} to ${DateFormat('HH:mm').format(latest)}');
+          print('📊 Time slots: ${timeSlots.join(', ')}');
+        });
+      }
+    } catch (e) {
+      print('❌ Error generating dynamic time slots: $e');
+    }
+  }
+
+  void _fetchAppointmentsForDate(DateTime date) {
+    // Cancel any existing subscription
+    if (_appointmentsSubscription != null) {
+      print('🔄 Cancelling existing appointments subscription');
+      _appointmentsSubscription!.cancel();
+      _appointmentsSubscription = null;
+    }
+    
+    if (_businessId == null) {
+      print('❌ Error: Cannot fetch appointments - businessId is null');
+      return;
+    }
+    
+    // Format the date for query - use yyyy-MM-dd format which is how it's stored in Firestore
+    String formattedDate = DateFormat('yyyy-MM-dd').format(date);
+    
+    print('🔍 FETCHING APPOINTMENTS FOR DATE: $formattedDate (businessId: $_businessId)');
+    print('📅 Full date object: ${date.toString()}');
+    
+    // Create a reference to the appointments collection
+    CollectionReference appointmentsRef = FirebaseFirestore.instance
+      .collection('businesses')
+      .doc(_businessId)
+      .collection('appointments');
+    
+    print('🔍 Firestore collection path: businesses/$_businessId/appointments');
+    print('🔍 Will filter where appointmentDate == "$formattedDate"');
+    
+    // First, try to query all appointments for the business to see what's available
+    // This helps us debug if we have any appointments at all
+    appointmentsRef.limit(5).get().then((QuerySnapshot snapshot) {
+      print('🔎 DEBUG: Found ${snapshot.docs.length} total appointments (limited to 5)');
+      
+      if (snapshot.docs.isNotEmpty) {
+        // Show a sample of date formats in the database to help debug
+        snapshot.docs.take(3).forEach((doc) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          print('🔎 DEBUG Sample: AppointmentID=${doc.id}, Date=${data['appointmentDate']}, Time=${data['appointmentTime']}');
+        });
+      }
+    }).catchError((error) {
+      print('❌ Error querying appointments (debug): $error');
+    });
+    
+    // Now do the actual filtered query for the specific date
+    Query query = appointmentsRef.where('appointmentDate', isEqualTo: formattedDate);
+    
+    // Set up a listener for real-time updates
+    _appointmentsSubscription = query.snapshots().listen(
+      (snapshot) {
+        if (!mounted) {
+          print('⚠️ Widget not mounted during appointment snapshot callback');
+          return;
+        }
+        
+        print('📋 RECEIVED ${snapshot.docs.length} APPOINTMENTS FROM FIRESTORE for date "$formattedDate"');
+        
+        List<Map<String, dynamic>> fetchedAppointments = [];
+        for (var doc in snapshot.docs) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          data['id'] = doc.id;
+          
+          // Log the appointmentDate and appointmentTime for each document to verify
+          print('📝 Appointment: ${doc.id}');
+          print('   └─ Date: ${data['appointmentDate']}');
+          print('   └─ Time: ${data['appointmentTime']}');
+          print('   └─ Professional: ${data['professionalId'] ?? 'N/A'} (${data['professionalName'] ?? 'Unknown'})');
+          print('   └─ Customer: ${data['customerName'] ?? 'N/A'}');
+          print('   └─ Services: ${_formatServices(data['services'])}');
+          
+          fetchedAppointments.add(data);
+        }
+        
+        setState(() {
+          _appointments = fetchedAppointments;
+          print('✅ Successfully loaded ${_appointments.length} appointments for $formattedDate');
+          
+          if (_appointments.isEmpty) {
+            print('❓ NO APPOINTMENTS FOUND FOR DATE "$formattedDate"');
+            print('   Check if appointments have the EXACT date format "yyyy-MM-dd"');
+            print('   Example: Query is looking for "$formattedDate" - not "2025/04/23" or "23-04-2025" or any other format');
+          } else {
+            // Generate dynamic time slots based on appointment times
+            _generateDynamicTimeSlots();
+          }
+        });
+      },
+      onError: (error) {
+        print('❌ Error in appointments listener: $error');
+        print('🧪 Debug: Check if your Firestore security rules allow reading from "businesses/$_businessId/appointments"');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error loading appointments: $error')),
+          );
+        }
+      }
+    );
+  }
+  
+  // Helper to format services for logging
+  String _formatServices(dynamic services) {
+    if (services == null) return 'No services';
+    
+    if (services is List) {
+      if (services.isEmpty) return 'Empty services list';
+      
+      List<String> serviceNames = [];
+      for (var service in services) {
+        if (service is Map) {
+          String name = service['name']?.toString() ?? 'Unnamed service';
+          serviceNames.add(name);
+        } else if (service is String) {
+          serviceNames.add(service);
+        }
+      }
+      
+      return serviceNames.join(', ');
+    }
+    
+    return services.toString();
+  }
+
+  // Helper method to check if a staff member has an appointment at a specific time
+  Map<String, dynamic>? _getAppointmentForStaffAndTime(Map<String, dynamic> staff, String timeSlot) {
+    // Get staff ID - could be stored in different fields
+    String staffId = staff['id'] ?? staff['staffId'] ?? staff['userId'] ?? '';
+    String staffName = '${staff['firstName'] ?? ''} ${staff['lastName'] ?? ''}'.trim().toLowerCase();
+    
+    // Parse the time slot
+    DateTime? slotDateTime = _parseTimeString(timeSlot);
+    if (slotDateTime == null) {
+      print('⚠️ Could not parse time slot: $timeSlot');
+      return null;
+    }
+    
+    // Store the end time of this slot (45 minutes later)
+    DateTime slotEndTime = slotDateTime.add(const Duration(minutes: 45));
+    
+    for (var appointment in _appointments) {
+      String appointmentTime = appointment['appointmentTime'] ?? '';
+      String appointmentStaffId = appointment['professionalId'] ?? '';
+      String professionalName = (appointment['professionalName'] ?? '').toLowerCase();
+      
+      // Parse the appointment time
+      DateTime? appointmentDateTime = _parseTimeString(appointmentTime);
+      if (appointmentDateTime == null) {
+        print('⚠️ Could not parse appointment time: $appointmentTime');
+        continue;
+      }
+      
+      // First try ID matching if we have IDs
+      bool idMatch = false;
+      if (staffId.isNotEmpty && appointmentStaffId.isNotEmpty) {
+        idMatch = appointmentStaffId == staffId;
+        if (idMatch) {
+          print('👀 Found ID match: $staffId == $appointmentStaffId');
+        }
+      }
+      
+      // If no ID match, try name matching
+   // If no ID match, try name matching
+bool nameMatch = false;
+if (!idMatch) {
+  // Handle special case for "any" professional
+  if (appointmentStaffId.toLowerCase() == 'any') {
+    // Check if there's a preferred professional in the name
+    if (professionalName.isNotEmpty) {
+      // If the professional name (john) matches this staff member's name, it's a match
+      if (staffName.toLowerCase().contains(professionalName.toLowerCase()) || 
+          professionalName.toLowerCase().contains(staff['firstName']?.toLowerCase() ?? '')) {
+        nameMatch = true;
+        print('👀 Found "any" professional match with preference: $professionalName -> $staffName');
+      } else {
+        // Not a match if a different professional is preferred
+        print('❌ Appointment has "any" but prefers: $professionalName, not matching with $staffName');
+        nameMatch = false;
+      }
+    } else {
+      // If no professional name specified, show for all staff
+      nameMatch = true;
+      print('👀 Found generic "any" professional match (no preference)');
+    }
+  } else if (professionalName.isNotEmpty) {
+    // Try exact name match
+    if (professionalName.toLowerCase() == staffName.toLowerCase()) {
+      nameMatch = true;
+      print('👀 Found exact name match: "$professionalName" == "$staffName"');
+    } 
+    // Try partial match (first name only)
+    else if (professionalName.toLowerCase().contains(staff['firstName']?.toLowerCase() ?? '')) {
+      nameMatch = true;
+      print('👀 Found partial name match: "$professionalName" contains "${staff['firstName']?.toLowerCase()}"');
+    }
+  }
+}
+      
+      // Check if staff matches (either by ID or name)
+      bool staffMatch = idMatch || nameMatch;
+      
+      // Check if the appointment time is within the time slot
+      bool timeMatch = false;
+      if (staffMatch) {
+        print('🕒 Comparing times:');
+        print('   - Slot: ${DateFormat('HH:mm').format(slotDateTime)} to ${DateFormat('HH:mm').format(slotEndTime)}');
+        print('   - Appt: ${DateFormat('HH:mm').format(appointmentDateTime)}');
+        
+        // Check if appointment starts within this time slot
+        timeMatch = (appointmentDateTime.isAtSameMomentAs(slotDateTime) || 
+                    (appointmentDateTime.isAfter(slotDateTime) && 
+                     appointmentDateTime.isBefore(slotEndTime)));
+                     
+        if (timeMatch) {
+          print('✅ Time match! Appointment at ${DateFormat('HH:mm').format(appointmentDateTime)} is within slot ${timeSlot}');
+        }
+      }
+      
+      // If both staff and time match, return this appointment
+      if (staffMatch && timeMatch) {
+        print('✅ Found appointment match for ${staffName} at ${timeSlot}: ${appointment['id']}');
+        return appointment;
+      }
+    }
+    
+    // No match found
+    return null;
+  }
 
   Future<void> _loadStaffMembers() async {
-    print('⭐ BusinessHomePage - _loadStaffMembers called');
-    if (!mounted) {
-      print('⚠️ Widget not mounted, exiting _loadStaffMembers');
-      return;
-    }
-
-    try {
-      // --- Use teamMembers from the STATE businessData map ---
-      // <<< MODIFICATION: Use a specific key, e.g., 'teamMembers', and provide default empty list >>>
-      final dynamic teamMembersData = businessData['teamMembers'] ?? []; // Default to empty list
-      print('⭐ Checking teamMembers in current businessData state. Found type: ${teamMembersData?.runtimeType}, Count: ${teamMembersData is List ? teamMembersData.length : 'N/A'}');
-
-      List<Map<String, dynamic>> loadedStaff = [];
-      // <<< MODIFICATION: Check if it's a List (it should be) >>>
-      if (teamMembersData is List && teamMembersData.isNotEmpty) {
-        print('⭐ Processing team members from businessData state variable.');
-        // Ensure correct typing
-        loadedStaff = teamMembersData
-            .whereType<Map>() // Filter out non-map elements
-            .map<Map<String, dynamic>>((member) {
-              // Create a new map, casting values safely
-              Map<String, dynamic> typedMember = {};
+    print('👥 Loading staff members');
+    // Extract staff members from businessData
+    final dynamic teamMembersData = businessData['teamMembers'] ?? [];
+    
+    if (teamMembersData is List && teamMembersData.isNotEmpty) {
+      List<Map<String, dynamic>> loadedStaff = teamMembersData
+          .whereType<Map>()
+          .map<Map<String, dynamic>>((member) {
+            Map<String, dynamic> typedMember = {};
+            
+            if (member is Map) {
               member.forEach((key, value) {
                 if (key != null) {
-                    typedMember[key.toString()] = value;
+                  typedMember[key.toString()] = value;
                 }
               });
-              // Ensure essential keys have default values if missing
-              typedMember['firstName'] ??= '';
-              typedMember['lastName'] ??= '';
-              typedMember['email'] ??= '';
-              typedMember['phoneNumber'] ??= '';
-              // profileImageUrl can be null
-              return typedMember;
-            })
-            .toList();
-         print('⭐ Processed ${loadedStaff.length} staff members from businessData.');
-      } else {
-        print('⚠️ No valid teamMembers list found in current businessData state.');
-        // If the specific key was missing or not a list, loadedStaff remains empty.
-      }
-
-      // Update the state only if the data has actually changed
-       if (!listEquals(staffMembers, loadedStaff)) {
-           print("⭐ Staff member list changed, updating state.");
-           setState(() {
-              staffMembers = loadedStaff;
-           });
-       } else {
-            print("⭐ Staff member list hasn't changed, no state update needed.");
-       }
-
-    } catch (e) {
-      print('❌ Unexpected error in _loadStaffMembers: $e');
-       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Error loading staff: $e')),
-         );
-       }
+            }
+            
+            typedMember['firstName'] ??= '';
+            typedMember['lastName'] ??= '';
+            typedMember['email'] ??= '';
+            typedMember['phoneNumber'] ??= '';
+            
+            return typedMember;
+          })
+          .toList();
+      
+      setState(() {
+        staffMembers = loadedStaff;
+      });
     }
-  }
-
-  // Helper function to compare lists of maps
-  bool listEquals<T>(List<T>? a, List<T>? b) {
-     if (a == null) return b == null;
-     if (b == null || a.length != b.length) return false;
-     if (identical(a, b)) return true;
-     for (int index = 0; index < a.length; index += 1) {
-        // If comparing maps, you might need a deep comparison depending on complexity
-        if (a[index] is Map && b[index] is Map) {
-           if (!mapEquals(a[index] as Map?, b[index] as Map?)) return false;
-        } else if (a[index] != b[index]) {
-          return false;
-        }
-     }
-     return true;
-  }
-
- // Helper function to compare maps (from collection package or implement basic one)
-  bool mapEquals<K, V>(Map<K, V>? a, Map<K, V>? b) {
-    if (a == null) return b == null;
-    if (b == null || a.length != b.length) return false;
-    if (identical(a, b)) return true;
-    for (final K key in a.keys) {
-       if (!b.containsKey(key) || a[key] != b[key]) {
-         return false;
-       }
-    }
-    return true;
- }
-
-
-  void _onItemTapped(int index) {
-    print('⭐ BusinessHomePage - _onItemTapped with index: $index');
-    if (_isLoading) {
-       print("⚠️ Ignoring tap, data is loading.");
-       return;
-    }
-
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    // --- Check for essential data BEFORE navigating ---
-    final userId = businessData['userId'];
-    if (userId == null) {
-      print('❌ Error: Cannot navigate, userId is missing from businessData!');
-       ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(content: Text('Error: Business data not fully loaded. Please wait or restart.')),
-       );
-      // Optionally attempt to re-initialize or log out
-       _initializeHomePage(); // Attempt re-init
-      return;
-    }
-     // You could add more checks here if other screens depend on specific businessData fields
-
-    print('⭐ Navigating from BusinessHomePage to index $index with userId: $userId');
-    switch (index) {
-        case 0:
-          // Already on Home, maybe refresh?
-           print("⭐ Tapped Home (index 0) - already here.");
-           // Optionally call _initializeHomePage() or just _loadStaffMembers() to refresh
-           _loadStaffMembers();
-          break;
-        case 1:
-          print('⭐ Navigating to BusinessCatalog');
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const BusinessCatalog()), // Use const
-          );
-          break;
-        case 2:
-          print('⭐ Navigating to BusinessClient');
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const BusinessClient()), // Use const
-          );
-          break;
-        case 3:
-          print('⭐ Navigating to BusinessProfile');
-          print('⭐ Staff members count before navigating to profile: ${staffMembers.length}');
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const BusinessProfile()),
-          );
-          break;
-         default:
-           print("⚠️ Unknown navigation index: $index");
-     }
   }
 
   Future<void> _selectDate(BuildContext context) async {
-     print("⭐ _selectDate called");
+    print('📅 Select date called - current selected date: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}');
     List<DateTime?> initialDate = [_selectedDate];
-
+    
     List<DateTime?>? results = await showCalendarDatePicker2Dialog(
       context: context,
       config: CalendarDatePicker2WithActionButtonsConfig(
         calendarType: CalendarDatePicker2Type.single,
-        // Add configurations like firstDate, lastDate if needed
-         firstDate: DateTime.now().subtract(Duration(days: 365)), // Example: allow past year
-         lastDate: DateTime.now().add(Duration(days: 365)),    // Example: allow next year
+        firstDate: DateTime.now().subtract(Duration(days: 365)),
+        lastDate: DateTime.now().add(Duration(days: 365)),
       ),
       dialogSize: const Size(325, 400),
       value: initialDate,
       borderRadius: BorderRadius.circular(15),
     );
-
-     print("⭐ Date picker dialog returned: $results");
+    
+    print("📅 Date picker dialog returned: $results");
     if (results != null && results.isNotEmpty && results[0] != null) {
-       print("⭐ New date selected: ${results[0]}");
-      setState(() {
-        _selectedDate = results[0]!;
-      });
-       // TODO: Add logic here to reload schedule data based on the new _selectedDate
-       print("   (Placeholder: Reload schedule data for the new date)");
+      DateTime newDate = results[0]!;
+      // Zero out the time portion to avoid time zone issues
+      newDate = DateTime(newDate.year, newDate.month, newDate.day, 0, 0, 0);
+      
+      print("📅 New date selected: ${DateFormat('yyyy-MM-dd').format(newDate)}");
+      print("📅 Previous date was: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}");
+      
+      // Check if date actually changed
+      bool dateChanged = newDate.year != _selectedDate.year || 
+                          newDate.month != _selectedDate.month || 
+                          newDate.day != _selectedDate.day;
+      
+      if (dateChanged) {
+        print("📅 Date actually changed, updating state and fetching appointments");
+        setState(() {
+          _selectedDate = newDate;
+        });
+        
+        // IMPORTANT: FETCH APPOINTMENTS FOR THE NEW DATE
+        print("📅 CALLING _fetchAppointmentsForDate with date: ${DateFormat('yyyy-MM-dd').format(_selectedDate)}");
+        _fetchAppointmentsForDate(_selectedDate);
+      } else {
+        print("📅 Selected same date as before, no change needed");
+      }
     } else {
-       print("⭐ Date selection cancelled or returned null.");
+      print("📅 Date selection cancelled or returned null.");
     }
   }
 
-  Widget _buildUnifiedSchedule() {
-    print('⭐ BusinessHomePage - _buildUnifiedSchedule rendering with ${staffMembers.length} staff members');
-    // Handle case where staffMembers might still be empty during loading phase
+// --- Inside _BusinessHomePageState class ---
+
+void _onItemTapped(int index) {
+  if (_isLoading) return;
+
+  // --- Existing code before switch ---
+  // setState(() {
+  //   _selectedIndex = index;
+  // });
+  // ---
+
+  switch (index) {
+    case 0:
+      // Already on Home, maybe refresh? Or do nothing if already loaded.
+      // Consider adding logic here if you want a refresh on re-tapping Home.
+      // If staying on the same page, you might not need to call setState.
+       if (_selectedIndex != 0) {
+         setState(() { _selectedIndex = 0; });
+         // Optional: Trigger data refresh if needed
+         // _initializeHomePage();
+       }
+      break;
+    case 1:
+       // Navigate to Catalog but don't change the selected index of the home page
+       Navigator.push(
+         context,
+         MaterialPageRoute(builder: (context) => const BusinessCatalog()),
+       ).then((_) {
+          // Optional: Refresh data when returning from catalog if needed
+       });
+      break;
+    case 2: // <<< MODIFICATION HERE
+      print("Navigating to daily client list for date: $_selectedDate");
+      // Navigate to the screen showing all clients for the selected day
+      Navigator.push(
+        context,
+        // *** CHANGE THIS: Ensure BusinessClient accepts the date ***
+        // You might need to adjust BusinessClient's constructor if it doesn't accept a date
+        MaterialPageRoute(builder: (context) => BusinessClient(selectedDate: _selectedDate)), // Assuming BusinessClient takes the date
+      ).then((_) {
+          // Optional: Refresh data when returning
+       });
+      // Do NOT set _selectedIndex = 2 here if you want the bottom bar
+      // selection to remain on the 'Home' (index 0) visually after pushing.
+      // If you *want* the bottom bar to highlight the 'Clients' icon,
+      // then uncomment the setState below.
+      // setState(() { _selectedIndex = 2; });
+      break;
+    case 3:
+       // Navigate to Profile but don't change the selected index of the home page
+       Navigator.push(
+         context,
+         MaterialPageRoute(builder: (context) => const BusinessProfile()),
+       ).then((_) {
+          // Optional: Refresh data when returning from profile if needed
+          // _initializeHomePage(); // Example: Refresh if profile changes affect home
+       });
+      break;
+  }
+
+  // --- Optional: If you only want to update the *visual* state of the
+  // --- bottom bar when actually *staying* on a new tab provided by the
+  // --- home page scaffold, manage the selectedIndex state conditionally.
+  // --- If navigating away (like case 1, 2, 3 above), you might *not*
+  // --- want to update _selectedIndex here, so the Home icon remains active.
+  // --- If you *do* want the tapped icon to become active even when pushing
+  // --- a new route, uncomment the setState call below.
+
+  // if (index == 0) { // Only update index visually if staying on Home tab
+  //    setState(() {
+  //      _selectedIndex = index;
+  //    });
+  // }
+
+
+   // --- Simplified approach: Always update the visual index ---
+   // (Comment this out if you prefer the Home icon stays selected when navigating away)
+   setState(() {
+     _selectedIndex = index;
+   });
+
+
+}
+ Widget _buildUnifiedSchedule() {
+    print('🧩 BusinessHomePage - _buildUnifiedSchedule rendering with ${staffMembers.length} staff members');
+
     if (staffMembers.isEmpty && _isLoading) {
-        return Center(child: Text("Loading staff schedule...")); // Placeholder
+      return Center(
+        child: Text("Loading staff schedule..."),
+      );
     }
+
     if (staffMembers.isEmpty && !_isLoading) {
-       return Center(child: Text("No staff members found. Add staff in Profile.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600]),));
+      return Center(
+        child: Text(
+          "No staff members found. Add staff in Profile.",
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey[600]),
+        ),
+      );
     }
 
     return Expanded(
@@ -567,13 +703,13 @@ class _BusinessHomePageState extends State<BusinessHomePage> with WidgetsBinding
               child: SingleChildScrollView(
                 controller: _horizontalController,
                 scrollDirection: Axis.horizontal,
-                physics: const AlwaysScrollableScrollPhysics(), // Ensure horizontal scroll always works
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
-                   crossAxisAlignment: CrossAxisAlignment.start, // Align rows to start
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Staff Header Row
                     Row(
-                       mainAxisAlignment: MainAxisAlignment.start, // Align columns to start
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: staffMembers.map((staff) {
                         return Container(
                           width: 160, // Width of staff columns
@@ -591,8 +727,8 @@ class _BusinessHomePageState extends State<BusinessHomePage> with WidgetsBinding
                                 radius: 20,
                                 backgroundImage: staff['profileImageUrl'] != null && staff['profileImageUrl'].isNotEmpty
                                     ? NetworkImage(staff['profileImageUrl'])
-                                    : null, // Handle potential empty string
-                                backgroundColor: Colors.grey[200], // Background for avatar
+                                    : null,
+                                backgroundColor: Colors.grey[200],
                                 child: staff['profileImageUrl'] == null || staff['profileImageUrl'].isEmpty
                                     ? Text(
                                         '${staff['firstName']?.isNotEmpty == true ? staff['firstName'][0] : ''}${staff['lastName']?.isNotEmpty == true ? staff['lastName'][0] : ''}'.toUpperCase(),
@@ -612,33 +748,137 @@ class _BusinessHomePageState extends State<BusinessHomePage> with WidgetsBinding
                         );
                       }).toList(),
                     ),
-                    // Schedule Rows for each Time Slot
+                    // Schedule grid cells - UPDATED WITH APPOINTMENTS
                     Column(
                       children: timeSlots.map((time) {
+                        print('🧩 Building row for time slot: $time');
                         return Row(
-                           mainAxisAlignment: MainAxisAlignment.start, // Align columns to start
+                          mainAxisAlignment: MainAxisAlignment.start,
                           children: staffMembers.map((staff) {
-                            // TODO: Here you would check if this staff member has an appointment at this time/date
-                            // bool hasAppointment = _checkAppointment(staff['id'], _selectedDate, time);
+                            String staffName = '${staff['firstName'] ?? ''} ${staff['lastName'] ?? ''}'.trim();
+                            String staffId = staff['id'] ?? '';
+                            print('👤 Checking appointments for staff: $staffName (ID: $staffId) at time: $time');
+
+                            // Check if this staff member has an appointment at this time
+                            Map<String, dynamic>? appointment = _getAppointmentForStaffAndTime(staff, time);
+                            bool hasAppointment = appointment != null;
+
+                            if (hasAppointment) {
+                              print('📌 Found appointment for $staffName at $time: ${appointment!['id']}');
+                            }
+
+                            // Extract service details if there's an appointment
+                            String serviceInfo = '';
+                            String clientName = '';
+                            if (hasAppointment) {
+                              // Extract service names
+                              List<Map<String, dynamic>> services = [];
+                              if (appointment!['services'] is List) {
+                                try {
+                                  services = List<Map<String, dynamic>>.from(
+                                    (appointment['services'] as List)
+                                      .where((s) => s is Map)
+                                      .map((s) => s as Map<String, dynamic>)
+                                  );
+                                  print('🔍 Found ${services.length} services for this appointment');
+                                } catch (e) {
+                                  print('❌ Error parsing services: $e');
+                                }
+                              }
+
+                              if (services.isNotEmpty && services[0].containsKey('name')) {
+                                serviceInfo = services[0]['name'];
+                                print('📝 Service info: $serviceInfo');
+                              } else {
+                                print('⚠️ No service name found in appointment');
+                              }
+
+                              // Get client name
+                              clientName = appointment['customerName'] ?? 'Client';
+                              print('👤 Client name: $clientName');
+                            }
+
                             return Container(
                               width: 160, // Width of staff columns
                               height: 60, // Height of time slot rows
                               decoration: BoxDecoration(
-                                // Example: Highlight if appointment exists
-                                // color: hasAppointment ? Colors.blue[50] : Colors.white,
+                                color: hasAppointment ? Color(0x3023461a) : Colors.white, // Light green background if booked
                                 border: Border(
                                   bottom: BorderSide(color: Colors.grey[300]!),
                                   right: BorderSide(color: Colors.grey[300]!),
                                 ),
                               ),
                               child: GestureDetector(
-                                onTap: () {
-                                  print('Tapped slot: $time for ${staff['firstName']} on ${DateFormat('yyyy-MM-dd').format(_selectedDate)}');
-                                  // TODO: Implement navigation or action for tapping a slot
-                                },
-                                // TODO: Display appointment details if 'hasAppointment' is true
-                                // child: hasAppointment ? Center(child: Text("Booked", style: TextStyle(fontSize: 10, color: Colors.blue))) : const SizedBox.shrink(),
-                                 child: const SizedBox.shrink(), // Empty cell for now
+                               // Inside _buildUnifiedSchedule, within the GestureDetector or InkWell for the appointment cell:
+// lib/screens/business/Home/BusinessHomePage.dart
+// Inside _buildUnifiedSchedule, within the GestureDetector or InkWell for the appointment cell:
+
+onTap: () {
+  print('Tapped slot: $time for ${staff['firstName']} on ${DateFormat('yyyy-MM-dd').format(_selectedDate)}');
+  if (hasAppointment) {
+    // --- MODIFICATION START ---
+    final appointmentData = appointment!; // The full appointment map
+
+    print('Navigating to Appointment Details for appointment ID: ${appointmentData['id']}');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BusinessClientAppointmentDetails( // Changed widget name
+          appointmentData: appointmentData,
+        ),
+      ),
+    );
+    // --- MODIFICATION END ---
+  } else {
+    // Handle tapping on an empty slot (optional)
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Book new appointment for $staffName at $time?'))
+    );
+  }
+},
+                                child: hasAppointment
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(4.0),
+                                      child: Column( // <-- MODIFIED THIS COLUMN
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // --- ADDED THIS SECTION ---
+                                          Text(
+                                            // Display start time (appointmentTime)
+                                            'Time: ${appointment!['appointmentTime'] ?? 'N/A'}',
+                                            style: TextStyle(
+                                              fontSize: 11, // Adjust font size as needed
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF23461a) // Or your preferred color
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          // Optionally add End Time here if available or calculable
+                                          // Text('End: ${endTime ?? 'N/A'}', style: ...),
+                                          const SizedBox(height: 2), // Add some spacing
+                                          // --- END OF ADDED SECTION ---
+
+                                          // Existing Client Name
+                                          Text(
+                                            clientName,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF23461a) // Use your theme color
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          // Existing Service Info
+                                          Text(
+                                            serviceInfo,
+                                            style: TextStyle(fontSize: 10, color: Colors.black87),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
                               ),
                             );
                           }).toList(),
@@ -655,29 +895,24 @@ class _BusinessHomePageState extends State<BusinessHomePage> with WidgetsBinding
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-    print('⭐ BusinessHomePage - build method called. isLoading: $_isLoading, Staff count: ${staffMembers.length}');
-    String businessDisplayName = businessData['businessName'] ?? 'Business'; // Use stored name
+    print('🧩 BusinessHomePage - build method called. isLoading: $_isLoading, Staff count: ${staffMembers.length}');
+    String businessDisplayName = businessData['businessName'] ?? 'Business';
 
     return WillPopScope(
-      onWillPop: () async {
-          print("⭐ Android back button pressed on HomePage - preventing exit.");
-          // Return false to prevent the default back button action (exiting the app)
-          return false;
-       },
+      onWillPop: () async => false,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          automaticallyImplyLeading: false, // Remove default back arrow
-          title: Text( // Display Business Name
+          automaticallyImplyLeading: false,
+          title: Text(
             businessDisplayName,
             style: TextStyle(
               color: Colors.black,
-              fontFamily: businessDisplayName == 'Clips&Styles' ? 'Kavoon' : null, // Conditional font
+              fontFamily: businessDisplayName == 'Clips&Styles' ? 'Kavoon' : null,
               fontSize: 20,
               fontWeight: FontWeight.bold
             ),
@@ -685,66 +920,64 @@ class _BusinessHomePageState extends State<BusinessHomePage> with WidgetsBinding
           actions: [
             IconButton(
               icon: const Icon(Icons.add, color: Colors.black),
-              tooltip: 'Add Appointment/Block Time', // Add tooltip
+              tooltip: 'Add Appointment/Block Time',
               onPressed: _isLoading ? null : () {
-                print('⭐ Add button pressed');
-                // TODO: Implement add appointment/block time action
+                print('Add button pressed');
               },
             ),
-             IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.black),
-              tooltip: 'Refresh Data', // Add tooltip
-              onPressed: _isLoading ? null : () {
-                 print('⭐ Manual refresh button pressed');
-                 _initializeHomePage(); // Re-initialize to fetch fresh data
-              },
-             ),
             IconButton(
-              icon: const Icon(Icons.notifications_none, color: Colors.black), // Use outlined icon
-              tooltip: 'Notifications', // Add tooltip
+              icon: const Icon(Icons.refresh, color: Colors.black),
+              tooltip: 'Refresh Data',
               onPressed: _isLoading ? null : () {
-                print('⭐ Notifications button pressed');
+                print('Manual refresh button pressed');
+                _initializeHomePage();
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.notifications_none, color: Colors.black),
+              tooltip: 'Notifications',
+              onPressed: _isLoading ? null : () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const NotificationsScreen()),
                 );
               },
             ),
-            Padding( // Wrap Avatar with Padding
-               padding: const EdgeInsets.only(right: 16.0),
-               child: CircleAvatar(
-                  radius: 18, // Slightly smaller avatar
-                  backgroundImage: businessData['profileImageUrl'] != null && businessData['profileImageUrl'].isNotEmpty
-                     ? NetworkImage(businessData['profileImageUrl'])
-                     : null,
-                  backgroundColor: Colors.grey[200],
-                  child: businessData['profileImageUrl'] == null || businessData['profileImageUrl'].isEmpty
-                     ? Text(
-                        businessDisplayName.isNotEmpty ? businessDisplayName[0].toUpperCase() : 'B',
-                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                       )
-                     : null,
-               ),
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundImage: businessData['profileImageUrl'] != null && businessData['profileImageUrl'].isNotEmpty
+                  ? NetworkImage(businessData['profileImageUrl'])
+                  : null,
+                backgroundColor: Colors.grey[200],
+                child: businessData['profileImageUrl'] == null || businessData['profileImageUrl'].isEmpty
+                  ? Text(
+                    businessDisplayName.isNotEmpty ? businessDisplayName[0].toUpperCase() : 'B',
+                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                  )
+                  : null,
+              ),
             ),
           ],
-           bottom: PreferredSize( // Add a thin bottom border to AppBar
-              preferredSize: Size.fromHeight(1.0),
-              child: Container(
-                 color: Colors.grey[300],
-                 height: 1.0,
-              ),
-           ),
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(1.0),
+            child: Container(
+              color: Colors.grey[300],
+              height: 1.0,
+            ),
+          ),
         ),
         body: SafeArea(
           child: Column(
             children: [
               // Date Selector
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0), // Adjust padding
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                 child: GestureDetector(
                   onTap: _isLoading ? null : () => _selectDate(context),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center, // Center the date
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         DateFormat('EEE d MMM, yyyy').format(_selectedDate),
@@ -753,28 +986,16 @@ class _BusinessHomePageState extends State<BusinessHomePage> with WidgetsBinding
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(width: 8), // Space before icon
-                      const Icon(Icons.arrow_drop_down, color: Colors.black54), // Dropdown icon
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_drop_down, color: Colors.black54),
                     ],
                   ),
                 ),
               ),
-              // Status indicator for debugging
-              // Container(
-              //   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              //   color: Colors.amber[100], // More visible color
-              //   child: Row(
-              //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //     children: [
-              //       Text("Staff: ${staffMembers.length}, Loading: $_isLoading, Init: $_isInitialized", style: TextStyle(fontSize: 10)),
-              //       Text("UID: ${businessData['userId']?.toString() ?? 'None'}", style: TextStyle(fontSize: 10)),
-              //     ],
-              //   ),
-              // ),
               // Schedule View
               _isLoading
-                  ? const Expanded(child: Center(child: CircularProgressIndicator()))
-                  : _buildUnifiedSchedule(),
+                ? const Expanded(child: Center(child: CircularProgressIndicator()))
+                : _buildUnifiedSchedule(),
             ],
           ),
         ),
@@ -782,52 +1003,56 @@ class _BusinessHomePageState extends State<BusinessHomePage> with WidgetsBinding
           backgroundColor: Colors.black,
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_outlined), // Use outlined
-              activeIcon: Icon(Icons.calendar_today), // Use filled for active
+              icon: Icon(Icons.calendar_today_outlined),
+              activeIcon: Icon(Icons.calendar_today),
               label: '',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.label_outline), // Use outlined
-              activeIcon: Icon(Icons.label), // Use filled for active
+              icon: Icon(Icons.label_outline),
+              activeIcon: Icon(Icons.label),
               label: '',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.people_outline), // Use outlined
-              activeIcon: Icon(Icons.people), // Use filled for active
+              icon: Icon(Icons.people_outline),
+              activeIcon: Icon(Icons.people),
               label: '',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_outlined), // Use outlined
-              activeIcon: Icon(Icons.grid_view_rounded), // Use filled for active
+              icon: Icon(Icons.grid_view_outlined),
+              activeIcon: Icon(Icons.grid_view_rounded),
               label: '',
             ),
           ],
           currentIndex: _selectedIndex,
           selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.grey[600], // Slightly darker grey
+          unselectedItemColor: Colors.grey[600],
           onTap: _onItemTapped,
-          type: BottomNavigationBarType.fixed, // Keep fixed for labels visibility
-           showSelectedLabels: false, // Hide labels
-           showUnselectedLabels: false, // Hide labels
+          type: BottomNavigationBarType.fixed,
+          showSelectedLabels: false,
+          showUnselectedLabels: false,
         ),
       ),
     );
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print('🔄 BusinessHomePage - AppLifecycleState changed to: $state');
+    if (state == AppLifecycleState.resumed) {
+      print('🔄 App resumed - refreshing data');
+      _loadStaffMembers();
+      _fetchAppointmentsForDate(_selectedDate);
+    }
+  }
+
+  @override
   void dispose() {
-    print('⭐ BusinessHomePage - dispose called');
+    print('🧹 BusinessHomePage - dispose called');
     WidgetsBinding.instance.removeObserver(this);
     _horizontalController.dispose();
     _verticalController.dispose();
-
-    if (_businessSubscription != null) {
-      print('⭐ Cancelling Firestore subscription in dispose');
-      _businessSubscription!.cancel();
-      _businessSubscription = null;
-    }
-
-    print('⭐ BusinessHomePage disposed');
+    _businessSubscription?.cancel();
+    _appointmentsSubscription?.cancel();
     super.dispose();
   }
 }

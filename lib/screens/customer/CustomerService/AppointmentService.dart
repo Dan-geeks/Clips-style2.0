@@ -65,6 +65,46 @@ Future<Map<String, dynamic>> createAppointment({
       'isGroupBooking': isGroupBooking,
     };
     
+    // Add appointmentTimestamp for better querying support
+    if (appointmentData.containsKey('appointmentDate')) {
+      try {
+        String dateStr = appointmentData['appointmentDate'];
+        String timeStr = appointmentData['appointmentTime'] ?? '00:00';
+        
+        // Parse the time string to ensure proper format
+        String formattedTime = timeStr;
+        if (timeStr.contains('am') || timeStr.contains('pm')) {
+          // Convert 12-hour format to 24-hour format
+          List<String> parts = timeStr.toLowerCase().split(' ');
+          if (parts.length > 1) {
+            String timePart = parts[0];
+            bool isPM = parts[1].contains('pm');
+            
+            List<String> hourMin = timePart.split(':');
+            if (hourMin.length > 1) {
+              int hour = int.tryParse(hourMin[0]) ?? 0;
+              if (isPM && hour < 12) hour += 12;
+              if (!isPM && hour == 12) hour = 0;
+              
+              formattedTime = "${hour.toString().padLeft(2, '0')}:${hourMin[1]}";
+            }
+          }
+        }
+        
+        // Parse the date and time
+        DateTime appointmentDateTime = DateFormat('yyyy-MM-dd HH:mm')
+            .parse('$dateStr $formattedTime');
+            
+        // Add timestamp field
+        baseAppointmentData['appointmentTimestamp'] = Timestamp.fromDate(appointmentDateTime);
+        
+        print("Created timestamp for appointment: ${appointmentDateTime.toString()}");
+      } catch (e) {
+        print('Error creating timestamp: $e');
+        // Don't throw, just log the error and continue without the timestamp
+      }
+    }
+    
     // Create the appointment in Firestore using a transaction
     DocumentReference appointmentRef;
     Map<String, dynamic> returnAppointmentData = {};
@@ -173,8 +213,6 @@ Future<Map<String, dynamic>> createAppointment({
     throw e;
   }
 }
-  
- 
   
   /// Update an existing appointment in a transaction
   /// Updates both business and client collections

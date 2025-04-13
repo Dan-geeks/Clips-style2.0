@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart'; // Import Hive
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 import 'package:firebase_auth/firebase_auth.dart'; // Import Auth
+import 'package:intl/intl.dart'; // <<< Import intl
 
 // Import setup flow screens
 import 'LotusBusinessProfile/OpeniningHours.dart'; // Start of Lotus setup
@@ -20,7 +21,8 @@ import 'PaymentMethod/walletcreation/welcome.dart'; // Import WelcomeScreen
 // Import main navigation screens if needed for bottom bar
 import '../BusinessHomePage.dart';
 import '../Businesscatalog/Businesscatalog.dart';
-import '../Businessclient/Businesscient.dart';
+// *** IMPORT THE NEW CLIENT LIST SCREEN ***
+import '../Businessclient/businessforallclient.dart'; // Adjust path if needed
 
 
 class BusinessProfile extends StatefulWidget {
@@ -220,34 +222,54 @@ class _BusinessProfileState extends State<BusinessProfile> {
     });
   }
 
+  // --- MODIFIED: _onItemTapped ---
   void _onItemTapped(int index) {
-    if (_selectedIndex == index) return;
-    setState(() { _selectedIndex = index; });
+    if (_selectedIndex == index) return; // Don't rebuild if tapping the current tab
+    if (_isLoading) return; // Don't navigate while loading
 
+    // Navigate based on index
     switch (index) {
-      case 0:
+      case 0: // Home
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const BusinessHomePage())
         );
+        // No need to update _selectedIndex here as we are replacing the screen
         break;
-      case 1:
+      case 1: // Catalog
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const BusinessCatalog())
         );
+        // No need to update _selectedIndex here
         break;
-      case 2:
-        Navigator.pushReplacement(
+      case 2: // Clients
+        // 1. Get the current date (zero out time part)
+        final DateTime currentDate = DateTime.now();
+        final DateTime dateToPass = DateTime(currentDate.year, currentDate.month, currentDate.day);
+        print("Navigating to Clients tab from Profile with date: ${DateFormat('yyyy-MM-dd').format(dateToPass)}");
+
+        // 2. Navigate to BusinessClient, passing the current date
+        Navigator.pushReplacement( // Use pushReplacement if you want it to feel like a tab switch
           context,
-          MaterialPageRoute(builder: (context) => const BusinessClient())
+          MaterialPageRoute(
+            // Ensure BusinessClient is imported and accepts selectedDate
+            builder: (context) => BusinessClient(selectedDate: dateToPass),
+          ),
         );
+         // No need to update _selectedIndex here
         break;
-      case 3:
+      case 3: // Profile (Current Screen)
         print("Already on Profile Tab");
+        // Update the index visually if it wasn't already selected
+        // (though the initial check prevents this if already on tab 3)
+        if (mounted) {
+           setState(() { _selectedIndex = index; });
+        }
         break;
     }
   }
+  // --- END MODIFIED: _onItemTapped ---
 
   @override
   Widget build(BuildContext context) {
