@@ -9,10 +9,10 @@ class ReviewDetailsScreen extends StatefulWidget {
   final List<Map<String, dynamic>>? reviews;
 
   const ReviewDetailsScreen({
-    Key? key,
+    super.key,
     this.review,
     this.reviews,
-  }) : super(key: key);
+  });
 
   @override
   State<ReviewDetailsScreen> createState() => _ReviewDetailsScreenState();
@@ -746,7 +746,7 @@ class _ReviewDetailsScreenState extends State<ReviewDetailsScreen> {
         ),
         SizedBox(height: 12),
         Text(
-          '${formattedDate} from the treatment',
+          '$formattedDate from the treatment',
           style: TextStyle(
             color: Colors.grey[600],
             fontSize: 14,
@@ -759,7 +759,7 @@ class _ReviewDetailsScreenState extends State<ReviewDetailsScreen> {
   Widget _buildResponseSection() {
     final responseDate = _reviewDetails['responseDate'];
     final formattedDate = responseDate != null 
-        ? '${DateFormat('MMM d, yyyy').format(responseDate)}' 
+        ? DateFormat('MMM d, yyyy').format(responseDate) 
         : '';
     
     return Container(
@@ -824,7 +824,7 @@ class _ReviewDetailsScreenState extends State<ReviewDetailsScreen> {
   Widget _buildAddResponseButton() {
     return OutlinedButton(
       onPressed: () {
-        final TextEditingController _responseController = TextEditingController();
+        final TextEditingController responseController = TextEditingController();
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -838,7 +838,7 @@ class _ReviewDetailsScreenState extends State<ReviewDetailsScreen> {
                 ),
                 SizedBox(height: 16),
                 TextField(
-                  controller: _responseController,
+                  controller: responseController,
                   maxLines: 5,
                   decoration: InputDecoration(
                     hintText: 'Write your response...',
@@ -856,9 +856,9 @@ class _ReviewDetailsScreenState extends State<ReviewDetailsScreen> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  if (_responseController.text.trim().isNotEmpty) {
+                  if (responseController.text.trim().isNotEmpty) {
                     Navigator.pop(context);
-                    _saveResponse(_responseController.text.trim());
+                    _saveResponse(responseController.text.trim());
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -916,7 +916,7 @@ class _ReviewDetailsScreenState extends State<ReviewDetailsScreen> {
                 ),
               ),
               Text(
-                '${formattedDate} ago',
+                '$formattedDate ago',
                 style: TextStyle(
                   color: Colors.grey[600],
                   fontSize: 12,

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Added import for Firestore
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'screens/customer/CustomerService/notification_hub.dart';
 import 'firebase_options.dart';
 import 'screens/signup.dart';
 import 'screens/login.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // Create a Hive TypeAdapter for Firebase Timestamp
 class TimestampAdapter extends TypeAdapter<Timestamp> {
@@ -30,6 +32,8 @@ void main() async {
  
   // Initialize Hive
   await Hive.initFlutter();
+
+  await dotenv.load(fileName: ".env");
   
   // Register the Timestamp adapter before any boxes are opened
   Hive.registerAdapter(TimestampAdapter());
@@ -41,6 +45,9 @@ void main() async {
   
   // Open the box after registering adapters
   await Hive.openBox('appBox');
+  
+  // Initialize notification hub (this will also initialize the notification service)
+  await NotificationHub.instance.initialize();
 
   runApp(const MyApp());
 }
@@ -53,10 +60,14 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Clips&Styles',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        primaryColor: const Color(0xFF23461a),
+        colorScheme: ColorScheme.light(
+          primary: const Color(0xFF23461a),
+          secondary: Colors.green,
+        ),
         useMaterial3: true,
       ),
-      home: MainScreen(),
+      home: const MainScreen(),
     );
   }
 }

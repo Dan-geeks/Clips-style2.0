@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../CustomerService/AppointmentService.dart';
@@ -12,11 +11,11 @@ class GroupBookingConfirmationScreen extends StatefulWidget {
   final Map<String, dynamic> bookingData;
 
   const GroupBookingConfirmationScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.bookingData,
-  }) : super(key: key);
+  });
 
   @override
   _GroupBookingConfirmationScreenState createState() => _GroupBookingConfirmationScreenState();
@@ -24,7 +23,7 @@ class GroupBookingConfirmationScreen extends StatefulWidget {
 
 class _GroupBookingConfirmationScreenState extends State<GroupBookingConfirmationScreen> {
   bool _isProcessing = false;
-  String _paymentMethod = 'Cash'; // Default to Cash
+  String _paymentMethod = 'M-Pesa'; // Changed default to M-Pesa
   final TextEditingController _discountCodeController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   
@@ -33,7 +32,7 @@ class _GroupBookingConfirmationScreenState extends State<GroupBookingConfirmatio
   
   // Pricing values
   double _totalServicePrice = 0.0;
-  double _bookingFee = 0.0; // Will be calculated as 10% of service price
+  double _bookingFee = 0.0;
   double _discountAmount = 0.0;
   double _totalAmount = 0.0;
   
@@ -130,8 +129,12 @@ class _GroupBookingConfirmationScreenState extends State<GroupBookingConfirmatio
       }
     }
     
-    // Calculate booking fee as 10% of the service price
-    _bookingFee = _totalServicePrice * 0.1;
+    // Apply different booking fee based on payment method
+    if (_paymentMethod == 'M-Pesa') {
+      _bookingFee = _totalServicePrice * 0.08; // 8% booking fee for M-Pesa
+    } else {
+      _bookingFee = _totalServicePrice * 0.20; // 20% booking fee for Cash
+    }
     
     // Calculate total
     _totalAmount = _totalServicePrice + _bookingFee - _discountAmount;
@@ -590,11 +593,11 @@ class _GroupBookingConfirmationScreenState extends State<GroupBookingConfirmatio
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                   );
-                }).toList(),
+                }),
                 
                 // Pricing
                 SizedBox(height: 16),
@@ -609,7 +612,8 @@ class _GroupBookingConfirmationScreenState extends State<GroupBookingConfirmatio
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Pay now booking fee (10%)'),
+                    // Updated to show dynamic percentage based on payment method
+                    Text('Pay now booking fee (${_paymentMethod == 'M-Pesa' ? '8%' : '20%'})'),
                     Text(_formatCurrency(_bookingFee)),
                   ],
                 ),
@@ -647,13 +651,15 @@ class _GroupBookingConfirmationScreenState extends State<GroupBookingConfirmatio
                       isExpanded: true,
                       icon: Icon(Icons.keyboard_arrow_down),
                       items: [
-                        DropdownMenuItem(value: 'Cash', child: Text('Cash')),
+                        // Change order to show M-Pesa first
                         DropdownMenuItem(value: 'M-Pesa', child: Text('M-Pesa')),
+                        DropdownMenuItem(value: 'Cash', child: Text('Cash')),
                       ],
                       onChanged: (String? value) {
                         if (value != null) {
                           setState(() {
                             _paymentMethod = value;
+                            _calculatePrices(); // Recalculate prices when payment method changes
                           });
                         }
                       },
@@ -671,7 +677,7 @@ class _GroupBookingConfirmationScreenState extends State<GroupBookingConfirmatio
                 Row(
                   children: [
                     Expanded(
-                      child: Container(
+                      child: SizedBox(
                         height: 48,
                         child: TextField(
                           controller: _discountCodeController,
@@ -686,13 +692,13 @@ class _GroupBookingConfirmationScreenState extends State<GroupBookingConfirmatio
                     SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: _applyDiscountCode,
-                      child: Text('Apply'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
                         minimumSize: Size(80, 48),
                         side: BorderSide(color: Colors.grey[300]!),
                       ),
+                      child: Text('Apply'),
                     ),
                   ],
                 ),
@@ -749,7 +755,7 @@ class _GroupBookingConfirmationScreenState extends State<GroupBookingConfirmatio
                         ),
                       ),
                       Text(
-                        '${_totalServiceCount} services, ${_guests.length} guests, ${_formatTotalDuration()}',
+                        '$_totalServiceCount services, ${_guests.length} guests, ${_formatTotalDuration()}',
                         style: TextStyle(
                           color: Colors.grey[400],
                           fontSize: 12,
@@ -760,6 +766,11 @@ class _GroupBookingConfirmationScreenState extends State<GroupBookingConfirmatio
                   Spacer(),
                   ElevatedButton(
                     onPressed: _isProcessing ? null : _completeBooking,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF23461a),
+                      foregroundColor: Colors.white,
+                      minimumSize: Size(100, 45),
+                    ),
                     child: _isProcessing
                         ? SizedBox(
                             height: 20,
@@ -770,11 +781,6 @@ class _GroupBookingConfirmationScreenState extends State<GroupBookingConfirmatio
                             ),
                           )
                         : Text('Book'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF23461a),
-                      foregroundColor: Colors.white,
-                      minimumSize: Size(100, 45),
-                    ),
                   ),
                 ],
               ),

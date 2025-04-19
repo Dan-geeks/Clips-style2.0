@@ -3,10 +3,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import '../../../../CustomerService/AppointmentService.dart';
 import '../../../../Booking/BookingOptions.dart'; // For rebooking functionality
 class MyAppointmentsPage extends StatefulWidget {
+  const MyAppointmentsPage({super.key});
+
   @override
   _MyAppointmentsPageState createState() => _MyAppointmentsPageState();
 }
@@ -513,7 +514,7 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage> with SingleTick
                   ],
                 ),
               );
-            }).toList(),
+            }),
             
             // If no services are listed, show default
             if (services.isEmpty) 
@@ -541,34 +542,34 @@ class _MyAppointmentsPageState extends State<MyAppointmentsPage> with SingleTick
                   // Reschedule button
                   OutlinedButton(
                     onPressed: () => _rescheduleAppointment(appointment),
-                    child: Text('Reschedule'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Color(0xFF23461a),
                       side: BorderSide(color: Color(0xFF23461a)),
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     ),
+                    child: Text('Reschedule'),
                   ),
                   SizedBox(width: 8),
                   // Cancel button
                   OutlinedButton(
                     onPressed: () => _cancelAppointment(appointment),
-                    child: Text('Cancel'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.black,
                       side: BorderSide(color: Colors.grey[400]!),
                       padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     ),
+                    child: Text('Cancel'),
                   ),
                 ] else ...[
                   // Book again button
                   ElevatedButton(
                     onPressed: () => _bookAgain(appointment),
-                    child: Text('Book Again'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF23461a),
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     ),
+                    child: Text('Book Again'),
                   ),
                 ],
               ],

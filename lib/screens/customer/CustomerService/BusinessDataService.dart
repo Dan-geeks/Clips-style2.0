@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:convert';
 import 'dart:math';
 
 class BusinessDataService {
@@ -170,7 +169,7 @@ class BusinessDataService {
         print('BusinessDataService: Firebase returned ${snapshot.docs.length} documents');
       } catch (e) {
         print('BusinessDataService: ❌ ERROR executing Firebase query: $e');
-        throw e;
+        rethrow;
       }
       
       if (snapshot.docs.isEmpty) {

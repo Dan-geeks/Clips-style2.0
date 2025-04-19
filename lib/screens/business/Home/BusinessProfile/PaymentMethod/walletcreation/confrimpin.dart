@@ -5,7 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data'; // Added import for Uint8List
+// Added import for Uint8List
 
 // Import the screen to navigate to after success
 import 'fingerprint.dart';
@@ -22,9 +22,9 @@ class ConfirmPinScreen extends StatefulWidget {
   final String originalPin; // Receive the original RAW PIN (temporary)
 
   const ConfirmPinScreen({
-    Key? key,
+    super.key,
     required this.originalPin,
-  }) : super(key: key);
+  });
 
   @override
   _ConfirmPinScreenState createState() => _ConfirmPinScreenState();

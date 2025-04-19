@@ -1,0 +1,2 @@
+C:/Users/Dan/Devs/Clips-style2.0/android/app/.cxx/RelWithDebInfo/2k6ci4w3/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/Dan/Devs/Clips-style2.0/android/app/.cxx/RelWithDebInfo/2k6ci4w3/armeabi-v7a/CMakeFiles/rebuild_cache.dir

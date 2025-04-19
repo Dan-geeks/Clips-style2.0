@@ -4,10 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:provider/provider.dart';
 import 'Accountsetup/BusinessAccountCreation.dart';
 import 'package:hive/hive.dart';
-import 'dart:developer';
 
 class Businesssignup extends StatefulWidget {
   const Businesssignup({super.key});

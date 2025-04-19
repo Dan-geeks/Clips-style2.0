@@ -9,7 +9,7 @@ import 'changeemail.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class AccountScreen extends StatefulWidget {
-  const AccountScreen({Key? key}) : super(key: key);
+  const AccountScreen({super.key});
   
   static Route route() {
     return MaterialPageRoute(builder: (_) => const AccountScreen());
@@ -411,7 +411,7 @@ Future<void> _deleteAccount() async {
         }
         
         // For other errors, rethrow
-        throw e;
+        rethrow;
       }
       
       // Close loading dialog

@@ -9,6 +9,8 @@ import 'package:hive_flutter/hive_flutter.dart'; // Added Hive import for local 
 import 'HomePage/CustomerHomePage.dart';
 
 class CustomerSignUpPage extends StatefulWidget {
+  const CustomerSignUpPage({super.key});
+
   @override
   _CustomerSignUpPageState createState() => _CustomerSignUpPageState();
 }
@@ -241,7 +243,7 @@ class _CustomerSignUpPageState extends State<CustomerSignUpPage> {
           'displayName': user.displayName ?? '',
           'firstName': user.displayName?.split(' ').first ?? '',
           'lastName': (user.displayName?.split(' ') ?? []).length > 1 
-              ? user.displayName?.split(' ')?.sublist(1).join(' ') ?? '' 
+              ? user.displayName?.split(' ').sublist(1).join(' ') ?? '' 
               : '',
           'phoneNumber': phoneNumber,
           'photoURL': user.photoURL ?? '',
@@ -278,7 +280,7 @@ class _CustomerSignUpPageState extends State<CustomerSignUpPage> {
     } catch (e) {
       print("Error creating client document: $e");
       // Let the error propagate up to be handled by the caller
-      throw e;
+      rethrow;
     }
   }
 
@@ -320,14 +322,14 @@ class _CustomerSignUpPageState extends State<CustomerSignUpPage> {
               ),
               SizedBox(height: 16),
               ElevatedButton(
-                child: Text('Continue',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-                ),
                 onPressed: _signUpWithPhone,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF23461a),
                   padding: EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), 
+                ),
+                child: Text('Continue',
+                style: TextStyle(fontSize: 18, color: Colors.white),
                 ),
               ),
            
@@ -394,6 +396,11 @@ class _CustomerSignUpPageState extends State<CustomerSignUpPage> {
   Widget _buildSocialButton(
       String text, String iconPath, VoidCallback onPressed) {
     return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        side: BorderSide(color: Colors.grey),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -401,11 +408,6 @@ class _CustomerSignUpPageState extends State<CustomerSignUpPage> {
           SizedBox(width: 8),
           Text(text),
         ],
-      ),
-      onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        side: BorderSide(color: Colors.grey),
       ),
     );
   }
@@ -416,7 +418,7 @@ class VerificationPage extends StatefulWidget {
   final String phoneNumber;
   final FirebaseFirestore firestore; // Added firestore instance
 
-  VerificationPage({
+  VerificationPage({super.key, 
     required this.verificationId, 
     required this.phoneNumber,
     required this.firestore, // Require firestore instance
@@ -625,7 +627,7 @@ class _VerificationPageState extends State<VerificationPage> {
             'userId': user.uid,
             'firstName': user.displayName?.split(' ').first ?? '',
             'lastName': (user.displayName?.split(' ') ?? []).length > 1 
-                ? user.displayName?.split(' ')?.sublist(1).join(' ') ?? '' 
+                ? user.displayName?.split(' ').sublist(1).join(' ') ?? '' 
                 : '',
             'phoneNumber': widget.phoneNumber,
           });
@@ -644,7 +646,7 @@ class _VerificationPageState extends State<VerificationPage> {
       }
     } catch (e) {
       print("Error creating client document: $e");
-      throw e;
+      rethrow;
     }
   }
 
@@ -734,6 +736,13 @@ class _VerificationPageState extends State<VerificationPage> {
             SizedBox(height: 16),
             ElevatedButton(
               onPressed: _isVerifying ? null : _verifyCode,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF23461a),
+                padding: EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(35),
+                ),
+              ),
               child: _isVerifying 
                 ? SizedBox(
                     height: 20,
@@ -746,13 +755,6 @@ class _VerificationPageState extends State<VerificationPage> {
                 : Text('Continue', 
                     style: TextStyle(fontSize: 18, color: Colors.white)
                   ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF23461a),
-                padding: EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(35),
-                ),
-              ),
             ),
           ],
         ),

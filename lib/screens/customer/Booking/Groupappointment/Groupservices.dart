@@ -11,13 +11,13 @@ class GroupServicesScreen extends StatefulWidget {
   final List<Map<String, dynamic>> availableServices;
 
   const GroupServicesScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.shopData,
     required this.guests,
     required this.availableServices,
-  }) : super(key: key);
+  });
 
   @override
   _GroupServicesScreenState createState() => _GroupServicesScreenState();
@@ -27,7 +27,7 @@ class _GroupServicesScreenState extends State<GroupServicesScreen> {
   int _currentGuestIndex = 0;
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _filteredServices = [];
-  Map<String, List<Map<String, dynamic>>> _guestSelections = {};
+  final Map<String, List<Map<String, dynamic>>> _guestSelections = {};
 
   @override
   void initState() {
@@ -222,7 +222,7 @@ Future<void> _continueToNextGuest() async {
     if (totalMinutes >= 60) {
       int hours = totalMinutes ~/ 60;
       int mins = totalMinutes % 60;
-      return "${hours} hr${hours > 1 ? 's' : ''}${mins > 0 ? ' $mins mins' : ''}";
+      return "$hours hr${hours > 1 ? 's' : ''}${mins > 0 ? ' $mins mins' : ''}";
     } else {
       return "$totalMinutes mins";
     }
@@ -366,7 +366,7 @@ Future<void> _continueToNextGuest() async {
                   ),
                 ),
                 Text(
-                  "${_currentGuestSelectionCount} service${_currentGuestSelectionCount != 1 ? 's' : ''}, ${_currentGuestTotalDuration}",
+                  "$_currentGuestSelectionCount service${_currentGuestSelectionCount != 1 ? 's' : ''}, $_currentGuestTotalDuration",
                   style: TextStyle(
                     color: Colors.grey[400],
                     fontSize: 12,
@@ -377,12 +377,12 @@ Future<void> _continueToNextGuest() async {
             Spacer(),
             ElevatedButton(
               onPressed: _continueToNextGuest,
-              child: Text('Continue'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color(0xFF23461a),
                 foregroundColor: Colors.white,
                 minimumSize: Size(100, 45),
               ),
+              child: Text('Continue'),
             ),
           ],
         ),

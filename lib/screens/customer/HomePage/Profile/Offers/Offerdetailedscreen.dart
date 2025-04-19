@@ -7,9 +7,9 @@ class OfferDetailScreen extends StatefulWidget {
   final Map<String, dynamic> offer;
 
   const OfferDetailScreen({
-    Key? key,
+    super.key,
     required this.offer,
-  }) : super(key: key);
+  });
 
   @override
   State<OfferDetailScreen> createState() => _OfferDetailScreenState();

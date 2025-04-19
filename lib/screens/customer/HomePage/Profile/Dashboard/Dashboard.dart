@@ -3,7 +3,7 @@ import 'LoyaltyPoints/LoyaltyPointsScreen.dart';
 import 'MyTopBeautyShop/BeautyShop.dart';
 import 'UpcomingAppointmnets/Appointments.dart';
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

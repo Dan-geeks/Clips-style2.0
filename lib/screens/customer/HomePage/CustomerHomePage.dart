@@ -7,7 +7,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../CustomerService/BusinessDataService.dart';
-import '../CustomerService/AppointmentService.dart'; // Import AppointmentService
+import '../CustomerService/AppointmentService.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../CustomerService/notificationservice.dart';
+import '../CustomerService/notification_hub.dart';
 import 'dart:async';
 import 'Notificationpage.dart';
 import '../Booking/BookingOptions.dart';
@@ -24,20 +28,20 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final Box appBox = Hive.box('appBox');
-  final AppointmentTransactionService _appointmentService = AppointmentTransactionService(); // Create instance
+  final AppointmentTransactionService _appointmentService = AppointmentTransactionService();
   
   String userName = '';
   String userLocation = 'Loading...';
-  String? userPhotoUrl; // Added to store user profile image URL
+  String? userPhotoUrl;
   Position? currentPosition;
   bool isLoading = true;
   String? selectedCategory;
   TextEditingController searchController = TextEditingController();
   bool _showAllCategories = false;
-  // Always show all businesses (no toggle UI needed)
   final bool _showAllBusinesses = true; 
   List<Map<String, dynamic>> _userBookings = [];
-  int _currentIndex = 0; // Add this to track the current bottom navigation index
+  int _currentIndex = 0;
+  int _unreadNotificationCount = 0; // Added for notification count
   
   // Categories with their icon assets
   final List<Map<String, dynamic>> categories = [
@@ -57,9 +61,53 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     print('CustomerHomePage: initState called');
     _initializeData();
     _loadUserBookings();
+    _setupNotifications(); // Added for notification setup
     
     // Listen for search changes
     searchController.addListener(_onSearchChanged);
+  }
+
+  // Add this method to setup notifications
+  Future<void> _setupNotifications() async {
+    try {
+      // Ensure notification hub is initialized
+      await NotificationHub.instance.initialize();
+      
+      // Load unread notification count
+      await _loadUnreadNotificationCount();
+      
+      // Listen for new notifications to update the counter
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        setState(() {
+          _unreadNotificationCount++;
+        });
+      });
+    } catch (e) {
+      print('Error setting up notifications: $e');
+    }
+  }
+  
+  // Add this method to load unread notification count
+  Future<void> _loadUnreadNotificationCount() async {
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) return;
+      
+      // Query unread notifications
+      final notificationsSnapshot = await _firestore
+          .collection('clients')
+          .doc(userId)
+          .collection('notifications')
+          .where('read', isEqualTo: false)
+          .count()
+          .get();
+          
+      setState(() {
+        _unreadNotificationCount = notificationsSnapshot.count ?? 0;
+      });
+    } catch (e) {
+      print('Error loading unread notification count: $e');
+    }
   }
   
   // Initialize all data
@@ -185,95 +233,95 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     }
   }
 
-Future<void> _loadUserBookings() async {
-  try {
-    // Get current user ID
-    User? currentUser = _auth.currentUser;
-    if (currentUser == null) {
-      print('Cannot load bookings: No user is logged in');
-      setState(() {
-        _userBookings = [];
-      });
-      return;
-    }
-    
-    // Set loading state
-    setState(() {
-      isLoading = true;
-    });
-    
-    // Get all individual bookings (not filtering by date or status)
-    List<Map<String, dynamic>> individualBookings = 
-        await _appointmentService.getAppointments(
-          upcomingOnly: false,  // Changed to false to get all appointments
-          isGroupBooking: false
-        );
-    
-    // Get all group bookings (not filtering by date or status)
-    List<Map<String, dynamic>> groupBookings = 
-        await _appointmentService.getAppointments(
-          upcomingOnly: false,  // Changed to false to get all appointments
-          isGroupBooking: true
-        );
-    
-    // Add group booking flag if not present
-    groupBookings = groupBookings.map((booking) {
-      booking['isGroupBooking'] = true;
-      return booking;
-    }).toList();
-    
-    // Combine both types of bookings
-    List<Map<String, dynamic>> allBookings = [...individualBookings, ...groupBookings];
-    
-    // Sort by date (newest first)
-    allBookings.sort((a, b) {
-      DateTime? dateA, dateB;
+  Future<void> _loadUserBookings() async {
+    try {
+      // Get current user ID
+      User? currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        print('Cannot load bookings: No user is logged in');
+        setState(() {
+          _userBookings = [];
+        });
+        return;
+      }
       
-      try {
-        if (a.containsKey('timestamp') && a['timestamp'] is String) {
-          dateA = DateTime.parse(a['timestamp']);
-        } else if (a.containsKey('createdAt') && a['createdAt'] is String) {
-          dateA = DateTime.parse(a['createdAt']);
-        } else if (a.containsKey('appointmentDate') && a['appointmentDate'] is String) {
-          dateA = DateTime.parse(a['appointmentDate']);
+      // Set loading state
+      setState(() {
+        isLoading = true;
+      });
+      
+      // Get all individual bookings (not filtering by date or status)
+      List<Map<String, dynamic>> individualBookings = 
+          await _appointmentService.getAppointments(
+            upcomingOnly: false,  // Changed to false to get all appointments
+            isGroupBooking: false
+          );
+      
+      // Get all group bookings (not filtering by date or status)
+      List<Map<String, dynamic>> groupBookings = 
+          await _appointmentService.getAppointments(
+            upcomingOnly: false,  // Changed to false to get all appointments
+            isGroupBooking: true
+          );
+      
+      // Add group booking flag if not present
+      groupBookings = groupBookings.map((booking) {
+        booking['isGroupBooking'] = true;
+        return booking;
+      }).toList();
+      
+      // Combine both types of bookings
+      List<Map<String, dynamic>> allBookings = [...individualBookings, ...groupBookings];
+      
+      // Sort by date (newest first)
+      allBookings.sort((a, b) {
+        DateTime? dateA, dateB;
+        
+        try {
+          if (a.containsKey('timestamp') && a['timestamp'] is String) {
+            dateA = DateTime.parse(a['timestamp']);
+          } else if (a.containsKey('createdAt') && a['createdAt'] is String) {
+            dateA = DateTime.parse(a['createdAt']);
+          } else if (a.containsKey('appointmentDate') && a['appointmentDate'] is String) {
+            dateA = DateTime.parse(a['appointmentDate']);
+          }
+          
+          if (b.containsKey('timestamp') && b['timestamp'] is String) {
+            dateB = DateTime.parse(b['timestamp']);
+          } else if (b.containsKey('createdAt') && b['createdAt'] is String) {
+            dateB = DateTime.parse(b['createdAt']);
+          } else if (b.containsKey('appointmentDate') && b['appointmentDate'] is String) {
+            dateB = DateTime.parse(b['appointmentDate']);
+          }
+        } catch (e) {
+          print('Error parsing dates for sorting: $e');
         }
         
-        if (b.containsKey('timestamp') && b['timestamp'] is String) {
-          dateB = DateTime.parse(b['timestamp']);
-        } else if (b.containsKey('createdAt') && b['createdAt'] is String) {
-          dateB = DateTime.parse(b['createdAt']);
-        } else if (b.containsKey('appointmentDate') && b['appointmentDate'] is String) {
-          dateB = DateTime.parse(b['appointmentDate']);
+        if (dateA != null && dateB != null) {
+          return dateB.compareTo(dateA); // Newest first
+        } else if (dateA != null) {
+          return -1;
+        } else if (dateB != null) {
+          return 1;
+        } else {
+          return 0;
         }
-      } catch (e) {
-        print('Error parsing dates for sorting: $e');
-      }
+      });
       
-      if (dateA != null && dateB != null) {
-        return dateB.compareTo(dateA); // Newest first
-      } else if (dateA != null) {
-        return -1;
-      } else if (dateB != null) {
-        return 1;
-      } else {
-        return 0;
-      }
-    });
-    
-    setState(() {
-      _userBookings = allBookings;
-      isLoading = false;
-    });
-    
-    print('Loaded ${individualBookings.length} individual bookings and ${groupBookings.length} group bookings');
-  } catch (e) {
-    print('Error loading user bookings: $e');
-    setState(() {
-      _userBookings = [];
-      isLoading = false;
-    });
+      setState(() {
+        _userBookings = allBookings;
+        isLoading = false;
+      });
+      
+      print('Loaded ${individualBookings.length} individual bookings and ${groupBookings.length} group bookings');
+    } catch (e) {
+      print('Error loading user bookings: $e');
+      setState(() {
+        _userBookings = [];
+        isLoading = false;
+      });
+    }
   }
-}
 
   // Helper method to get booking image URL consistently
   String? _getBookingImageUrl(Map<String, dynamic> booking) {
@@ -652,7 +700,7 @@ Future<void> _loadUserBookings() async {
     }
   }
   
-  // Refresh all data
+  // Refresh all data - updated to refresh notification count
   Future<void> _refreshData() async {
     setState(() {
       isLoading = true;
@@ -663,6 +711,7 @@ Future<void> _loadUserBookings() async {
       await BusinessDataService.refreshAllData();
       await _loadUserBookings(); // Also refresh the bookings
       await _loadUserData(); // Refresh user data
+      await _loadUnreadNotificationCount(); // Add this line to refresh notification count
     } catch (e) {
       print('Error refreshing data: $e');
     } finally {
@@ -739,14 +788,47 @@ Future<void> _loadUserBookings() async {
                           ),
                         ],
                       ),
-                      IconButton(
-                        icon: Icon(Icons.notifications_outlined, color: Colors.white),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => NotificationsPage()),
-                          );
-                        },
+                      // Updated notification icon with badge
+                      Stack(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.notifications_outlined, color: Colors.white),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => NotificationsPage()),
+                              ).then((_) {
+                                // Refresh unread count when returning from notification page
+                                _loadUnreadNotificationCount();
+                              });
+                            },
+                          ),
+                          if (_unreadNotificationCount > 0)
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                padding: EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                constraints: BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  _unreadNotificationCount > 9 ? '9+' : _unreadNotificationCount.toString(),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -797,7 +879,6 @@ Future<void> _loadUserBookings() async {
                   ),
                 ),
                 
-                // Rest of the UI remains the same...
                 // Categories title with View all button
                 Padding(
                   padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 8.0),
@@ -992,18 +1073,18 @@ Future<void> _loadUserBookings() async {
                           print('Building ListView with ${businesses.length} businesses');
                           print('======== VALUELISTENABLEBUILDER DEBUG END ========\n');
                           
-                        // Create a properly typed list
-final nearbyShops = <Map<String, dynamic>>[];
+                          // Create a properly typed list
+                          final nearbyShops = <Map<String, dynamic>>[];
 
-// Handle the conversion properly
-if (businesses != null && businesses is List) {
-  for (var shop in businesses) {
-    if (shop is Map) {
-      // This explicitly converts the dynamic keys to String keys
-      nearbyShops.add(Map<String, dynamic>.from(shop));
-    }
-  }
-}
+                          // Handle the conversion properly
+                          if (businesses != null && businesses is List) {
+                            for (var shop in businesses) {
+                              if (shop is Map) {
+                                // This explicitly converts the dynamic keys to String keys
+                                nearbyShops.add(Map<String, dynamic>.from(shop));
+                              }
+                            }
+                          }
                           
                           return ListView.builder(
                             padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1437,29 +1518,27 @@ if (businesses != null && businesses is List) {
         ],
         currentIndex: 0,
         onTap: (index) {
-    // Replace this empty handler with the following code:
-    if (index == 4) {
-      // Navigate to Profile page
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => ProfilePage()),
-      );
-    } if(index == 1) {
-      // Navigate to Categories page
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => CategorySelectionPage ()),
-      );
-  
-    }
-    else {
-      // Handle other tab selections as needed
-      setState(() {
-          _currentIndex = index;
-      });
-    }
-  },
-),
+          // Replace this empty handler with the following code:
+          if (index == 4) {
+            // Navigate to Profile page
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfilePage()),
+            );
+          } else if(index == 1) {
+            // Navigate to Categories page
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => CategorySelectionPage()),
+            );
+          } else {
+            // Handle other tab selections as needed
+            setState(() {
+              _currentIndex = index;
+            });
+          }
+        },
+      ),
     );
   }
 }

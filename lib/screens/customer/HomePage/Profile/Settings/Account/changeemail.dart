@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class ChangeEmailScreen extends StatefulWidget {
-  const ChangeEmailScreen({Key? key}) : super(key: key);
+  const ChangeEmailScreen({super.key});
   
   static Route route() {
     return MaterialPageRoute(builder: (_) => const ChangeEmailScreen());

@@ -316,7 +316,7 @@ class _BusinessAddTimeOffState extends State<BusinessAddTimeOff> {
       if (firestoreData.containsKey('TeamMembers')) {
         firestoreTeamMembers = (firestoreData['TeamMembers'] as List)
           .whereType<Map>()
-          .map((m) => Map<String, dynamic>.from(m as Map))
+          .map((m) => Map<String, dynamic>.from(m))
           .toList();
       }
       
@@ -345,7 +345,7 @@ class _BusinessAddTimeOffState extends State<BusinessAddTimeOff> {
           firestoreTeamMembers[firestoreMemberIndex]['timeOff'] is List) {
         firestoreTimeOffList = (firestoreTeamMembers[firestoreMemberIndex]['timeOff'] as List)
           .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item as Map))
+          .map((item) => Map<String, dynamic>.from(item))
           .toList();
       }
 
@@ -373,7 +373,7 @@ class _BusinessAddTimeOffState extends State<BusinessAddTimeOff> {
             firestoreTeamMembers[firestoreMemberIndex]['shifts'] is List) {
           firestoreShifts = (firestoreTeamMembers[firestoreMemberIndex]['shifts'] as List)
             .whereType<Map>()
-            .map((shift) => Map<String, dynamic>.from(shift as Map))
+            .map((shift) => Map<String, dynamic>.from(shift))
             .toList();
         }
 

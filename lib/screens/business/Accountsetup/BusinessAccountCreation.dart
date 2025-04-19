@@ -2,16 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
-import 'package:firebase_auth/firebase_auth.dart';   // Import Firebase Auth (needed for user ID)
+// Import Firebase Auth (needed for user ID)
 import 'package:hive_flutter/hive_flutter.dart';     // Import Hive
 import 'Businesscategories.dart';         
-import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:intl/intl.dart';
 import 'package:hive/hive.dart';
-import 'package:calendar_date_picker2/calendar_date_picker2.dart';
        // Import the next screen
 
 class BusinessAccountCreation extends StatefulWidget {

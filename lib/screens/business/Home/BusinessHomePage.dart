@@ -9,7 +9,6 @@ import 'Businessclient/Businesscient.dart';
 import 'dart:async';
 import './BusinessProfile/BusinessProfile.dart';
 import 'Notification/Notifiactionscreen.dart';
-import 'Businessclient/Businesscient.dart';
 import 'Businessclient/Businessforallclient.dart';
 
 class BusinessHomePage extends StatefulWidget {
@@ -459,13 +458,13 @@ if (!idMatch) {
                      appointmentDateTime.isBefore(slotEndTime)));
                      
         if (timeMatch) {
-          print('✅ Time match! Appointment at ${DateFormat('HH:mm').format(appointmentDateTime)} is within slot ${timeSlot}');
+          print('✅ Time match! Appointment at ${DateFormat('HH:mm').format(appointmentDateTime)} is within slot $timeSlot');
         }
       }
       
       // If both staff and time match, return this appointment
       if (staffMatch && timeMatch) {
-        print('✅ Found appointment match for ${staffName} at ${timeSlot}: ${appointment['id']}');
+        print('✅ Found appointment match for $staffName at $timeSlot: ${appointment['id']}');
         return appointment;
       }
     }
@@ -485,14 +484,12 @@ if (!idMatch) {
           .map<Map<String, dynamic>>((member) {
             Map<String, dynamic> typedMember = {};
             
-            if (member is Map) {
-              member.forEach((key, value) {
-                if (key != null) {
-                  typedMember[key.toString()] = value;
-                }
-              });
-            }
-            
+            member.forEach((key, value) {
+              if (key != null) {
+                typedMember[key.toString()] = value;
+              }
+            });
+                      
             typedMember['firstName'] ??= '';
             typedMember['lastName'] ??= '';
             typedMember['email'] ??= '';
@@ -764,7 +761,7 @@ void _onItemTapped(int index) {
                             bool hasAppointment = appointment != null;
 
                             if (hasAppointment) {
-                              print('📌 Found appointment for $staffName at $time: ${appointment!['id']}');
+                              print('📌 Found appointment for $staffName at $time: ${appointment['id']}');
                             }
 
                             // Extract service details if there's an appointment
@@ -773,11 +770,11 @@ void _onItemTapped(int index) {
                             if (hasAppointment) {
                               // Extract service names
                               List<Map<String, dynamic>> services = [];
-                              if (appointment!['services'] is List) {
+                              if (appointment['services'] is List) {
                                 try {
                                   services = List<Map<String, dynamic>>.from(
                                     (appointment['services'] as List)
-                                      .where((s) => s is Map)
+                                      .whereType<Map>()
                                       .map((s) => s as Map<String, dynamic>)
                                   );
                                   print('🔍 Found ${services.length} services for this appointment');
@@ -817,7 +814,7 @@ onTap: () {
   print('Tapped slot: $time for ${staff['firstName']} on ${DateFormat('yyyy-MM-dd').format(_selectedDate)}');
   if (hasAppointment) {
     // --- MODIFICATION START ---
-    final appointmentData = appointment!; // The full appointment map
+    final appointmentData = appointment; // The full appointment map
 
     print('Navigating to Appointment Details for appointment ID: ${appointmentData['id']}');
     Navigator.push(
@@ -846,7 +843,7 @@ onTap: () {
                                           // --- ADDED THIS SECTION ---
                                           Text(
                                             // Display start time (appointmentTime)
-                                            'Time: ${appointment!['appointmentTime'] ?? 'N/A'}',
+                                            'Time: ${appointment['appointmentTime'] ?? 'N/A'}',
                                             style: TextStyle(
                                               fontSize: 11, // Adjust font size as needed
                                               fontWeight: FontWeight.bold,

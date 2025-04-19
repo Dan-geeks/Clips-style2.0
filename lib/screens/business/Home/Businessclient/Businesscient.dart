@@ -20,9 +20,9 @@ class BusinessClientAppointmentDetails extends StatefulWidget {
   final Map<String, dynamic> appointmentData;
 
   const BusinessClientAppointmentDetails({
-    Key? key,
+    super.key,
     required this.appointmentData,
-  }) : super(key: key);
+  });
 
   @override
   State<BusinessClientAppointmentDetails> createState() => _BusinessClientAppointmentDetailsState();
@@ -364,8 +364,8 @@ class _BusinessClientAppointmentDetailsState extends State<BusinessClientAppoint
     final List<Map<String, dynamic>> services;
     if (widget.appointmentData['services'] is List) {
        services = (widget.appointmentData['services'] as List)
-           .where((s) => s is Map)
-           .map((s) => Map<String, dynamic>.from(s as Map))
+           .whereType<Map>()
+           .map((s) => Map<String, dynamic>.from(s))
            .toList();
     } else {
        services = [];
@@ -469,7 +469,7 @@ class _BusinessClientAppointmentDetailsState extends State<BusinessClientAppoint
             const Text('Services Booked', style: kSectionTitleStyle),
             const SizedBox(height: 16),
             if (services.isNotEmpty)
-              ...services.map((service) => _buildServiceCard(service)).toList()
+              ...services.map((service) => _buildServiceCard(service))
             else
               const Text('No services booked for this appointment.', style: kSubtitleStyle),
             const SizedBox(height: 24),

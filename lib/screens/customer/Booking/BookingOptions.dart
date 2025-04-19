@@ -10,11 +10,11 @@ class AppointmentSelectionScreen extends StatelessWidget {
 
   // Default constructor with explicit optional parameters
   const AppointmentSelectionScreen({
-    Key? key,
+    super.key,
     this.shopId = '',  // Default empty string
     this.shopName = 'Choose a Shop',  // Default text
     this.shopData = const {},  // Default empty map
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

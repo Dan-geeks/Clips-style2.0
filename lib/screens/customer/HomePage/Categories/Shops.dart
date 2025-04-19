@@ -3,8 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:math'; // Import for min/max function
-import 'package:collection/collection.dart'; // For min/max on iterables
-import 'package:intl/intl.dart'; // For date formatting
+// For min/max on iterables
+// For date formatting
 
 
 import '../../CustomerService/BusinessDataService.dart';
@@ -18,10 +18,10 @@ class ShopsPage extends StatefulWidget {
   final String userLocation;
 
   const ShopsPage({
-    Key? key,
+    super.key,
     required this.category,
     required this.userLocation,
-  }) : super(key: key);
+  });
 
   @override
   _ShopsPageState createState() => _ShopsPageState();
@@ -361,7 +361,7 @@ class _ShopsPageState extends State<ShopsPage> {
       print('After location filter (${_currentFilters.location}): ${filtered.length} businesses');
     } else {
        if (currentPosition != null) {
-           filtered.forEach((business) {
+           for (var business in filtered) {
                final lat = business['latitude'];
                final lon = business['longitude'];
                if (lat is num && lon is num) {
@@ -375,7 +375,7 @@ class _ShopsPageState extends State<ShopsPage> {
                    business['distance'] = double.infinity;
                    business['formattedDistance'] = 'N/A';
                }
-           });
+           }
            filtered.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
        }
     }
@@ -680,7 +680,7 @@ class ShopCard extends StatelessWidget {
   final VoidCallback onProfilePressed;
 
   const ShopCard({
-    Key? key,
+    super.key,
     required this.businessName,
     required this.address,
     required this.streetAddress,
@@ -691,7 +691,7 @@ class ShopCard extends StatelessWidget {
     required this.reviewCount,
     required this.onBookPressed,
     required this.onProfilePressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

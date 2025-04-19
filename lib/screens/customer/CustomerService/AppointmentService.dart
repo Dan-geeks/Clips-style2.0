@@ -210,7 +210,7 @@ Future<Map<String, dynamic>> createAppointment({
     return returnAppointmentData;
   } catch (e) {
     print('Error creating appointment transaction: $e');
-    throw e;
+    rethrow;
   }
 }
   
@@ -274,7 +274,7 @@ Future<Map<String, dynamic>> createAppointment({
       };
     } catch (e) {
       print('Error updating appointment transaction: $e');
-      throw e;
+      rethrow;
     }
   }
   
@@ -464,7 +464,7 @@ Future<Map<String, dynamic>> createAppointment({
       };
     } catch (e) {
       print('Error rescheduling group appointment: $e');
-      throw e;
+      rethrow;
     }
   }
   

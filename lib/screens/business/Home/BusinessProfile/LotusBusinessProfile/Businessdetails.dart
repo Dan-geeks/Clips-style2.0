@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart'; // For image picking
 import 'package:hive_flutter/hive_flutter.dart'; // For local storage
 import 'dart:io'; // For File handling
 import 'package:cloud_firestore/cloud_firestore.dart'; // For Firestore
-import 'package:firebase_auth/firebase_auth.dart';   // For Firebase Auth (User ID)
+// For Firebase Auth (User ID)
 import 'package:firebase_storage/firebase_storage.dart'; // For Firebase Storage (Image Upload)
 import 'Congratulations.dart'; // Import the next screen
 

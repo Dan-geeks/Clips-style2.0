@@ -22,9 +22,9 @@ class BusinessClient extends StatefulWidget {
   final DateTime selectedDate; // Keep receiving the selected date
 
   const BusinessClient({
-    Key? key,
+    super.key,
     required this.selectedDate,
-  }) : super(key: key);
+  });
 
   @override
   State<BusinessClient> createState() => _BusinessClientState();

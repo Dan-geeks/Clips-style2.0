@@ -10,12 +10,12 @@ class OfferProfessionalScreen extends StatefulWidget {
   final List<Map<String, dynamic>> services;
 
   const OfferProfessionalScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.offer,
     required this.services,
-  }) : super(key: key);
+  });
 
   @override
   State<OfferProfessionalScreen> createState() => _OfferProfessionalScreenState();
@@ -204,7 +204,7 @@ class _OfferProfessionalScreenState extends State<OfferProfessionalScreen> {
                     professional['role'],
                     professional['profileImageUrl'],
                     null,
-                  )).toList(),
+                  )),
                 ],
               ),
             ),

@@ -8,7 +8,7 @@ import 'RescheduleScreen.dart';
 import '../CustomerService/AppointmentService.dart';
 
 class NotificationsPage extends StatefulWidget {
-  const NotificationsPage({Key? key}) : super(key: key);
+  const NotificationsPage({super.key});
 
   @override
   _NotificationsPageState createState() => _NotificationsPageState();
@@ -22,11 +22,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _appointments = [];
   List<Map<String, dynamic>> _waitlistItems = [];
+  List<Map<String, dynamic>> _generalNotifications = []; // Add this for general notifications
   
   // Constants for Hive keys
   static const String APPOINTMENTS_KEY = 'upcoming_appointments';
   static const String WAITLIST_KEY = 'waitlist_items';
   static const String LAST_FETCHED_KEY = 'notifications_lastFetched';
+  static const String NOTIFICATIONS_KEY = 'general_notifications';
 
   final AppointmentTransactionService _appointmentService = AppointmentTransactionService();
 
@@ -65,6 +67,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           _isLoading = false;
           _appointments = [];
           _waitlistItems = [];
+          _generalNotifications = [];
         });
         return;
       }
@@ -122,7 +125,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
       if (individualBookings.isEmpty && groupBookings.isEmpty) {
         print('No bookings found in Hive for current user, trying Firestore...');
         await _fetchBookingsFromFirestore(currentUserId);
-        return;
       }
       
       // Combine both types of bookings
@@ -163,23 +165,54 @@ class _NotificationsPageState extends State<NotificationsPage> {
         }
       });
       
+      // Also load general notifications from Firestore
+      final notificationsSnapshot = await _firestore
+          .collection('clients')
+          .doc(currentUserId)
+          .collection('notifications')
+          .orderBy('sentAt', descending: true)
+          .limit(50)
+          .get();
+          
+      List<Map<String, dynamic>> notifications = [];
+      
+      for (var doc in notificationsSnapshot.docs) {
+        Map<String, dynamic> notification = doc.data();
+        notification['id'] = doc.id;
+        
+        // Mark as read in Firestore if it's not already read
+        if (notification['read'] != true) {
+          await doc.reference.update({'read': true});
+        }
+        
+        notifications.add(notification);
+      }
+      
+      // Save to Hive
+      await _appBox.put(NOTIFICATIONS_KEY, notifications);
+      
       setState(() {
         _appointments = allBookings;
+        _generalNotifications = notifications;
         // Keep waitlist empty to show "No waitlist" message
         _waitlistItems = [];
         _isLoading = false;
       });
       
-      print('Loaded ${individualBookings.length} individual bookings and ${groupBookings.length} group bookings for user $currentUserId');
+      print('Loaded ${individualBookings.length} individual bookings, ${groupBookings.length} group bookings, ' 'and ${notifications.length} general notifications for user $currentUserId');
     } catch (e) {
       print('Error loading notifications: $e');
       
       // Try to use cached data as fallback even if it's older
       final cachedAppointments = _appBox.get(APPOINTMENTS_KEY);
+      final cachedNotifications = _appBox.get(NOTIFICATIONS_KEY);
       
       setState(() {
         _appointments = cachedAppointments != null 
             ? List<Map<String, dynamic>>.from(cachedAppointments)
+            : [];
+        _generalNotifications = cachedNotifications != null 
+            ? List<Map<String, dynamic>>.from(cachedNotifications)
             : [];
         // Keep waitlist empty to show "No waitlist" message
         _waitlistItems = [];
@@ -252,7 +285,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
         // Update state
         setState(() {
           _appointments = firestoreBookings;
-          _waitlistItems = [];
           _isLoading = false;
         });
         
@@ -261,7 +293,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
         print('No bookings found in Firestore');
         setState(() {
           _appointments = [];
-          _waitlistItems = [];
           _isLoading = false;
         });
       }
@@ -269,88 +300,252 @@ class _NotificationsPageState extends State<NotificationsPage> {
       print('Error fetching bookings from Firestore: $e');
       setState(() {
         _appointments = [];
-        _waitlistItems = [];
         _isLoading = false;
       });
     }
   }
 
- // Replace the empty _handleReschedule function in Notificationpage.dart with this implementation:
-
-Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
-  // Determine if this is a group booking
-  bool isGroupBooking = appointment['isGroupBooking'] == true;
-  
-  // Get shop ID and name
-  String shopId = appointment['businessId'] ?? '';
-  String shopName = appointment['businessName'] ?? 'Beauty Shop';
-  
-  // Navigate to the reschedule screen
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => RescheduleScreen(
-        shopId: shopId,
-        shopName: shopName,
-        bookingData: appointment,
-        isGroupBooking: isGroupBooking,
-      ),
-    ),
-  );
-}
-
-  Future<void> _handleCancel(Map<String, dynamic> appointment, bool isWaitlist) async {
-  try {
-    // Show confirmation dialog
-    bool confirm = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Cancel appointment?'),
-        content: Text('Are you sure you want to cancel this appointment?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('No'),
+  // Add a method to build general notifications section
+  Widget _buildGeneralNotificationsSection() {
+    if (_generalNotifications.isEmpty) {
+      return Container(
+        margin: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey[800]!),
+        ),
+        child: Center(
+          child: Text(
+            'No notifications',
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 16,
+            ),
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Yes'),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-          ),
-        ],
-      ),
-    ) ?? false;
-    
-    if (!confirm) return;
-    
-    // Use the appointment service
-    bool success = await _appointmentService.deleteAppointment(
-      businessId: appointment['businessId'] ?? '',
-      appointmentId: appointment['id'] ?? '',
-      reason: 'Cancelled by user',
-      isGroupBooking: appointment['isGroupBooking'] == true,
-    );
-    
-    if (success) {
-      setState(() {
-        if (isWaitlist) {
-          _waitlistItems.removeWhere((item) => item['id'] == appointment['id']);
-        } else {
-          _appointments.removeWhere((item) => item['id'] == appointment['id']);
-        }
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Appointment cancelled')),
+        ),
       );
     }
-  } catch (e) {
-    print('Error cancelling: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: $e')),
+    
+    return Column(
+      children: _generalNotifications.map((notification) {
+        // Format date
+        String formattedDate = '';
+        if (notification.containsKey('sentAt')) {
+          if (notification['sentAt'] is Timestamp) {
+            DateTime sentAt = (notification['sentAt'] as Timestamp).toDate();
+            formattedDate = DateFormat('MMM d, yyyy').format(sentAt);
+          }
+        }
+        
+        // Set icon based on notification type
+        IconData notificationIcon;
+        Color iconColor;
+        
+        switch (notification['type']) {
+          case 'welcome_client':
+            notificationIcon = Icons.celebration;
+            iconColor = Colors.amber;
+            break;
+          case 'new_booking':
+            notificationIcon = Icons.calendar_today;
+            iconColor = Colors.green;
+            break;
+          case 'appointment_reminder':
+            notificationIcon = Icons.alarm;
+            iconColor = Colors.orange;
+            break;
+          case 'reschedule':
+            notificationIcon = Icons.event_available;
+            iconColor = Colors.blue;
+            break;
+          case 'cancel':
+            notificationIcon = Icons.event_busy;
+            iconColor = Colors.red;
+            break;
+          case 'visit_complete':
+            notificationIcon = Icons.check_circle;
+            iconColor = Colors.green;
+            break;
+          default:
+            notificationIcon = Icons.notifications;
+            iconColor = Colors.blue;
+        }
+        
+        return Container(
+          margin: EdgeInsets.only(bottom: 12, left: 20, right: 20),
+          decoration: BoxDecoration(
+            color: Colors.grey[900],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    notificationIcon,
+                    color: iconColor,
+                    size: 20,
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              notification['title'] ?? 'Notification',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          if (formattedDate.isNotEmpty)
+                            Text(
+                              formattedDate,
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 12,
+                              ),
+                            ),
+                        ],
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        notification['body'] ?? '',
+                        style: TextStyle(
+                          color: Colors.grey[300],
+                          fontSize: 14,
+                        ),
+                      ),
+                      
+                      // Show discount code for welcome notifications
+                      if (notification['type'] == 'welcome_client' && 
+                          notification.containsKey('discountCode') &&
+                          notification['discountCode'] != null)
+                        Container(
+                          margin: EdgeInsets.only(top: 8),
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.local_offer, size: 16, color: Colors.amber),
+                              SizedBox(width: 8),
+                              Text(
+                                'Code: ${notification['discountCode']}',
+                                style: TextStyle(
+                                  color: Colors.amber,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
-}
+
+  Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
+    // Determine if this is a group booking
+    bool isGroupBooking = appointment['isGroupBooking'] == true;
+    
+    // Get shop ID and name
+    String shopId = appointment['businessId'] ?? '';
+    String shopName = appointment['businessName'] ?? 'Beauty Shop';
+    
+    // Navigate to the reschedule screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RescheduleScreen(
+          shopId: shopId,
+          shopName: shopName,
+          bookingData: appointment,
+          isGroupBooking: isGroupBooking,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleCancel(Map<String, dynamic> appointment, bool isWaitlist) async {
+    try {
+      // Show confirmation dialog
+      bool confirm = await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Cancel appointment?'),
+          content: Text('Are you sure you want to cancel this appointment?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text('No'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: Text('Yes'),
+            ),
+          ],
+        ),
+      ) ?? false;
+      
+      if (!confirm) return;
+      
+      // Use the appointment service
+      bool success = await _appointmentService.deleteAppointment(
+        businessId: appointment['businessId'] ?? '',
+        appointmentId: appointment['id'] ?? '',
+        reason: 'Cancelled by user',
+        isGroupBooking: appointment['isGroupBooking'] == true,
+      );
+      
+      if (success) {
+        setState(() {
+          if (isWaitlist) {
+            _waitlistItems.removeWhere((item) => item['id'] == appointment['id']);
+          } else {
+            _appointments.removeWhere((item) => item['id'] == appointment['id']);
+          }
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Appointment cancelled')),
+        );
+      }
+    } catch (e) {
+      print('Error cancelling: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
   
   Future<void> _handleBook(Map<String, dynamic> appointment) async {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -361,7 +556,7 @@ Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
   @override
   Widget build(BuildContext context) {
     // Get total notification count
-    final totalCount = _appointments.length + _waitlistItems.length;
+    final totalCount = _appointments.length + _waitlistItems.length + _generalNotifications.length;
     
     return Scaffold(
       backgroundColor: Colors.black,
@@ -403,7 +598,7 @@ Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'Appointments $totalCount',
+                        'Notifications $totalCount',
                         style: TextStyle(
                           color: Colors.black,
                           fontWeight: FontWeight.w500,
@@ -418,9 +613,9 @@ Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
                     color: Colors.grey[800],
                   ),
                   
-                  // Content with upcoming and waitlist sections
+                  // Content with all notification sections
                   Expanded(
-                    child: (_appointments.isEmpty && _waitlistItems.isEmpty)
+                    child: (_appointments.isEmpty && _waitlistItems.isEmpty && _generalNotifications.isEmpty)
                         ? _buildEmptyState()
                         : SingleChildScrollView(
                             physics: AlwaysScrollableScrollPhysics(),
@@ -428,6 +623,22 @@ Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // General Notifications Section (New)
+                                if (_generalNotifications.isNotEmpty) ...[
+                                  Padding(
+                                    padding: EdgeInsets.fromLTRB(20, 16, 20, 10),
+                                    child: Text(
+                                      'Notifications',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  _buildGeneralNotificationsSection(),
+                                ],
+                                
                                 // Upcoming Appointments Section
                                 if (_appointments.isNotEmpty) ...[
                                   Padding(
@@ -443,7 +654,7 @@ Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
                                   ),
                                   ..._appointments.map((appointment) => 
                                     _buildAppointmentCard(appointment, false)
-                                  ).toList(),
+                                  ),
                                 ] else if (!_isLoading) ...[
                                   Padding(
                                     padding: EdgeInsets.fromLTRB(20, 16, 20, 10),
@@ -662,7 +873,7 @@ Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
       serviceTypes = serviceNames.join(', ');
       
       if (serviceTypes.length > 30) {
-        serviceTypes = serviceTypes.substring(0, 27) + '...';
+        serviceTypes = '${serviceTypes.substring(0, 27)}...';
       }
     }
     
@@ -832,7 +1043,7 @@ Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
                   children: isWaitlist
                       ? [
                           // Book button
-                          Container(
+                          SizedBox(
                             width: 100,
                             child: ElevatedButton(
                               onPressed: () => _handleBook(data),
@@ -849,7 +1060,7 @@ Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
                           ),
                           SizedBox(height: 8),
                           // Cancel button
-                          Container(
+                          SizedBox(
                             width: 100,
                             child: ElevatedButton(
                               onPressed: () => _handleCancel(data, true),
@@ -867,7 +1078,7 @@ Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
                         ]
                       : [
                           // Reschedule button
-                          Container(
+                          SizedBox(
                             width: 100,
                             child: ElevatedButton(
                               onPressed: () => _handleReschedule(data),
@@ -884,7 +1095,7 @@ Future<void> _handleReschedule(Map<String, dynamic> appointment) async {
                           ),
                           SizedBox(height: 8),
                           // Cancel button
-                          Container(
+                          SizedBox(
                             width: 100,
                             child: ElevatedButton(
                               onPressed: () => _handleCancel(data, false),

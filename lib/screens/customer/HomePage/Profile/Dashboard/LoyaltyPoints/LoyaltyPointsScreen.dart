@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/services.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'dart:math';
@@ -12,10 +11,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 // Import the loyalty service and referral service
 import 'loyaltyservice.dart';
-import 'RefferalService.dart';
 
 class LoyaltyPointsScreen extends StatefulWidget {
-  const LoyaltyPointsScreen({Key? key}) : super(key: key);
+  const LoyaltyPointsScreen({super.key});
 
   @override
   _LoyaltyPointsScreenState createState() => _LoyaltyPointsScreenState();
@@ -36,7 +34,7 @@ class _LoyaltyPointsScreenState extends State<LoyaltyPointsScreen> with SingleTi
   String _loyaltyTier = 'Bronze';
   bool _isLoading = true;
   String _referralCode = '';
-  int _selectedIndex = 0; // For bottom navigation if needed
+  final int _selectedIndex = 0; // For bottom navigation if needed
   
   // Available point tiers
   final List<String> _pointTiers = [
@@ -832,7 +830,7 @@ Widget build(BuildContext context) {
             ),
           ),
           
-        ...filteredRewards.map((reward) => _buildRewardCard(reward)).toList(),
+        ...filteredRewards.map((reward) => _buildRewardCard(reward)),
         const SizedBox(height: 16),
         ElevatedButton(
           onPressed: hasEnoughPoints ? () {
@@ -841,7 +839,7 @@ Widget build(BuildContext context) {
               context: context,
               builder: (context) => AlertDialog(
                 title: const Text('Confirm Redemption'),
-                content: Text('Are you sure you want to redeem rewards from the ${_selectedPointTier} tier?'),
+                content: Text('Are you sure you want to redeem rewards from the $_selectedPointTier tier?'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
@@ -852,7 +850,7 @@ Widget build(BuildContext context) {
                       Navigator.pop(context);
                       // Simulate redemption success
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Reward from ${_selectedPointTier} redeemed successfully!')),
+                        SnackBar(content: Text('Reward from $_selectedPointTier redeemed successfully!')),
                       );
                     },
                     style: ElevatedButton.styleFrom(

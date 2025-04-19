@@ -45,7 +45,7 @@ class ReferralService {
       return await generateAndSaveReferralCode(user.uid);
     } catch (e) {
       print('Error getting referral code: $e');
-      throw e;
+      rethrow;
     }
   }
   
@@ -91,7 +91,7 @@ class ReferralService {
       return finalCode;
     } catch (e) {
       print('Error generating/saving referral code: $e');
-      throw e;
+      rethrow;
     }
   }
   

@@ -12,7 +12,7 @@ const Color kPinInputBackground = Color(0xFFBDBDBD); // Grey[400] - Adjust as ne
 // --- End Constants ---
 
 class CreatePinScreen extends StatefulWidget {
-  const CreatePinScreen({Key? key}) : super(key: key);
+  const CreatePinScreen({super.key});
 
   @override
   _CreatePinScreenState createState() => _CreatePinScreenState();

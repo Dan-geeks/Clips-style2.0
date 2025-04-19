@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'GroupTimeSelectionScreen.dart';
 
 class GroupBookingSummaryScreen extends StatelessWidget {
@@ -12,14 +11,14 @@ class GroupBookingSummaryScreen extends StatelessWidget {
   final Map<String, Map<String, dynamic>?> guestProfessionalSelections;
 
   const GroupBookingSummaryScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.shopData,
     required this.guests,
     required this.guestServiceSelections,
     required this.guestProfessionalSelections,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -243,7 +242,7 @@ class GroupBookingSummaryScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                            )).toList(),
+                            )),
                           ],
                         ],
                       ),
@@ -313,12 +312,12 @@ class GroupBookingSummaryScreen extends StatelessWidget {
                   ),
                 );
               },
-              child: Text('Continue'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color(0xFF23461a),
                 foregroundColor: Colors.white,
                 minimumSize: Size(100, 45),
               ),
+              child: Text('Continue'),
             ),
           ],
         ),

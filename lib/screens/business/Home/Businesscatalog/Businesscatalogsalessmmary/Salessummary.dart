@@ -6,16 +6,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 
-import 'dart:convert';
-import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'package:excel/excel.dart' hide Border;
-import 'package:path_provider/path_provider.dart';
-import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:open_file/open_file.dart';
 import 'package:excel/excel.dart' as excel;
 

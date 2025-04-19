@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'StaffMember/staffmemember.dart'; // Assuming this contains your Businessteammembersesit widget
 import 'ShiftManagement/Shiftmamnagement.dart';
 
 class StaffScreen extends StatelessWidget {
-  const StaffScreen({Key? key}) : super(key: key);
+  const StaffScreen({super.key});
 
   void _navigateToPage(BuildContext context, String pageName) {
     late Widget page;

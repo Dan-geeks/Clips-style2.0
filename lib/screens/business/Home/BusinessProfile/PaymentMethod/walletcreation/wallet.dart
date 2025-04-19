@@ -13,7 +13,7 @@ const Color kSecondaryTextColor = Colors.grey; // Or specify Colors.grey[600] et
 const Color kBorderColor = Color(0xFFE0E0E0); // Example border color for outlined buttons
 
 class AddWalletScreen extends StatefulWidget {
-  const AddWalletScreen({Key? key}) : super(key: key);
+  const AddWalletScreen({super.key});
 
   @override
   _AddWalletScreenState createState() => _AddWalletScreenState();

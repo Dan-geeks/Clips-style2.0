@@ -10,12 +10,12 @@ class SelectProfessionalScreen extends StatefulWidget {
   final List<Map<String, dynamic>> selectedServices;
 
   const SelectProfessionalScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.shopData,
     required this.selectedServices,
-  }) : super(key: key);
+  });
 
   @override
   _SelectProfessionalScreenState createState() => _SelectProfessionalScreenState();
@@ -187,7 +187,7 @@ class _SelectProfessionalScreenState extends State<SelectProfessionalScreen> {
                     professional['role'],
                     professional['profileImageUrl'],
                     null,
-                  )).toList(),
+                  )),
                 ],
               ),
             ),

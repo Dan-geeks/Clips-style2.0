@@ -11,7 +11,7 @@ const Color kPrimaryTextColor = Colors.black;
 const Color kSecondaryTextColor = Colors.grey;
 
 class TillNumberScreen extends StatefulWidget {
-  const TillNumberScreen({Key? key}) : super(key: key);
+  const TillNumberScreen({super.key});
 
   @override
   _TillNumberScreenState createState() => _TillNumberScreenState();

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart'; // Import Hive
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
-import 'package:firebase_auth/firebase_auth.dart'; // Import Auth
+// Import Auth
 import 'package:intl/intl.dart'; // <<< Import intl
 
 // Import setup flow screens

@@ -11,10 +11,10 @@ class BusinessTeamMemberShiftTile extends StatefulWidget {
   final List<Map<String, dynamic>> shifts;
 
   const BusinessTeamMemberShiftTile({
-    Key? key,
+    super.key,
     required this.member,
     required this.shifts,
-  }) : super(key: key);
+  });
 
   @override
   State<BusinessTeamMemberShiftTile> createState() => _BusinessTeamMemberShiftTileState();
@@ -134,7 +134,7 @@ class _BusinessTeamMemberShiftTileState extends State<BusinessTeamMemberShiftTil
           return result;
         } catch (e) {
           developer.log('ERROR parsing String to DateTime: $e', name: 'TeamShiftTile');
-          throw e;
+          rethrow;
         }
       } else if (field is int) {
         // Assuming milliseconds since epoch
@@ -492,7 +492,7 @@ class _BusinessTeamMemberShiftTileState extends State<BusinessTeamMemberShiftTil
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                   ),
                 ),
@@ -625,12 +625,12 @@ class _BusinessTeamMemberShiftTileState extends State<BusinessTeamMemberShiftTil
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Close',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green[800],
                     padding: EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text('Close',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
               ),

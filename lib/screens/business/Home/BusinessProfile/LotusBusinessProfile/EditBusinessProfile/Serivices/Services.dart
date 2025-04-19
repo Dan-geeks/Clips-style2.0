@@ -469,7 +469,6 @@ class _AddServiceSelector extends StatefulWidget {
   final Function(List<String>) onSelected;
 
   const _AddServiceSelector({
-    super.key,
     required this.initialSelected,
     required this.businessData,
     required this.onSelected,
@@ -696,7 +695,6 @@ class _RemoveServiceSelector extends StatefulWidget {
   final Function(List<String>) onSelected;
 
   const _RemoveServiceSelector({
-    super.key,
     required this.initialSelected,
     required this.businessData,
     required this.onSelected,

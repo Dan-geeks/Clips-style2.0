@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:local_auth/local_auth.dart';
@@ -24,7 +23,7 @@ const Color kSecondaryTextColor = Colors.grey;
 const Color kPinInputBackground = Color(0xFFBDBDBD);
 
 class WalletPage extends StatefulWidget {
-  const WalletPage({Key? key}) : super(key: key);
+  const WalletPage({super.key});
 
   @override
   _WalletPageState createState() => _WalletPageState();
@@ -198,7 +197,6 @@ Future<bool> _showPinAuthenticationDialog() async {
                 },
               ),
               TextButton(
-                child: const Text('Verify'),
                 onPressed: isPinComplete ? () async {
                   print("Verify button pressed"); // Debug print
                   final bool isValid = await _verifyPin(pinController.text);
@@ -208,6 +206,7 @@ Future<bool> _showPinAuthenticationDialog() async {
                   // Make the enabled button more distinct
                   backgroundColor: isPinComplete ? kPrimaryButtonColor.withOpacity(0.1) : null,
                 ),
+                child: const Text('Verify'),
               ),
             ],
           );
@@ -966,10 +965,10 @@ class TransactionsPage extends StatefulWidget {
   final String userId;
 
   const TransactionsPage({
-    Key? key,
+    super.key,
     required this.transactions,
     required this.userId,
-  }) : super(key: key);
+  });
 
   @override
   _TransactionsPageState createState() => _TransactionsPageState();

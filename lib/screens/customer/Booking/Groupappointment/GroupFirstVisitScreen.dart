@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'GroupBookingConfirmationandScreen.dart';
 
@@ -11,11 +10,11 @@ class GroupFirstVisitScreen extends StatefulWidget {
   final Map<String, dynamic> bookingData;
   
   const GroupFirstVisitScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.bookingData,
-  }) : super(key: key);
+  });
 
   @override
   _GroupFirstVisitScreenState createState() => _GroupFirstVisitScreenState();
@@ -416,6 +415,15 @@ class _GroupFirstVisitScreenState extends State<GroupFirstVisitScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isProcessing ? null : _completeBooking,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF23461a),
+                  foregroundColor: Colors.white,
+                  minimumSize: Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
                 child: _isProcessing
                     ? SizedBox(
                         height: 20,
@@ -432,15 +440,6 @@ class _GroupFirstVisitScreenState extends State<GroupFirstVisitScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF23461a),
-                  foregroundColor: Colors.white,
-                  minimumSize: Size(double.infinity, 56),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                ),
               ),
             ),
           ],

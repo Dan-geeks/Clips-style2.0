@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:math';
@@ -17,14 +16,14 @@ class OfferTimeSelectionScreen extends StatefulWidget {
   final bool isAnyProfessional;
 
   const OfferTimeSelectionScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.shopData,
     required this.selectedServices,
     required this.selectedProfessional,
     required this.isAnyProfessional,
-  }) : super(key: key);
+  });
 
   @override
   _OfferTimeSelectionScreenState createState() => _OfferTimeSelectionScreenState();
@@ -36,7 +35,7 @@ class _OfferTimeSelectionScreenState extends State<OfferTimeSelectionScreen> {
   bool _isLoading = true;
   bool _isProcessing = false;
   bool _isOfferLoading = true;
-  Map<String, List<String>> _bookedTimeSlots = {};
+  final Map<String, List<String>> _bookedTimeSlots = {};
   final AppointmentTransactionService _appointmentService = AppointmentTransactionService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
@@ -703,7 +702,7 @@ class _OfferTimeSelectionScreenState extends State<OfferTimeSelectionScreen> {
                   ),
                   
                   // Calendar grid
-                  Container(
+                  SizedBox(
                     height: 300,
                     child: GridView.builder(
                       shrinkWrap: true,
@@ -993,7 +992,7 @@ class _OfferTimeSelectionScreenState extends State<OfferTimeSelectionScreen> {
                                 Row(
                                   children: [
                                     Text(
-                                      '${shopRating.toStringAsFixed(1)}',
+                                      shopRating.toStringAsFixed(1),
                                       style: TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                     SizedBox(width: 4),
@@ -1272,13 +1271,6 @@ class _OfferTimeSelectionScreenState extends State<OfferTimeSelectionScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: _selectedTime == null ? null : _selectTime,
-                            child: Text(
-                              'Confirm Time',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFF23461a),
                               foregroundColor: Colors.white,
@@ -1287,6 +1279,13 @@ class _OfferTimeSelectionScreenState extends State<OfferTimeSelectionScreen> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               padding: EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: Text(
+                              'Confirm Time',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -1380,7 +1379,7 @@ class _OfferTimeSelectionScreenState extends State<OfferTimeSelectionScreen> {
                               Divider(),
                             ],
                           );
-                        }).toList(),
+                        }),
                         
                         // Pricing
                         SizedBox(height: 16),
@@ -1519,7 +1518,7 @@ class _OfferTimeSelectionScreenState extends State<OfferTimeSelectionScreen> {
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: Container(
+                                      child: SizedBox(
                                         height: 48,
                                         child: TextField(
                                           controller: _discountCodeController,
@@ -1534,13 +1533,13 @@ class _OfferTimeSelectionScreenState extends State<OfferTimeSelectionScreen> {
                                     SizedBox(width: 8),
                                     ElevatedButton(
                                       onPressed: _applyDiscountCode,
-                                      child: Text('Apply'),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.white,
                                         foregroundColor: Colors.black,
                                         minimumSize: Size(80, 48),
                                         side: BorderSide(color: Colors.grey[300]!),
                                       ),
+                                      child: Text('Apply'),
                                     ),
                                   ],
                                 ),
@@ -1615,6 +1614,11 @@ class _OfferTimeSelectionScreenState extends State<OfferTimeSelectionScreen> {
                           Spacer(),
                           ElevatedButton(
                             onPressed: _isProcessing ? null : _completeBooking,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF23461a),
+                              foregroundColor: Colors.white,
+                              minimumSize: Size(100, 45),
+                            ),
                             child: _isProcessing
                                 ? SizedBox(
                                     height: 20,
@@ -1625,11 +1629,6 @@ class _OfferTimeSelectionScreenState extends State<OfferTimeSelectionScreen> {
                                     ),
                                   )
                                 : Text('Book'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF23461a),
-                              foregroundColor: Colors.white,
-                              minimumSize: Size(100, 45),
-                            ),
                           ),
                         ],
                       ),

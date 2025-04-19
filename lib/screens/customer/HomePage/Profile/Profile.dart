@@ -1,4 +1,3 @@
-import 'package:clipsandstyles2/screens/business/Home/Businesscatalog/Businesscatalogsalessmmary/Appointments.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -12,7 +11,7 @@ import '../Profile/Offers/Offers.dart';
 import '../Profile/Settings/Settings.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({Key? key}) : super(key: key);
+  const ProfilePage({super.key});
   
   // This is helpful when passing parameters from CustomerHomePage
   // But we're keeping it simple for now

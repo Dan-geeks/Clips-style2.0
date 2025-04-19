@@ -4,7 +4,7 @@ import 'Offerservice.dart'; // Import the service file
 import 'Offerdetailedscreen.dart'; // Import the detail screen
 
 class ClientOffersScreen extends StatefulWidget {
-  const ClientOffersScreen({Key? key}) : super(key: key);
+  const ClientOffersScreen({super.key});
 
   @override
   State<ClientOffersScreen> createState() => _ClientOffersScreenState();

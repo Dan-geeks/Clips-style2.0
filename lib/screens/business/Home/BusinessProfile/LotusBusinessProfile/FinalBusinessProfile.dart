@@ -7,7 +7,6 @@ import 'dart:io';
 import 'Abouttab.dart';
 import 'Businessprofileimage.dart';
 import 'EditBusinessProfile/EditBusinessprofilescreen.dart';
-import 'package:collection/collection.dart';
 import '../BusinessProfile.dart';
 
 class FinalBusinessProfile extends StatefulWidget {

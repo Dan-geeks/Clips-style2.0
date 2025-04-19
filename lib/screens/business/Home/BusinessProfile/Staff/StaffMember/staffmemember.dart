@@ -5,7 +5,7 @@ import 'Staffmemberadd.dart';
 import 'Staffmemberedit.dart'; // Make sure to import your edit screen
 
 class Businessteammember extends StatefulWidget {
-  const Businessteammember({Key? key}) : super(key: key);
+  const Businessteammember({super.key});
 
   @override
   State<Businessteammember> createState() => _BusinessteammemberState();

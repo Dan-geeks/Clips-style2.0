@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import './Automation/Automation.dart';
-import './Deals/Deals.dart';
 import './Deals/MainDeal.dart';
 import './Reviews/Reviews.dart';
 

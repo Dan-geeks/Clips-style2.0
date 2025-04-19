@@ -15,12 +15,12 @@ class GroupAppointmentScreen extends StatefulWidget {
   final List<Map<String, dynamic>> selectedServices;
 
   const GroupAppointmentScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.shopData,
     required this.selectedServices,
-  }) : super(key: key);
+  });
 
   @override
   _GroupAppointmentScreenState createState() => _GroupAppointmentScreenState();
@@ -53,9 +53,9 @@ class _GroupAppointmentScreenState extends State<GroupAppointmentScreen> {
     // Debug the selected services
     print("Services available: ${widget.selectedServices.length}");
     if (widget.selectedServices.isNotEmpty) {
-      widget.selectedServices.forEach((service) {
+      for (var service in widget.selectedServices) {
         print("Service: ${service['name']}, Price: ${service['price']}");
-      });
+      }
     } else {
       print("No services available!");
     }
@@ -367,7 +367,7 @@ class _GroupAppointmentScreenState extends State<GroupAppointmentScreen> {
                   ),
                 ),
                 // Use a fixed-height ListView instead of Expanded to prevent pushing content down
-                Container(
+                SizedBox(
                   height: _guests.length * 80.0, // Approximate height based on guest tiles
                   child: ListView.builder(
                     padding: EdgeInsets.symmetric(horizontal: 16),
@@ -407,7 +407,6 @@ class _GroupAppointmentScreenState extends State<GroupAppointmentScreen> {
                   padding: const EdgeInsets.all(16.0),
                   child: ElevatedButton(
                     onPressed: _continueBooking,
-                    child: Text('Continue'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF23461a),
                       foregroundColor: Colors.white,
@@ -417,6 +416,7 @@ class _GroupAppointmentScreenState extends State<GroupAppointmentScreen> {
                         borderRadius: BorderRadius.circular(25),
                       ),
                     ),
+                    child: Text('Continue'),
                   ),
                 ),
               ],
@@ -646,11 +646,11 @@ class GuestModel {
     String? service,
   }) {
     return GuestModel(
-      id: this.id,
+      id: id,
       name: name ?? this.name,
       photoUrl: photoUrl ?? this.photoUrl,
       service: service ?? this.service,
-      isCurrentUser: this.isCurrentUser,
+      isCurrentUser: isCurrentUser,
     );
   }
 }

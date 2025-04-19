@@ -9,7 +9,7 @@ import '../../CustomerService/BusinessDataService.dart';
 import 'Shops.dart';
 
 class CategorySelectionPage extends StatefulWidget {
-  const CategorySelectionPage({Key? key}) : super(key: key);
+  const CategorySelectionPage({super.key});
 
   @override
   _CategorySelectionPageState createState() => _CategorySelectionPageState();

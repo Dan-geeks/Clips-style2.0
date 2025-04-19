@@ -12,6 +12,8 @@ import 'customer/HomePage/CustomerHomePage.dart'; // Customer's Home Page
 import 'signup.dart'; // Sign Up Page (for unknown users or sign up navigation)
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -206,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // Add any other keys related to user session
       ];
       for (var key in keysToClear) {
-        if (await appBox.containsKey(key)) {
+        if (appBox.containsKey(key)) {
           await appBox.delete(key);
           print("[LoginScreen] Deleted '$key' from Hive.");
         }
@@ -468,18 +470,15 @@ class _LoginScreenState extends State<LoginScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 TextButton(
-                                  child: Text('Forgot password?',
-                                    style: TextStyle(fontSize: 10, color: Colors.black),
-                                  ),
                                   onPressed: _isLoading ? null : () {
                                      print("[LoginScreen] Forgot password tapped.");
                                      // TODO: Implement forgot password
                                   },
-                                ),
-                                TextButton(
-                                  child: Text("I don't have an account sign up",
+                                  child: Text('Forgot password?',
                                     style: TextStyle(fontSize: 10, color: Colors.black),
                                   ),
+                                ),
+                                TextButton(
                                   onPressed: _isLoading ? null : () {
                                      print("[LoginScreen] Sign up tapped.");
                                      Navigator.push(
@@ -487,14 +486,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                        MaterialPageRoute(builder: (context) => SignUpPage())
                                      );
                                   },
+                                  child: Text("I don't have an account sign up",
+                                    style: TextStyle(fontSize: 10, color: Colors.black),
+                                  ),
                                 ),
                               ],
                             ),
                             SizedBox(height: 10),
                             ElevatedButton(
-                              child: Text('Continue with Email',
-                                style: TextStyle(fontSize: 17),
-                              ),
                               onPressed: _isLoading ? null : _signInWithEmail,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Color(0xFF23461a),
@@ -502,6 +501,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),
+                              ),
+                              child: Text('Continue with Email',
+                                style: TextStyle(fontSize: 17),
                               ),
                             ),
                             SizedBox(height: 10),

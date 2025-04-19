@@ -13,13 +13,13 @@ class GroupProfessionalSelectionScreen extends StatefulWidget {
   final Map<String, List<Map<String, dynamic>>> guestServiceSelections;
 
   const GroupProfessionalSelectionScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.shopData,
     required this.guests,
     required this.guestServiceSelections,
-  }) : super(key: key);
+  });
 
   @override
   _GroupProfessionalSelectionScreenState createState() => _GroupProfessionalSelectionScreenState();
@@ -28,7 +28,7 @@ class GroupProfessionalSelectionScreen extends StatefulWidget {
 class _GroupProfessionalSelectionScreenState extends State<GroupProfessionalSelectionScreen> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _professionals = [];
-  Map<String, Map<String, dynamic>?> _guestProfessionalSelections = {};
+  final Map<String, Map<String, dynamic>?> _guestProfessionalSelections = {};
   int _currentGuestIndex = 0;
 
   @override
@@ -293,7 +293,7 @@ class _GroupProfessionalSelectionScreenState extends State<GroupProfessionalSele
                         professional['role'],
                         professional['profileImageUrl'],
                         null,
-                      )).toList(),
+                      )),
                     ],
                   ),
                 ),
@@ -329,15 +329,15 @@ class _GroupProfessionalSelectionScreenState extends State<GroupProfessionalSele
             Spacer(),
             // The continue button is disabled until a professional is selected
             ElevatedButton(
-              onPressed: null, // Disabled - selection will automatically advance
-              child: Text('Continue'),
+              onPressed: null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color(0xFF23461a),
                 foregroundColor: Colors.white,
                 minimumSize: Size(100, 45),
                 disabledBackgroundColor: Colors.grey,
                 disabledForegroundColor: Colors.white,
-              ),
+              ), // Disabled - selection will automatically advance
+              child: Text('Continue'),
             ),
           ],
         ),

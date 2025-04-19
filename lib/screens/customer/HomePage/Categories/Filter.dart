@@ -16,11 +16,11 @@ class FilterBottomSheet extends StatefulWidget {
   final List<String> priceOptions;
 
   const FilterBottomSheet({
-    Key? key,
+    super.key,
     required this.initialFilters,
     required this.onApplyFilters,
     required this.priceOptions,
-  }) : super(key: key);
+  });
 
   @override
   _FilterBottomSheetState createState() => _FilterBottomSheetState();

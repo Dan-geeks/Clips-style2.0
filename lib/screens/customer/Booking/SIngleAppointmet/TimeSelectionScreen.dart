@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart'; // Keep this import
 import 'dart:math';
 import 'FirstVisitScreen.dart';
@@ -18,14 +16,14 @@ class TimeSelectionScreen extends StatefulWidget {
   final bool isAnyProfessional;
 
   const TimeSelectionScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.shopData,
     required this.selectedServices,
     required this.selectedProfessional,
     required this.isAnyProfessional,
-  }) : super(key: key);
+  });
 
   @override
   _TimeSelectionScreenState createState() => _TimeSelectionScreenState();
@@ -35,7 +33,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
   late DateTime _selectedDate;
   String? _selectedTime;
   bool _isLoading = true;
-  Map<String, List<String>> _bookedTimeSlots = {};
+  final Map<String, List<String>> _bookedTimeSlots = {};
   final AppointmentTransactionService _appointmentService = AppointmentTransactionService();
 
   // For calendar view
@@ -428,7 +426,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                   ),
 
                   // Calendar grid
-                  Container(
+                  SizedBox(
                     height: 300, // Adjust height as needed
                     child: GridView.builder(
                       shrinkWrap: true,
@@ -453,9 +451,9 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
 
                         // Check if this is the selected date on the main screen
                         bool isSelectedOnMainScreen =
-                                date.year == this._selectedDate.year && // <<< Use this._selectedDate
-                                date.month == this._selectedDate.month &&
-                                date.day == this._selectedDate.day;
+                                date.year == _selectedDate.year && // <<< Use this._selectedDate
+                                date.month == _selectedDate.month &&
+                                date.day == _selectedDate.day;
 
                         // Get booking status for this day - use real data from the service
                         final BookingStatus status = _monthAvailability[dateStr] ?? BookingStatus.available;
@@ -773,13 +771,6 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _selectedTime == null ? null : _confirmBooking,
-                        child: Text(
-                          'Confirm Time',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFF23461a),
                           foregroundColor: Colors.white,
@@ -788,6 +779,13 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           padding: EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: Text(
+                          'Confirm Time',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),

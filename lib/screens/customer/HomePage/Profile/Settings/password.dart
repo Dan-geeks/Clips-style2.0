@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class PasswordSecurityScreen extends StatefulWidget {
-  const PasswordSecurityScreen({Key? key}) : super(key: key);
+  const PasswordSecurityScreen({super.key});
   
   static Route route() {
     return MaterialPageRoute(builder: (_) => const PasswordSecurityScreen());
@@ -228,7 +228,7 @@ class _PasswordSecurityScreenState extends State<PasswordSecurityScreen> {
 
 /// Screen to create a new password
 class CreatePasswordScreen extends StatefulWidget {
-  const CreatePasswordScreen({Key? key}) : super(key: key);
+  const CreatePasswordScreen({super.key});
 
   @override
   _CreatePasswordScreenState createState() => _CreatePasswordScreenState();

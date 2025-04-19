@@ -9,9 +9,9 @@ class StaffMemberEdit extends StatefulWidget {
   final Map<String, dynamic> member;
 
   const StaffMemberEdit({
-    Key? key,
+    super.key,
     required this.member,
-  }) : super(key: key);
+  });
 
   @override
   _StaffMemberEditState createState() => _StaffMemberEditState();

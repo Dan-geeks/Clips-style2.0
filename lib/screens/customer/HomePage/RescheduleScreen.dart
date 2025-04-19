@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'dart:math';
 import '../HomePage/CustomerHomePage.dart';
 import '../CustomerService/AppointmentService.dart';
 
@@ -14,12 +13,12 @@ class RescheduleScreen extends StatefulWidget {
   final bool isGroupBooking;
 
   const RescheduleScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.bookingData,
     this.isGroupBooking = false,
-  }) : super(key: key);
+  });
 
   @override
   _RescheduleScreenState createState() => _RescheduleScreenState();
@@ -30,7 +29,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
   late DateTime _selectedDate;
   String? _selectedTime;
   bool _isLoading = true;
-  Map<String, List<String>> _bookedTimeSlots = {};
+  final Map<String, List<String>> _bookedTimeSlots = {};
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   late Box _appBox;
@@ -631,7 +630,7 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                     SizedBox(height: 16),
                     
                     // Week days selector
-                    Container(
+                    SizedBox(
                       height: 60,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
@@ -799,6 +798,15 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _isUpdating || _selectedTime == null ? null : _updateBooking,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF23461a),
+                          foregroundColor: Colors.white,
+                          minimumSize: Size(double.infinity, 56),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                        ),
                         child: _isUpdating
                             ? SizedBox(
                                 height: 20,
@@ -815,15 +823,6 @@ class _RescheduleScreenState extends State<RescheduleScreen> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF23461a),
-                          foregroundColor: Colors.white,
-                          minimumSize: Size(double.infinity, 56),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                        ),
                       ),
                     ),
                   ],

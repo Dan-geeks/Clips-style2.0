@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart'; // Keep this import
 import 'package:cached_network_image/cached_network_image.dart';
@@ -19,14 +18,14 @@ class GroupTimeSelectionScreen extends StatefulWidget {
   final Map<String, Map<String, dynamic>?> guestProfessionalSelections;
 
   const GroupTimeSelectionScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.shopData,
     required this.guests,
     required this.guestServiceSelections,
     required this.guestProfessionalSelections,
-  }) : super(key: key);
+  });
 
   @override
   _GroupTimeSelectionScreenState createState() => _GroupTimeSelectionScreenState();
@@ -36,7 +35,7 @@ class _GroupTimeSelectionScreenState extends State<GroupTimeSelectionScreen> {
   late DateTime _selectedDate;
   String? _selectedTime;
   bool _isLoading = true;
-  Map<String, List<String>> _bookedTimeSlots = {};
+  final Map<String, List<String>> _bookedTimeSlots = {};
   final AppointmentTransactionService _appointmentService = AppointmentTransactionService();
 
   // Track current guest index
@@ -46,7 +45,7 @@ class _GroupTimeSelectionScreenState extends State<GroupTimeSelectionScreen> {
   Map<String, BookingStatus> _monthAvailability = {};
 
   // Store time selections for each guest
-  Map<String, String> _guestTimeSelections = {};
+  final Map<String, String> _guestTimeSelections = {};
 
   // Standardized time slot arrays - using the same ones as TimeSelectionScreen
   final List<String> _morningSlots = ['8:00', '8:45', '9:30', '10:15', '11:00', '11:45', '12:30'];
@@ -516,7 +515,7 @@ class _GroupTimeSelectionScreenState extends State<GroupTimeSelectionScreen> {
                   ),
 
                   // Calendar grid
-                  Container(
+                  SizedBox(
                     height: 300, // Adjust height as needed
                     child: GridView.builder(
                       shrinkWrap: true,
@@ -541,9 +540,9 @@ class _GroupTimeSelectionScreenState extends State<GroupTimeSelectionScreen> {
 
                         // Check if this is the selected date on the main screen
                         bool isSelectedOnMainScreen =
-                                date.year == this._selectedDate.year && // <<< Use this._selectedDate
-                                date.month == this._selectedDate.month &&
-                                date.day == this._selectedDate.day;
+                                date.year == _selectedDate.year && // <<< Use this._selectedDate
+                                date.month == _selectedDate.month &&
+                                date.day == _selectedDate.day;
 
                         // Get booking status for this day - use real data from the service
                         final BookingStatus status = _monthAvailability[dateStr] ?? BookingStatus.available;
@@ -933,15 +932,6 @@ class _GroupTimeSelectionScreenState extends State<GroupTimeSelectionScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: _selectedTime == null ? null : _confirmTimeForCurrentGuest,
-                            child: Text(
-                              _currentGuestIndex == widget.guests.length - 1
-                                  ? 'Confirm Time & Proceed'
-                                  : 'Confirm Time & Next Guest',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFF23461a),
                               foregroundColor: Colors.white,
@@ -950,6 +940,15 @@ class _GroupTimeSelectionScreenState extends State<GroupTimeSelectionScreen> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               padding: EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: Text(
+                              _currentGuestIndex == widget.guests.length - 1
+                                  ? 'Confirm Time & Proceed'
+                                  : 'Confirm Time & Next Guest',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),

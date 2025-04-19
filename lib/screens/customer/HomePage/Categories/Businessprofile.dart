@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:collection/collection.dart'; // For firstWhereOrNull
-import 'package:intl/intl.dart'; // For date formatting if needed for display
+// For firstWhereOrNull
+// For date formatting if needed for display
 // --- Import Google Maps ---
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 // Import your booking flow screens (adjust paths as needed)
-import '../../Booking/BookingOptions.dart';
 import '../../Booking/SIngleAppointmet/SelectProfessionalScreen.dart';
 
 // --- Placeholder Widgets (Keep as is) ---
 class FeedsTab extends StatelessWidget {
   final List<dynamic> feeds;
-  const FeedsTab({Key? key, required this.feeds}) : super(key: key);
+  const FeedsTab({super.key, required this.feeds});
   @override
   Widget build(BuildContext context) {
      if (feeds.isEmpty) {
@@ -46,7 +45,7 @@ class FeedsTab extends StatelessWidget {
 
 class ReviewsTab extends StatelessWidget {
   final String businessId;
-  const ReviewsTab({Key? key, required this.businessId}) : super(key: key);
+  const ReviewsTab({super.key, required this.businessId});
   @override
   Widget build(BuildContext context) {
     return Center(child: Text('Reviews will be shown here.', style: TextStyle(color: Colors.grey[600])));
@@ -55,7 +54,7 @@ class ReviewsTab extends StatelessWidget {
 
 class AboutUsTab extends StatelessWidget {
   final Map<String, dynamic> businessData;
-  const AboutUsTab({Key? key, required this.businessData}) : super(key: key);
+  const AboutUsTab({super.key, required this.businessData});
 
    Widget _buildSection(String title, String content) {
     return Padding(
@@ -161,9 +160,9 @@ class BusinessProfileScreen extends StatefulWidget {
   final Map<String, dynamic> businessData;
 
   const BusinessProfileScreen({
-    Key? key,
+    super.key,
     required this.businessData,
-  }) : super(key: key);
+  });
 
   @override
   _BusinessProfileScreenState createState() => _BusinessProfileScreenState();
@@ -213,7 +212,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> with Sing
           infoWindow: InfoWindow(title: widget.businessData['businessName'] ?? 'Business Location'),
         )
       };
-      print("Map initialized with Lat: ${lat}, Lon: ${lon}");
+      print("Map initialized with Lat: $lat, Lon: $lon");
     } else {
       print("Map initialization failed: Latitude or Longitude missing or invalid in businessData.");
       // Use a default location or handle the error appropriately
@@ -326,7 +325,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> with Sing
                 icon: Icon(Icons.arrow_back, color: innerBoxIsScrolled ? Colors.black : Colors.white),
                 style: innerBoxIsScrolled
                     ? null // Default style when collapsed
-                    : ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.black.withOpacity(0.3))), // Background when expanded
+                    : ButtonStyle(backgroundColor: WidgetStateProperty.all(Colors.black.withOpacity(0.3))), // Background when expanded
                 onPressed: () => Navigator.of(context).pop(),
               ),
               flexibleSpace: FlexibleSpaceBar(
@@ -499,7 +498,6 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> with Sing
                                   SizedBox(width: 10),
                                   ElevatedButton(
                                     onPressed: () => _bookService(service),
-                                    child: Text('Book'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Color(0xFF23461a),
                                       foregroundColor: Colors.white,
@@ -509,6 +507,7 @@ class _BusinessProfileScreenState extends State<BusinessProfileScreen> with Sing
                                         borderRadius: BorderRadius.circular(20)
                                       )
                                     ),
+                                    child: Text('Book'),
                                   ),
                                 ],
                               ),

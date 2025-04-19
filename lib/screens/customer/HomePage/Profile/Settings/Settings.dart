@@ -8,7 +8,7 @@ import '../../../../../main.dart';
 import 'password.dart'; // Assuming you have a Password screen
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({Key? key}) : super(key: key);
+  const SettingsScreen({super.key});
   
   static Route route() {
     return MaterialPageRoute(builder: (_) => const SettingsScreen());

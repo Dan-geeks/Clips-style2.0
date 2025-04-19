@@ -9,7 +9,7 @@ import '../../../../Booking/BookingOptions.dart';
 import '../../../../CustomerService/BusinessDataService.dart';
 
 class MyTopBeautyShopsScreen extends StatefulWidget {
-  const MyTopBeautyShopsScreen({Key? key}) : super(key: key);
+  const MyTopBeautyShopsScreen({super.key});
 
   @override
   _MyTopBeautyShopsScreenState createState() => _MyTopBeautyShopsScreenState();

@@ -520,7 +520,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                   ),
                 ),

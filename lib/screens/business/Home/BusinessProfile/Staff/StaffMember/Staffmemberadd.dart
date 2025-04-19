@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:hive/hive.dart';
 
 class BusinessStaffMemberAdd extends StatefulWidget {
-  const BusinessStaffMemberAdd({Key? key}) : super(key: key);
+  const BusinessStaffMemberAdd({super.key});
 
   @override
   State<BusinessStaffMemberAdd> createState() => _BusinessStaffMemberAddState();

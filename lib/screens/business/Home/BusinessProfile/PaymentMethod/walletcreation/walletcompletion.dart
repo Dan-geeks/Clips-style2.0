@@ -11,7 +11,7 @@ const Color kPrimaryTextColor = Colors.black;
 const Color kSecondaryTextColor = Colors.grey;
 
 class WalletCompletionScreen extends StatelessWidget {
-  const WalletCompletionScreen({Key? key}) : super(key: key);
+  const WalletCompletionScreen({super.key});
 
   // --- Function to update flags and navigate ---
   Future<void> _completeWalletSetupAndNavigate(BuildContext context) async {

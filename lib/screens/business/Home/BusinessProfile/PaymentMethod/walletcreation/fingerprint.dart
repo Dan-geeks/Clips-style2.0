@@ -16,7 +16,7 @@ const Color kSecondaryTextColor = Colors.grey;
 
 // Temporary screen showing "Creating Wallet" for 2 seconds
 class CreatingWalletScreen extends StatefulWidget {
-  const CreatingWalletScreen({Key? key}) : super(key: key);
+  const CreatingWalletScreen({super.key});
 
   @override
   _CreatingWalletScreenState createState() => _CreatingWalletScreenState();
@@ -74,7 +74,7 @@ class _CreatingWalletScreenState extends State<CreatingWalletScreen> {
 
 // Protect Your Wallet screen with biometric authentication
 class ProtectWalletScreen extends StatefulWidget {
-  const ProtectWalletScreen({Key? key}) : super(key: key);
+  const ProtectWalletScreen({super.key});
 
   @override
   _ProtectWalletScreenState createState() => _ProtectWalletScreenState();
@@ -147,7 +147,7 @@ class _ProtectWalletScreenState extends State<ProtectWalletScreen> {
       print('Biometric preference saved: $enabled for user $userId');
     } catch (e) {
       print('Error saving biometric preference: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -155,7 +155,7 @@ class _ProtectWalletScreenState extends State<ProtectWalletScreen> {
   Future<bool> _authenticateWithBiometrics() async {
     try {
       final bool authenticated = await _localAuth.authenticate(
-        localizedReason: 'Scan your ${_biometricType} to confirm setup',
+        localizedReason: 'Scan your $_biometricType to confirm setup',
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: true,

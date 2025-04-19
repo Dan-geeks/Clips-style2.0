@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'BookingConfirmationScreen.dart';
 
 class FirstVisitScreen extends StatefulWidget {
@@ -9,11 +8,11 @@ class FirstVisitScreen extends StatefulWidget {
   final Map<String, dynamic> bookingData;
   
   const FirstVisitScreen({
-    Key? key,
+    super.key,
     required this.shopId,
     required this.shopName,
     required this.bookingData,
-  }) : super(key: key);
+  });
 
   @override
   _FirstVisitScreenState createState() => _FirstVisitScreenState();
@@ -230,6 +229,15 @@ class _FirstVisitScreenState extends State<FirstVisitScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isProcessing ? null : _completeBooking,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF23461a),
+                  foregroundColor: Colors.white,
+                  minimumSize: Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
                 child: _isProcessing
                     ? SizedBox(
                         height: 20,
@@ -246,15 +254,6 @@ class _FirstVisitScreenState extends State<FirstVisitScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF23461a),
-                  foregroundColor: Colors.white,
-                  minimumSize: Size(double.infinity, 56),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                ),
               ),
             ),
           ],
