@@ -139,6 +139,7 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
           // Set createdAt only if the document might not exist yet
           // Using set with merge:true handles creation vs update automatically
           'createdAt': FieldValue.serverTimestamp(),
+          'balance': 0,
         };
 
         // Use set with merge:true to create the document if it doesn't exist,

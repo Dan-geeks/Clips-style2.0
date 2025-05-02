@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
 import 'package:google_sign_in/google_sign_in.dart'; // Import GoogleSignIn
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
+import 'package:cloud_functions/cloud_functions.dart'; // <<< Import Cloud Functions
 import 'pin.dart'; // <<< Import the CreatePinScreen
 
 // --- Define Consistent Colors ---
@@ -24,6 +25,7 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance; // <<< Add Cloud Functions instance
   bool _isLoading = false;
   // --- End Firebase and Google Sign-In variables ---
 
@@ -70,8 +72,7 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
     );
   }
 
-  // --- Add Google Sign-In Logic (Adapted from Businesssignup.dart) ---
-  Future<void> _signInWithGoogleForWallet(BuildContext context) async {
+ Future<void> _signInWithGoogleForWallet(BuildContext context) async {
     if (_isLoading) return; // Prevent multiple sign-in attempts
     setState(() => _isLoading = true);
 
@@ -81,7 +82,7 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
 
       // Handle case where user cancels sign-in
       if (googleUser == null) {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false); // Check mounted
         print('Google sign-in cancelled by user.');
         return;
       }
@@ -102,36 +103,17 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
       if (user != null) {
         print('Successfully signed in with Google: ${user.email}');
 
-        // --- Wallet Specific Logic ---
-        // 1. Check if a wallet already exists for this Google user (optional but recommended)
-        // Example: Check a 'wallets' collection using user.uid
-        // DocumentSnapshot walletDoc = await _firestore.collection('wallets').doc(user.uid).get();
-        // if (walletDoc.exists) {
-        //    print('Wallet already exists for this user.');
-        //    // Navigate to existing wallet or show message
-        // } else {
-        //    print('Creating new wallet association for user.');
-        //    // Create wallet document or link wallet details
-        //    await _firestore.collection('wallets').doc(user.uid).set({
-        //      'email': user.email,
-        //      'provider': 'google.com',
-        //      'createdAt': FieldValue.serverTimestamp(),
-        //      // Add other wallet details
-        //    });
-        // }
+        // --- *** WALLET CREATION CALL REMOVED FROM HERE *** ---
 
-        // --- End Wallet Specific Logic ---
-
-        // --- <<< MODIFICATION START: Add Navigation >>> ---
-        // Navigate to the CreatePinScreen after successful sign-in
-        // Use pushReplacement so the user doesn't go back to AddWalletScreen
-        if (mounted) { // Check if the widget is still mounted before navigating
-            Navigator.push(
+        // --- <<< NAVIGATION TO PIN SCREEN >>> ---
+        // Navigate directly after successful Firebase sign-in
+        if (mounted) {
+          Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const CreatePinScreen()),
           );
         }
-       // --- <<< MODIFICATION END: Add Navigation >>> ---
+        // --- <<< END NAVIGATION >>> ---
 
       } else {
         print('Google sign-in successful, but Firebase user is null.');
@@ -161,7 +143,7 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
         );
       }
     } finally {
-       // Ensure isLoading is always set back to false
+       // Ensure isLoading is always set back to false if the widget is still mounted
       if (mounted) {
          setState(() => _isLoading = false);
       }
@@ -192,7 +174,7 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
-                  // Title and Description (keep as before)
+                  // Title and Description
                   const Text(
                     'Select Your Email',
                     style: TextStyle(
@@ -218,9 +200,10 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
                     icon: SvgPicture.asset(
                       'assets/appleicon.svg',
                       height: 20,
+                       errorBuilder: (context, error, stackTrace) => Icon(Icons.apple), // Fallback icon
                     ),
                     label: Text(
-                      'Continue with Apple', // Fixed typo
+                      'Continue with Apple',
                       style: TextStyle(color: kPrimaryTextColor, fontSize: 16),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -232,9 +215,12 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
                       ),
                     ),
                     onPressed: () {
-                      // TODO: Implement Apple Sign-In Logic for Wallet
+                      // TODO: Implement Apple Sign-In Logic + Call Backend Wallet Creation
                       print('Continue with Apple tapped');
                       Navigator.pop(context); // Close bottom sheet
+                      ScaffoldMessenger.of(context).showSnackBar(
+                         SnackBar(content: Text('Apple Sign-In not yet implemented.')),
+                       );
                     },
                   ),
                   const SizedBox(height: 12),
@@ -244,6 +230,7 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
                      icon: SvgPicture.asset(
                        'assets/Google.svg',
                        height: 20,
+                        errorBuilder: (context, error, stackTrace) => Icon(Icons.android), // Fallback icon
                      ),
                     label: Text(
                       'Continue with Google',
@@ -259,7 +246,6 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
                     ),
                     onPressed: () {
                       Navigator.pop(context); // Close bottom sheet
-                      // Call the Google Sign-In function
                       _signInWithGoogleForWallet(context);
                     },
                   ),
@@ -298,7 +284,7 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
                   // --- Image Placeholder ---
                   Center(
                     child: Image.asset(
-                      'assets/image.png',
+                      'assets/image.png', // Ensure this asset exists
                       height: 150,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
@@ -354,7 +340,7 @@ class _AddWalletScreenState extends State<AddWalletScreen> {
                       ),
                       padding: EdgeInsets.symmetric(vertical: 14),
                     ),
-                    onPressed: () {
+                    onPressed: _isLoading ? null : () { // Disable button while loading
                       _showSelectEmailBottomSheet(context);
                     },
                     child: const Text(

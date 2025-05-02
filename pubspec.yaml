@@ -55,15 +55,19 @@ dependencies:
   url_launcher: any
   http: any
   timezone: any
+  lottie: ^3.3.0
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/edited.jpg
     - assets/Frame4.svg
     - assets/Frame4.png
     - assets/Frame5.png
@@ -108,6 +112,10 @@ flutter:
     fonts:
       - asset: assets/Kavoon-Regular.ttf
    
-      
+flutter_launcher_icons:
+    android: true
+    ios: true
+    image_path: "assets/edited.jpg"
+    min_sdk_android: 21
 
 

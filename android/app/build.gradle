@@ -1,5 +1,5 @@
 plugins {
-    id "com.android.application" version "8.6.0"
+    id "com.android.application" version "8.6.0" // Keep your existing AGP version
     // START: FlutterFire Configuration
     id 'com.google.gms.google-services'
     // END: FlutterFire Configuration
@@ -8,14 +8,29 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+// >>>>> Load keystore properties using an ABSOLUTE path <<<<<
+// Define the absolute path to your key.properties file
+// NOTE: Using absolute paths like this makes the project less portable.
+// Ensure this path is correct on your machine.
+def keystorePropertiesFile = file("C:/Users/Dan/Devs/Clips-style2.0/android/key.properties") // Absolute path
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+} else {
+    // Added error handling similar to the example
+    println("Keystore properties file not found at: ${keystorePropertiesFile.absolutePath}")
+    throw new GradleException("Keystore properties file not found. Please ensure it exists at the specified path.")
+}
+// >>>>> End of code to load properties <<<<<
+
 android {
-    namespace = "com.example.clipsandstyles3"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    namespace = "com.example.clipsandstyles3" // Updated namespace
+    compileSdk = flutter.compileSdkVersion // Use Flutter's settings
+    ndkVersion = flutter.ndkVersion     // Use Flutter's settings
 
     compileOptions {
         // Flag to enable support for the new language APIs
-        coreLibraryDesugaringEnabled true // This is required for the dependency below
+        coreLibraryDesugaringEnabled true // Keep this
 
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -25,23 +40,39 @@ android {
         jvmTarget = JavaVersion.VERSION_1_8
     }
 
+    // >>>>> SigningConfigs block using ABSOLUTE path for storeFile <<<<<
+    signingConfigs {
+        release {
+            // Read alias and passwords from key.properties
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storePassword keystoreProperties['storePassword']
+            // Manually specify the ABSOLUTE path to your keystore file
+            // Ensure this path and filename (my-release-key-v2.jks) are correct
+            storeFile file('C:/Users/Dan/Devs/Clips-style2.0/my-release-key.jks') // Absolute path
+        }
+    }
+    // >>>>> End of signingConfigs block <<<<<
+
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Keep your defaultConfig settings
         applicationId = "com.example.clipsandstyles3"
-        // Required for core library desugaring
         multiDexEnabled true
-        // minSdkVersion should be 21 or higher for core library desugaring
-        minSdkVersion 23
-        targetSdk = flutter.targetSdkVersion
-        versionCode = 1
-        versionName = "1.0"
+        minSdkVersion 23 // Keep your minSdkVersion
+        targetSdk = flutter.targetSdkVersion // Use Flutter's targetSdkVersion
+        versionCode = 1 // Keep your versionCode (or use local.properties logic if preferred)
+        versionName = "1.0" // Keep your versionName (or use local.properties logic if preferred)
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            // Ensure signingConfig is set to release
+            signingConfig = signingConfigs.release
+
+            // Keep other release settings if you had them
+            // minifyEnabled false
+            // shrinkResources false
+            // proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
@@ -50,15 +81,8 @@ flutter {
     source = "../.."
 }
 
-// Added dependencies block
+// Keep your dependencies block
 dependencies {
-    // For AGP 7.4+ (You are using 8.6.0, so this version is correct)
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
-    // For AGP 7.3
-    // coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.2.3'
-    // For AGP 4.0 to 7.2
-    // coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.1.9'
-
-    // You might have other dependencies here, like Kotlin stdlib or Firebase BoM
-    // implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version" // Example
+    // Add other dependencies if needed
 }

@@ -3,34 +3,42 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async'; // Added for StreamSubscription
+import 'package:lottie/lottie.dart';
+import 'package:cloud_functions/cloud_functions.dart'; // ** Import Cloud Functions **
 
-// ** HTTP, JSON, and DotEnv imports **
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart'; // Import dotenv for Intasend keys
+// ** REMOVED HTTP, JSON, and DotEnv imports as they are no longer needed for direct API call **
+// import 'package:http/http.dart' as http;
+// import 'dart:convert';
+// import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import '../../CustomerService/AppointmentService.dart';
-import '../../HomePage/CustomerHomePage.dart';
+// Ensure these imports point to the correct file locations in your project
+// Assuming AppointmentTransactionService exists and has createAppointment
+import '../../CustomerService/AppointmentService.dart'; // Adjust path if needed
+import '../../HomePage/CustomerHomePage.dart'; // Adjust path if needed
 
 
 class BookingConfirmationScreen extends StatefulWidget {
+  // Use properties from your original code
   final String shopId;
   final String shopName;
-  final Map<String, dynamic> bookingData;
+  final Map<String, dynamic> bookingData; // Contains services, date, time, professional, etc.
 
   const BookingConfirmationScreen({
-    super.key,
+    Key? key,
     required this.shopId,
     required this.shopName,
     required this.bookingData,
-  });
+  }) : super(key: key);
 
   @override
   _BookingConfirmationScreenState createState() => _BookingConfirmationScreenState();
 }
 
 class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
-  bool _isProcessing = false;
+  // Keep state variables from your original code
+  bool _isProcessing = false; // Indicates initial booking request processing
+  bool _isWaitingForPayment = false; // Indicates waiting for M-Pesa confirmation
   String _paymentMethod = 'M-Pesa'; // Default payment method
   final TextEditingController _discountCodeController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
@@ -46,6 +54,14 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   double _discountAmount = 0.0;
   double _totalAmount = 0.0;
 
+  // Firestore listener variables
+  StreamSubscription? _paymentStatusSubscription;
+  String? _currentAppointmentId; // Store the ID of the booking being watched
+
+  // ** Initialize Firebase Functions instance **
+  final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(region: 'us-central1'); // Adjust region if needed
+
+
   @override
   void initState() {
     super.initState();
@@ -60,41 +76,39 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     _discountCodeController.dispose();
     _notesController.dispose();
     _phoneController.dispose();
+    _paymentStatusSubscription?.cancel(); // Cancel listener
     super.dispose();
   }
 
   // --- Helper to format phone number for API (e.g., 2547...) ---
+  // (Keep your original helper function)
   String? formatPhoneNumberForApi(String phone) {
     phone = phone.replaceAll(RegExp(r'\s+|-|\+'), ''); // Remove spaces, hyphens, plus
     if (phone.startsWith('0') && (phone.length == 10)) {
-      // Standard 07x or 01x
       return '254${phone.substring(1)}';
     } else if (phone.startsWith('7') && phone.length == 9) {
-       // Number starting directly with 7 (after removing +254 or 0)
        return '254$phone';
     } else if (phone.startsWith('1') && phone.length == 9) {
-       // Number starting directly with 1 (after removing +254 or 0)
        return '254$phone';
     } else if (phone.startsWith('254') && phone.length == 12) {
-      // Already in correct format
       return phone;
     }
-    // Invalid format
-    return null;
+    return null; // Invalid format
   }
 
   // --- Helper to format phone number for display input (e.g., 07...) ---
+  // (Keep your original helper function)
   String formatPhoneNumberForDisplay(String phone) {
      phone = phone.replaceAll(RegExp(r'\s+|-|\+'), '');
      if (phone.startsWith('254') && phone.length == 12) {
         return '0${phone.substring(3)}'; // Convert 254... to 0...
      }
-     // Return as is if it's already 0... or some other format
-     return phone;
+     return phone; // Return as is if it's already 0... or some other format
   }
 
 
   // --- Show Dialog to Confirm/Enter M-Pesa Number ---
+  // (Keep your original dialog function)
   Future<String?> _showPhoneNumberDialog() async {
     // Ensure the controller has the display format when opening the dialog
     _phoneController.text = formatPhoneNumberForDisplay(_phoneController.text);
@@ -106,31 +120,28 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         return AlertDialog(
           title: Text('Confirm M-Pesa Number'),
           content: Form(
-             key: _phoneFormKey,
-             child: TextFormField(
+              key: _phoneFormKey,
+              child: TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                     labelText: 'M-Pesa Phone Number',
                     hintText: 'e.g., 0712345678',
-                    // prefixText: '+254 ', // Remove prefix as we expect 07.. input
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your phone number';
                   }
-                   // Validate based on the display format (07... / 01...)
-                   final RegExp kenyanPhoneRegex = RegExp(r'^0[17]\d{8}$');
-                   if (!kenyanPhoneRegex.hasMatch(value)) {
-                      return 'Use format 07... or 01...';
-                   }
-                   // Check if conversion to API format works (extra safety)
-                   if (formatPhoneNumberForApi(value) == null){
-                      return 'Invalid Kenyan number format';
-                   }
+                    final RegExp kenyanPhoneRegex = RegExp(r'^0[17]\d{8}$');
+                    if (!kenyanPhoneRegex.hasMatch(value)) {
+                       return 'Use format 07... or 01...';
+                    }
+                    if (formatPhoneNumberForApi(value) == null){
+                       return 'Invalid Kenyan number format';
+                    }
                   return null; // Valid
                 },
-             ),
+              ),
           ),
           actions: <Widget>[
             TextButton(
@@ -141,14 +152,12 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
               child: Text('Confirm'),
               onPressed: () {
                 if (_phoneFormKey.currentState!.validate()) {
-                   // Return the number formatted for the API call (254...)
-                   String? apiFormattedNumber = formatPhoneNumberForApi(_phoneController.text);
-                   if (apiFormattedNumber != null) {
-                      Navigator.of(context).pop(apiFormattedNumber);
-                   } else {
-                     // Should not happen if validator passes, but as a safeguard
-                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invalid phone number format.'), backgroundColor: Colors.red));
-                   }
+                    String? apiFormattedNumber = formatPhoneNumberForApi(_phoneController.text);
+                    if (apiFormattedNumber != null) {
+                       Navigator.of(context).pop(apiFormattedNumber);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Invalid phone number format.'), backgroundColor: Colors.red));
+                    }
                 }
               },
             ),
@@ -158,405 +167,509 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     );
   }
 
-  // --- M-Pesa Payment Initiation (Direct Intasend API Call) ---
-  Future<String?> _initiateMpesaPayment(double amount, String formattedPhoneNumber, String appointmentReference) async {
+  // --- M-Pesa Payment Initiation (Calls Secure Cloud Function) ---
+  // ** REPLACED the direct API call with the Cloud Function call **
+  Future<String?> _initiateMpesaPaymentViaFunction(
+      double amount, String formattedPhoneNumber, String appointmentReference) async {
+    // Log the start of the process
+    print(
+        "Initiating SECURE IntaSend M-Pesa STK Push via Cloud Function for KES ${amount.toStringAsFixed(2)} to $formattedPhoneNumber for ref: $appointmentReference");
 
-    print("Initiating DIRECT Intasend M-Pesa STK Push for KES ${amount.toStringAsFixed(2)} to $formattedPhoneNumber for ref: $appointmentReference");
+    // Set UI state to processing (already handled in _handleBookingRequest, but good practice)
+    if (!mounted) return null;
+    // No need to set _isProcessing here, as _handleBookingRequest does it.
+    // We might set a more specific status if needed.
 
-    // --- Get Keys from .env ---
-    final String? publishableKey = dotenv.env['INTASEND_PUBLISHABLE_KEY'];
-    // !!! EXTREME SECURITY WARNING: Using Secret Key directly in app !!!
-    final String? secretKey = dotenv.env['INTASEND_SECRET'];
-
-    // --- Callback URL ---
-    // !!! IMPORTANT: You MUST replace this with your publicly accessible backend URL !!!
-    // !!! where Intasend can send the payment status updates.                 !!!
-    // !!! Without this, your app won't know if the payment was successful.     !!!
-    const String yourCallbackUrl = 'https://intasendwebhookhandler-uovd7uxrra-uc.a.run.app'; // <-- REPLACE THIS
-
-    // --- Input Validation ---
-    if (publishableKey == null || publishableKey.isEmpty) {
-       print("ERROR: INTASEND_PUBLISHABLE_KEY not found in .env file.");
-       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Configuration error: Missing Publishable Key.'), backgroundColor: Colors.red));
-       return null;
-    }
-    if (secretKey == null || secretKey.isEmpty) {
-       print("ERROR: INTASEND_SECRET key not found in .env file.");
-       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Configuration error: Missing Secret Key.'), backgroundColor: Colors.red));
-       return null;
-    }
-     if (yourCallbackUrl.contains('YOUR_BACKEND_DOMAIN.com')) {
-       print("ERROR: Placeholder callback URL detected. Please update it in the code.");
-       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Configuration error: Callback URL not set.'), backgroundColor: Colors.red));
-       return null;
-     }
-
-    // --- Intasend API Endpoint ---
-    final url = Uri.parse('https://api.intasend.com/api/v1/payment/mpesa-stk-push/'); // Intasend STK Push Endpoint
-
-    // --- Get Customer Details (Optional but Recommended) ---
+    // Get current user details (needed for the Cloud Function)
     final user = FirebaseAuth.instance.currentUser;
-    // Provide default values or ensure user details are available
-    final String customerEmail = user?.email ?? 'notprovided@example.com';
-    final String customerFirstName = user?.displayName?.split(' ').first ?? 'Customer';
-    final String customerLastName = (user?.displayName?.split(' ').length ?? 0) > 1 ? user!.displayName!.split(' ').last : 'Name';
+    if (user == null) {
+      // Error should ideally be caught before calling this function, but double-check
+      print("Error: User not logged in when trying to initiate payment via function.");
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Authentication error. Please log in again.')));
+      return null;
+    }
 
-    // --- Prepare Request ---
-    final headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      // --- !!! SECURITY RISK !!! Using Secret Key directly in app ---
-      'Authorization': 'Bearer $secretKey', // Using Secret Key as Bearer Token
+    // --- Get Customer Details ---
+    final String customerEmail = user.email ?? 'notprovided@example.com';
+    final List<String> nameParts = user.displayName?.split(' ') ?? [];
+    final String customerFirstName = nameParts.isNotEmpty ? nameParts.first : 'Customer';
+    final String customerLastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : 'User';
+    final String narrative = 'Booking: ${widget.shopName}'; // Use shopName from widget
+
+    // --- Prepare Data for Cloud Function (Using camelCase keys) ---
+    final Map<String, dynamic> data = {
+      'amount': amount,
+      'phoneNumber': formattedPhoneNumber, // Use camelCase key
+      'apiRef': appointmentReference,     // Use camelCase key
+      'email': customerEmail,
+      'firstName': customerFirstName,     // Use camelCase key
+      'lastName': customerLastName,       // Use camelCase key
+      'narrative': narrative,
+      // No wallet_id needed here - it's handled by the backend
     };
 
-    final body = jsonEncode({
-      // Authentication & Identification
-      'public_key': publishableKey,
-      'api_ref': appointmentReference, // Your unique reference
-
-      // Payment Details
-      'method': 'M-PESA',
-      'currency': 'KES',
-      'amount': amount, // Use the passed amount (double)
-      'phone_number': formattedPhoneNumber, // Use the API formatted number (254...)
-
-      // Customer & Callback Details
-      'email': customerEmail,
-      'first_name': customerFirstName,
-      'last_name': customerLastName,
-      'host': yourCallbackUrl, // Your backend URL for status updates
-
-      // Optional Details
-      'narrative': 'Booking: ${widget.shopName}', // Description shown to customer
-    });
-
-    // --- Logging (Avoid logging sensitive data in production) ---
-    print("--- Sending Request to Intasend ---");
-    print("URL: $url");
-    // Redact secret key before logging headers
-    print("Headers: ${headers.toString().replaceAll(secretKey, 'SECRET_KEY_REDACTED')}");
-    print("Body: $body");
-    print("--- End Request ---");
+    print("--- Calling Cloud Function 'initiateMpesaStkPushCollection' ---");
+    print("Data keys being sent: ${data.keys.join(', ')}");
+    print("--- End Call Data ---");
 
     try {
-      final response = await http.post(
-        url,
-        headers: headers,
-        body: body,
-      );
+      // Get callable function reference
+      final HttpsCallable callable =
+          _functions.httpsCallable('initiateMpesaStkPushCollection');
 
-      // --- Logging Response ---
-      print("Intasend Response Status Code: ${response.statusCode}");
-      print("Intasend Response Body: ${response.body}");
+      // Call the function with the camelCase data map
+      final HttpsCallableResult result = await callable.call(data);
 
-      // --- Process the response FROM INTASEND ---
-      if (response.statusCode == 200 || response.statusCode == 201) { // Check for success codes
-        var responseData = jsonDecode(response.body);
+      print("Cloud Function Result Data: ${result.data}");
 
-        // Check Intasend's success response structure (adjust based on actual Intasend response)
-        // Example: Success if 'invoice_id' is present and status indicates pending/processing
-      // Check Intasend's success response structure
-        // Check if the 'invoice' object exists and contains the necessary fields
-        if (responseData['invoice'] != null &&
-            responseData['invoice']['invoice_id'] != null && // Access nested field
-            (responseData['invoice']['state'] == 'PROCESSING' || responseData['invoice']['state'] == 'PENDING')) { // Access nested field
-
-           String invoiceId = responseData['invoice']['invoice_id']; // Extract nested field
-           print("Intasend M-Pesa STK Push initiated successfully.");
-           print("Invoice ID received: $invoiceId");
-           print("Waiting for user confirmation on their phone and Intasend webhook callback to: $yourCallbackUrl");
-           // Return the Intasend Invoice ID
-           return invoiceId;
-        } else {
-           // Handle specific failure response from Intasend or unexpected structure
-           String errorMessage = responseData['invoice']?['failed_reason'] // Try getting a reason from invoice first
-                               ?? responseData['detail']
-                               ?? responseData['message']
-                               ?? 'Intasend failed to process payment request or returned unexpected format.'; // More specific default
-           print("Intasend API Error: $errorMessage");
-           // Consider checking responseData['invoice']?['failed_code_link'] too
-           if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment initiation failed: $errorMessage'), backgroundColor: Colors.red));
-           return null; // Indicate initiation failure
-        }
+      // --- Handle SUCCESSFUL Cloud Function Response ---
+      if (result.data != null &&
+          result.data['success'] == true &&
+          result.data['invoiceId'] != null) {
+        final String invoiceId = result.data['invoiceId'];
+        final String message = result.data['message'] ?? 'STK Push sent! Check your phone.';
+        print("Cloud Function Success. Invoice ID: $invoiceId");
+        // Show snackbar message from backend
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+        return invoiceId; // Return the Intasend Invoice ID
       } else {
-        // Handle HTTP errors (non-200/201 status codes)
-         var errorData;
-         try { errorData = jsonDecode(response.body); } // Try to parse error details
-         catch (e) { errorData = {'detail': response.body}; } // Use raw body if not JSON
-         String errorMessage = errorData['detail'] ?? 'Intasend server communication error';
-         print("HTTP Error calling Intasend: ${response.statusCode} - $errorMessage");
-         if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment server error ($errorMessage). Please try again.'), backgroundColor: Colors.red));
-         return null; // Indicate initiation failure
+        // Handle cases where function succeeded but indicated logical failure
+        final String errorMessage =
+            result.data?['message'] ?? 'Payment initiation failed by server.';
+        print("Cloud Function returned logical error: $errorMessage");
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Payment initiation failed: $errorMessage'),
+            backgroundColor: Colors.orange[700]));
+        return null;
       }
-    } catch (e) {
-      // Handle network errors or other exceptions during the API call
-       print("Network/Exception Error calling Intasend API: $e");
-       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment network error. Check connection and try again.'), backgroundColor: Colors.red));
-       return null; // Indicate initiation failure
+    } on FirebaseFunctionsException catch (e) {
+      // Handle Cloud Function execution errors
+      print("FirebaseFunctionsException calling function: ${e.code} - ${e.message}");
+      print("Error Details: ${e.details}");
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Payment Error: ${e.message ?? 'Please try again.'}'),
+          backgroundColor: Colors.red));
+      return null;
+    } catch (e, s) {
+      // Handle other errors
+      print("Generic Error calling Cloud Function: $e");
+      print("Stack Trace: $s");
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Network or unexpected error. Please try again.'),
+          backgroundColor: Colors.red));
+      return null;
     }
+    // No finally block needed here to set _isProcessing, as _handleBookingRequest manages it
   }
 
-  // --- Complete Booking Process (Saves data to Firestore) ---
-  // --- Complete Booking Process (Saves data to Firestore) ---
-  // Accepts nullable uniqueRef and intasendInvoiceId
+
+  // --- Complete Booking Process (Saves data to Firestore, Starts Listener for M-Pesa) ---
+  // (Keep your original function, it handles saving and starting the listener)
   Future<void> _completeBooking({String? uniqueRef, String? intasendInvoiceId}) async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not signed in');
 
-      // Prepare common appointment data
+      // Use widget.bookingData directly as it should contain all needed info
       final Map<String, dynamic> appointmentDataBase = {
         'services': widget.bookingData['services'],
-        'appointmentDate': widget.bookingData['appointmentDate'],
+        'appointmentDate': widget.bookingData['appointmentDate'], // Ensure this is Timestamp or compatible
         'appointmentTime': widget.bookingData['appointmentTime'],
         'professionalId': widget.bookingData['professionalId'] ?? 'any',
         'professionalName': widget.bookingData['professionalName'] ?? 'Any Professional',
         'paymentMethod': _paymentMethod,
         'totalServicePrice': _totalServicePrice,
-        'bookingFee': _bookingFee, // Fee calculated based on method
+        'bookingFee': _bookingFee,
         'discountAmount': _discountAmount,
-        'totalAmount': _totalAmount, // Final amount after fees/discounts (adjust based on definition for M-Pesa/Cash)
+        'totalAmount': _totalAmount, // This is the final calculated amount
         'notes': _notesController.text,
         'customerId': user.uid,
         'customerName': user.displayName ?? 'N/A',
         'customerEmail': user.email ?? 'N/A',
-        'customerPhone': user.phoneNumber ?? 'N/A', // Logged-in user's phone
-        'mpesaPaymentNumber': _paymentMethod == 'M-Pesa' ? formatPhoneNumberForApi(_phoneController.text) : null, // Store API format number used for payment
+        'customerPhone': user.phoneNumber ?? 'N/A', // Use auth phone number
+        'mpesaPaymentNumber': _paymentMethod == 'M-Pesa' ? formatPhoneNumberForApi(_phoneController.text) : null, // The number used for STK
         'isFirstVisit': widget.bookingData['isFirstVisit'] ?? false,
-        'profileImageUrl': widget.bookingData['profileImageUrl'], // Shop/Business image
+        'profileImageUrl': widget.bookingData['profileImageUrl'], // Assuming this is passed in bookingData
         'createdAt': FieldValue.serverTimestamp(),
-      }; //
+        // Add intasendState initially - it will be updated by webhook/listener check
+        'intasendState': _paymentMethod == 'M-Pesa' ? 'PENDING' : null, // Initial state for M-Pesa
+      };
 
       Map<String, dynamic> finalAppointmentData;
 
-      // Add payment-specific fields and initial status
       if (_paymentMethod == 'M-Pesa') {
           finalAppointmentData = {
             ...appointmentDataBase,
-            'amountPaid': 0.0, // Initially 0, callback/webhook should update this
+            'amountPaid': 0.0, // Initially 0 until confirmed
             'paymentStatus': 'pending', // Status until callback/webhook confirms
             'status': 'pending_payment', // Overall appointment status
-            'intasendInvoiceId': intasendInvoiceId, // Store the ID to map callback/webhook!
-            'intasendApiRef': uniqueRef, // <-- Use the passed uniqueRef here
-          }; //
+            'intasendInvoiceId': intasendInvoiceId, // Store the ID from Cloud Function call
+            'intasendApiRef': uniqueRef, // Use the passed uniqueRef (apiRef)
+          };
       } else { // Cash payment
           finalAppointmentData = {
             ...appointmentDataBase,
-            'amountPaid': 0.0, // Will be paid at venue
+            'amountPaid': 0.0, // No payment recorded yet
             'paymentStatus': 'pay_at_venue',
-            'status': 'confirmed', // Assume confirmed for cash, pay deposit at venue
-             'intasendInvoiceId': null, // No Intasend ID for cash
-             'intasendApiRef': null, // No Intasend apiRef for cash
-          }; //
+            'status': 'confirmed', // Cash bookings are confirmed immediately
+            'intasendInvoiceId': null,
+            'intasendApiRef': null,
+          };
       }
 
-      // Create/Update appointment record in Firestore
-       Map<String, dynamic> createdAppointmentResult = await _appointmentService.createAppointment(
-         businessId: widget.shopId,
-         businessName: widget.shopName,
-         appointmentData: finalAppointmentData,
-       ); //
-       String createdAppointmentId = createdAppointmentResult['appointmentId']; //
-       print("Appointment record created/updated with ID: $createdAppointmentId and Intasend Invoice ID: $intasendInvoiceId"); //
+      // Create/Update appointment record in Firestore using your service
+      // Ensure createAppointment returns the ID correctly
+      Map<String, dynamic> createdAppointmentResult = await _appointmentService.createAppointment(
+        businessId: widget.shopId,
+        businessName: widget.shopName,
+        appointmentData: finalAppointmentData,
+      );
+      String createdAppointmentId = createdAppointmentResult['appointmentId']; // Make sure this key is correct
+      print("Appointment record created/updated with ID: $createdAppointmentId and Intasend Invoice ID: $intasendInvoiceId");
 
-      // Navigate or show message based on payment method
+      // --- MODIFIED LOGIC ---
       if (_paymentMethod == 'M-Pesa') {
-         // Show message to user
-         if(mounted) ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Check your phone for M-Pesa prompt. Booking will be confirmed upon successful payment.'), duration: Duration(seconds: 6)),
-         ); //
-         // Navigate home. User waits for push notification or checks status later via app/callback.
-         if(mounted) {
+          print("Appointment record created with ID: $createdAppointmentId. Waiting for payment confirmation.");
+
+          // Start listening instead of navigating immediately
+          if (!mounted) return;
+          setState(() {
+            _isWaitingForPayment = true; // Show waiting UI
+            _isProcessing = false; // Stop the general processing indicator
+            _currentAppointmentId = createdAppointmentId; // Store the ID
+          });
+          _listenForPaymentCompletion(createdAppointmentId); // Start the listener
+
+      } else { // Cash payment (Navigate immediately)
+          if(mounted) ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Booking confirmed! Please pay the booking fee (${_formatCurrency(_bookingFee)}) and remainder at the venue.')),
+          );
+          if(mounted) {
             Navigator.pushAndRemoveUntil(
               context,
-              MaterialPageRoute(builder: (context) => CustomerHomePage()),
-              (route) => false, // Remove all previous routes
-            ); //
-         }
-      } else { // Cash payment
-         if(mounted) ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('Booking confirmed! Please pay the booking fee (${_formatCurrency(_bookingFee)}) and remainder at the venue.')),
-         ); //
-         if(mounted) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => CustomerHomePage()),
-              (route) => false, // Remove all previous routes
-            ); //
+              MaterialPageRoute(builder: (context) => CustomerHomePage()), // Navigate for Cash
+              (route) => false,
+            );
           }
+          // Ensure processing stops for cash
+          if(mounted) setState(() { _isProcessing = false; });
       }
 
-    } catch (e) {
-      print('Error completing booking process: $e'); //
+    } catch (e, s) { // Catch errors during booking save
+      print('Error completing booking process: $e');
+      print('Stack Trace: $s');
       if(mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error saving booking: ${e.toString()}'), backgroundColor: Colors.red),
-        ); //
+        );
+        // Ensure loading indicators stop on error
+        setState(() {
+          _isProcessing = false;
+          _isWaitingForPayment = false; // Also stop waiting if it started
+          _currentAppointmentId = null;
+        });
       }
-       // Ensure loading stops on error AFTER potential payment initiation might have occurred
-       if(mounted) setState(() { _isProcessing = false; }); //
     }
-     // Don't stop processing indicator here for M-Pesa success, let navigation handle it
-     // Ensure it stops if booking fails after payment init attempt (handled in catch block)
-  } //
+  }
+
+  // --- NEW: Firestore Listener Method ---
+  // (Keep your original listener function)
+  void _listenForPaymentCompletion(String appointmentId) {
+    print("Listening for payment updates on appointment: $appointmentId");
+    // Construct the document reference - ADJUST PATH IF YOUR STRUCTURE IS DIFFERENT
+    DocumentReference appointmentRef = FirebaseFirestore.instance
+        .collection('businesses')
+        .doc(widget.shopId) // Use the business ID from the widget
+        .collection('appointments')
+        .doc(appointmentId);
+
+    _paymentStatusSubscription?.cancel(); // Cancel any previous listener
+    _paymentStatusSubscription = appointmentRef.snapshots().listen(
+      (DocumentSnapshot snapshot) {
+        if (!mounted || _currentAppointmentId != appointmentId) return; // Stop if not mounted or watching different ID
+
+        if (snapshot.exists && snapshot.data() != null) {
+          Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+          // *** Use the field name your webhook (`index.js`) actually updates ***
+          String? intasendState = data['intasendState']; // Example field name
+          String? paymentStatus = data['paymentStatus']; // Another potential field
+
+          print("Received Firestore update: intasendState=$intasendState, paymentStatus=$paymentStatus");
+
+          // --- CHECK FOR COMPLETION ---
+          // Adjust this condition based on your webhook's logic in index.js
+          // Check for 'Paid' status primarily
+          if (paymentStatus == 'Paid') {
+            print("Payment COMPLETED for appointment $appointmentId!");
+            _paymentStatusSubscription?.cancel();
+             _paymentStatusSubscription = null; // Clear subscription
+            _showSuccessAndNavigate(); // Trigger success UI and navigation
+          } else if (intasendState == 'FAILED' || paymentStatus == 'failed') {
+             print("Payment FAILED for appointment $appointmentId!");
+            _paymentStatusSubscription?.cancel();
+            _paymentStatusSubscription = null; // Clear subscription
+             if(mounted) {
+               setState(() {
+                 _isWaitingForPayment = false; // Hide waiting UI
+                 _currentAppointmentId = null;
+               });
+               ScaffoldMessenger.of(context).showSnackBar(
+                 SnackBar(content: Text('Payment Failed. Please try again or contact support.'), backgroundColor: Colors.red),
+               );
+               // Optionally navigate back or allow retry
+             }
+          }
+          // Add handling for other states like TIMEOUT if your webhook sets them
+        } else {
+           print("Appointment document $appointmentId does not exist or has no data.");
+           _paymentStatusSubscription?.cancel();
+           _paymentStatusSubscription = null;
+           if(mounted) {
+             setState(() { _isWaitingForPayment = false; _currentAppointmentId = null; });
+             ScaffoldMessenger.of(context).showSnackBar(
+               SnackBar(content: Text('Error monitoring payment status. Booking may be incomplete.'), backgroundColor: Colors.orange),
+             );
+           }
+        }
+      },
+      onError: (error) {
+        print("Error listening to payment status: $error");
+        _paymentStatusSubscription?.cancel();
+        _paymentStatusSubscription = null;
+         if(mounted) {
+           setState(() { _isWaitingForPayment = false; _currentAppointmentId = null; });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error checking payment. Please verify your booking later.'), backgroundColor: Colors.red),
+            );
+         }
+      }
+    );
+
+     // Optional: Timeout to stop listening after a while
+     Future.delayed(Duration(minutes: 5), () { // Example: 5 minute timeout
+       if (_paymentStatusSubscription != null && _currentAppointmentId == appointmentId && mounted) { // Check if still listening for this specific ID
+         print("Payment status check timed out for $appointmentId.");
+         _paymentStatusSubscription?.cancel();
+         _paymentStatusSubscription = null;
+         setState(() { _isWaitingForPayment = false; _currentAppointmentId = null; });
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Payment confirmation is taking longer than expected. Please check your bookings later.'), backgroundColor: Colors.orange, duration: Duration(seconds: 5)),
+         );
+         // Decide if you want to navigate home anyway after timeout
+         // Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => CustomerHomePage()), (route) => false);
+       }
+     });
+  }
+
+  // --- NEW: Show Success Animation and Navigate Method ---
+  // (Keep your original success animation function)
+  Future<void> _showSuccessAndNavigate() async {
+    if (!mounted) return; // Check if widget is still mounted
+
+    setState(() {
+      _isWaitingForPayment = false; // Ensure waiting UI is hidden
+      _currentAppointmentId = null; // Clear the watched ID
+    });
+
+    // Show Success Animation Dialog
+    await showDialog(
+      context: context,
+      barrierDismissible: false, // Prevent dismissing by tapping outside
+      builder: (BuildContext context) {
+        // Automatically close the dialog after a delay
+        Timer(Duration(seconds: 3), () { // Adjust animation duration + buffer
+           if(Navigator.of(context).canPop()) { // Check if dialog is still open
+              Navigator.of(context).pop();
+           }
+        });
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Lottie Animation (make sure 'assets/animations/success.json' exists)
+                Lottie.asset(
+                  'assets/animations/success.json', // IMPORTANT: Replace with your actual Lottie file path
+                  height: 120,
+                  width: 120,
+                  repeat: false,
+                  errorBuilder: (context, error, stackTrace) => Icon(Icons.check_circle_outline, color: Colors.green, size: 80), // Fallback icon
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Payment Successful!',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Your booking is confirmed.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                 ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    // Navigate to Customer Home Page after dialog closes (or animation finishes)
+    if (mounted) { // Double-check if mounted before navigation
+       Navigator.pushAndRemoveUntil(
+         context,
+         MaterialPageRoute(builder: (context) => CustomerHomePage()), // Navigate home
+         (route) => false, // Remove all previous routes from the stack
+       );
+    }
+  }
+
 
   // --- Button Press Handler (Main logic for booking request) ---
+  // ** MODIFIED to call the Cloud Function method **
   Future<void> _handleBookingRequest() async {
-     if (_isProcessing) return; // Prevent double taps
+      if (_isProcessing || _isWaitingForPayment) return; // Prevent action if already processing or waiting
 
-     if(mounted) setState(() { _isProcessing = true; }); //
+      if(mounted) setState(() { _isProcessing = true; });
 
-     User? user = FirebaseAuth.instance.currentUser; //
-     if (user == null) {
-       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please sign in to book.'), backgroundColor: Colors.red)); //
-       if(mounted) setState(() { _isProcessing = false; }); //
-       return;
-     }
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please sign in to book.'), backgroundColor: Colors.red));
+        if(mounted) setState(() { _isProcessing = false; });
+        return;
+      }
 
-     // --- Handle M-Pesa Payment ---
-     if (_paymentMethod == 'M-Pesa') {
-       // 1. Get and validate the M-Pesa phone number (returns API format 254...)
-       String? mpesaApiPhoneNumber = await _showPhoneNumberDialog(); //
+      // Handle M-Pesa Payment
+      if (_paymentMethod == 'M-Pesa') {
+        String? mpesaApiPhoneNumber = await _showPhoneNumberDialog();
 
-       if (mpesaApiPhoneNumber == null) {
-         // User cancelled the dialog
-         if(mounted) setState(() { _isProcessing = false; }); //
-         return;
-       }
+        if (mpesaApiPhoneNumber == null) { // User cancelled dialog
+          if(mounted) setState(() { _isProcessing = false; });
+          return;
+        }
 
-       // 2. Get the amount to pay
-       // Use the final calculated amount for M-Pesa (includes fee, excludes discount)
-       double mpesaAmount = _totalServicePrice + _bookingFee - _discountAmount;
-       if (mpesaAmount < 0) mpesaAmount = 0; // Ensure non-negative amount
+        // Calculate amount to be paid via M-Pesa NOW
+        double mpesaAmount = _totalServicePrice + _bookingFee - _discountAmount;
+        // Ensure minimum amount if required by IntaSend (e.g., KES 1)
+        if (mpesaAmount < 1) mpesaAmount = 1;
 
-        // 3. Generate a unique reference for Intasend's api_ref
-        // Example format: BOOK-SHOPIDPREFIX-TIMESTAMP
-        String uniqueRef = 'BOOK-${widget.shopId.substring(0, (widget.shopId.length < 4 ? widget.shopId.length : 4))}-${DateTime.now().millisecondsSinceEpoch}'; //
-        print("Using Intasend api_ref: $uniqueRef"); //
+        // Generate a unique reference for Intasend's api_ref
+        String uniqueRef = 'BOOK-${widget.shopId.substring(0, (widget.shopId.length < 4 ? widget.shopId.length : 4))}-${DateTime.now().millisecondsSinceEpoch}';
+        print("Using Intasend api_ref: $uniqueRef");
 
-       // 4. Initiate Intasend STK Push DIRECTLY
-       // This function now calls Intasend API and handles errors/messages internally
-       String? receivedInvoiceId = await _initiateMpesaPayment(mpesaAmount, mpesaApiPhoneNumber, uniqueRef); //
+        // ** Initiate Payment via Cloud Function **
+        String? receivedInvoiceId = await _initiateMpesaPaymentViaFunction(
+            mpesaAmount,
+            mpesaApiPhoneNumber,
+            uniqueRef
+        );
 
-       // 5. If STK push initiated successfully, create the booking record in Firestore
-       if (receivedInvoiceId != null) {
-         // Pass the generated uniqueRef and the receivedInvoiceId
-         await _completeBooking(
-             uniqueRef: uniqueRef, // Pass the generated ref
-             intasendInvoiceId: receivedInvoiceId
-         ); //
-       } else {
-         // Error was shown inside _initiateMpesaPayment, stop loading indicator
-         if(mounted) setState(() { _isProcessing = false; }); //
-       }
-     }
-     // --- Handle Cash Payment ---
-     else { // Cash payment method selected
-       // Directly proceed to create the booking record with 'confirmed' status
-       // Pass null for uniqueRef as it's not applicable for cash
-       await _completeBooking(uniqueRef: null, intasendInvoiceId: null); //
-       // Note: _completeBooking will navigate away for cash payments as well.
-       // _isProcessing is handled within _completeBooking's success/error paths for cash.
-     }
-  } //
-  // --- Button Press Handler (Main logic for booking request) ---
- 
+        // If STK push initiated successfully (Cloud Function returned invoiceId),
+        // proceed to create booking record (which now starts the listener)
+        if (receivedInvoiceId != null) {
+          await _completeBooking(
+              uniqueRef: uniqueRef, // Pass the apiRef used
+              intasendInvoiceId: receivedInvoiceId // Pass the invoiceId received
+          );
+          // Note: _completeBooking now handles setting _isProcessing=false and _isWaitingForPayment=true
+        } else {
+          // Error shown inside _initiateMpesaPaymentViaFunction, stop loading indicator here
+          if(mounted) setState(() { _isProcessing = false; });
+        }
+      }
+      // Handle Cash Payment
+      else { // Cash payment method selected
+        // Directly proceed to create booking record (which navigates for cash)
+        await _completeBooking(uniqueRef: null, intasendInvoiceId: null);
+        // Note: _completeBooking handles _isProcessing and navigation for cash.
+      }
+  }
+
   // --- Calculate prices based on selected services and payment method ---
+  // (Keep your original pricing logic)
   void _calculatePrices() {
-    // Calculate total service price from bookingData
     List<Map<String, dynamic>> services = List<Map<String, dynamic>>.from(widget.bookingData['services'] ?? []);
 
     _totalServicePrice = 0.0;
     for (var service in services) {
       String priceString = service['price']?.toString() ?? '';
-      // More robust price cleaning
       priceString = priceString.replaceAll(RegExp(r'[KESKsh\s,]'), '').trim();
       _totalServicePrice += double.tryParse(priceString) ?? 0.0;
     }
 
-    // Apply discount first if any is active
-    _applyDiscountInternal(); // Recalculate discount based on service price
+    _applyDiscountInternal(); // Recalculate discount
 
-    // Calculate Booking/Processing fee based on the selected method
+    // Calculate Booking/Processing fee based on method
     if (_paymentMethod == 'M-Pesa') {
-      // For M-Pesa via Intasend, assume a processing fee (e.g., 8% - adjust as needed)
-      // This fee might be absorbed or passed to the customer
-      _bookingFee = _totalServicePrice * 0.08; // Example processing fee
+      // Example 8% processing fee passed to customer (adjust percentage as needed)
+      _bookingFee = _totalServicePrice * 0.08;
       _totalAmount = _totalServicePrice + _bookingFee - _discountAmount; // Final amount customer pays now
     } else { // Cash
-      // For Cash, calculate the booking fee (e.g., 20%) payable at the venue
-      _bookingFee = _totalServicePrice * 0.20; // Example booking fee deposit
-      _totalAmount = _totalServicePrice - _discountAmount; // Total cost (excluding deposit paid at venue) -> **Correction**: Total cost should reflect full price
-      _totalAmount = _totalServicePrice + (_totalServicePrice * 0.00) - _discountAmount; // Let's assume booking fee is separate, total cost is service price - discount
-                                                                                            // The UI will show the deposit separately.
-      // Recalculate total amount to represent the full cost before deposit
-      _totalAmount = _totalServicePrice - _discountAmount; // Base cost
+      // Example 20% booking fee deposit payable at venue (adjust percentage as needed)
+      _bookingFee = _totalServicePrice * 0.20;
+      // Total cost represents the full service price minus discount (deposit shown separately)
+      _totalAmount = _totalServicePrice - _discountAmount;
     }
 
-    // Ensure total amount is not negative
+    // Ensure non-negative amounts
     if (_totalAmount < 0) _totalAmount = 0;
-    // Ensure booking fee is not negative (relevant for cash display)
     if (_bookingFee < 0) _bookingFee = 0;
 
-
-    // Update the UI if the widget is still mounted
     if(mounted) {
       setState(() {});
     }
   }
 
-  // --- Internal method to recalculate discount without showing snackbar ---
+  // --- Internal method to recalculate discount ---
+  // (Keep your original discount logic)
   void _applyDiscountInternal() {
      String code = _discountCodeController.text.trim().toLowerCase();
-     // Apply discount based on the current total service price
      double baseForDiscount = _totalServicePrice;
 
-     // Simple discount logic (replace with your actual logic/API call if needed)
+     // Simple discount logic (replace with your actual logic)
      if (code == 'welcome10') {
-       _discountAmount = baseForDiscount * 0.1; // 10% discount
+        _discountAmount = baseForDiscount * 0.1; // 10% discount
      } else {
-        _discountAmount = 0.0; // Reset discount if code is invalid or empty
+         _discountAmount = 0.0;
      }
-     // Note: _calculatePrices will call setState after this.
   }
 
   // --- Apply discount code from user input ---
+  // (Keep your original discount application logic)
   void _applyDiscountCode() {
     String code = _discountCodeController.text.trim();
     double previousDiscount = _discountAmount;
 
     _applyDiscountInternal(); // Calculate potential new discount
 
-    // Only recalculate and show messages if the discount actually changed
     if (_discountAmount != previousDiscount) {
-       _calculatePrices(); // Recalculate totals with the new discount/no discount
+       _calculatePrices(); // Recalculate totals
        if (_discountAmount > 0) {
           if(mounted) ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text('Discount applied!')), );
        } else if (code.isNotEmpty) {
-          // Discount became 0, but code was entered
           if(mounted) ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text('Invalid discount code')), );
        } else {
-          // Discount removed because code was cleared
            if(mounted) ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text('Discount removed.')), );
        }
      } else if (code.isNotEmpty && _discountAmount == 0) {
-        // Code entered, but it was already invalid (no change)
         if(mounted) ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text('Invalid discount code')), );
      }
-     // Hide keyboard
      FocusScope.of(context).unfocus();
   }
 
   // --- Format currency for display ---
+  // (Keep your original currency formatting)
   String _formatCurrency(double amount) {
     final displayAmount = amount >= 0 ? amount : 0;
-    // Using Intl package for locale-aware currency formatting (add dependency if not present)
-    final format = NumberFormat.currency(locale: 'en_KE', symbol: 'KES ', decimalDigits: 0); // Kenyan Shilling format
+    final format = NumberFormat.currency(locale: 'en_KE', symbol: 'KES ', decimalDigits: 0);
     return format.format(displayAmount);
-    // Basic fallback: return 'KES ${displayAmount.toStringAsFixed(0)}';
   }
 
   // --- Get shop image widget ---
+  // (Keep your original image fetching logic)
   Widget _getShopImage() {
     String? imageUrl;
     // Safely access nested map data for profile image URL
@@ -564,40 +677,34 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
       imageUrl = widget.bookingData['profileImageUrl'];
     } else if (widget.bookingData['shopData']?['profileImageUrl'] is String && widget.bookingData['shopData']['profileImageUrl'].isNotEmpty) {
        imageUrl = widget.bookingData['shopData']['profileImageUrl'];
-    } else if (widget.bookingData['businessImageUrl'] is String && widget.bookingData['businessImageUrl'].isNotEmpty) {
-       imageUrl = widget.bookingData['businessImageUrl'];
-    } else if (widget.bookingData['shopImageUrl'] is String && widget.bookingData['shopImageUrl'].isNotEmpty) {
-       imageUrl = widget.bookingData['shopImageUrl'];
-    }
+    } // Add more fallbacks if needed
 
-    return ClipOval( // Make it circular
+    return ClipOval(
       child: Container(
         height: 50,
         width: 50,
-        color: Colors.grey[200], // Background color for placeholder
+        color: Colors.grey[200],
         child: imageUrl != null
             ? CachedNetworkImage(
                 imageUrl: imageUrl,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Center(child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor), // Use theme color
+                  valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
                   strokeWidth: 2,
                 )),
                 errorWidget: (context, url, error) => Center(
-                  child: Icon(Icons.storefront, color: Colors.grey[600], size: 30), // Placeholder icon
+                  child: Icon(Icons.storefront, color: Colors.grey[600], size: 30),
                 ),
               )
-            : Center( // Fallback icon if no URL
-                child: Icon(Icons.storefront, color: Colors.grey[600], size: 30),
-              ),
+            : Center(child: Icon(Icons.storefront, color: Colors.grey[600], size: 30)),
       ),
     );
   }
 
   // --- Calculate total duration string from services ---
+  // (Keep your original duration calculation)
   String _getTotalDuration(List<Map<String, dynamic>> services) {
     int totalMinutes = 0;
-    // Regex to find digits followed by min/mins/hr/hrs (case insensitive)
     RegExp regExp = RegExp(r'(\d+)\s*(min|mins|hr|hrs)', caseSensitive: false);
     for (var service in services) {
       String duration = service['duration']?.toString() ?? '';
@@ -607,9 +714,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
         String unit = match.group(2)?.toLowerCase() ?? '';
         if (value != null) {
           if (unit.startsWith('hr')) {
-            totalMinutes += value * 60; // Convert hours to minutes
+            totalMinutes += value * 60;
           } else {
-            totalMinutes += value; // Add minutes
+            totalMinutes += value;
           }
         }
       }
@@ -619,21 +726,21 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
     List<String> parts = [];
     if (hours > 0) parts.add('${hours}hr');
     if (mins > 0) parts.add('${mins}min');
-    if (parts.isEmpty) return '0min'; // Return 0min if total is zero
-    return parts.join(' '); // Join parts, e.g., "1hr 30min"
+    if (parts.isEmpty) return '0min';
+    return parts.join(' ');
   }
 
 
   @override
   Widget build(BuildContext context) {
     // Extract necessary info from bookingData safely
-    String shopName = widget.shopName;
-    String shopLocation = widget.bookingData['businessLocation'] ?? 'Location N/A';
+    // Use widget properties directly where appropriate (like shopName)
+    String shopLocation = widget.bookingData['businessLocation'] ?? 'Location N/A'; // Assuming passed in bookingData
     String professionalName = widget.bookingData['professionalName'] ?? 'Any Professional';
-    String professionalRole = widget.bookingData['professionalRole'] ?? 'Stylist';
+    String professionalRole = widget.bookingData['professionalRole'] ?? 'Stylist'; // Assuming passed in bookingData
     List<Map<String, dynamic>> services = List<Map<String, dynamic>>.from(widget.bookingData['services'] ?? []);
 
-    // Format Date and Time Safely
+    // Format Date and Time Safely (Keep your original formatting logic)
     String appointmentDateStr = 'Date N/A';
     String dayOfWeek = '';
      if (widget.bookingData['appointmentDate'] != null) {
@@ -642,11 +749,10 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
            if (widget.bookingData['appointmentDate'] is Timestamp) {
              date = (widget.bookingData['appointmentDate'] as Timestamp).toDate();
            } else if (widget.bookingData['appointmentDate'] is String) {
-             // Try parsing common formats, add more if needed
-             try { date = DateTime.parse(widget.bookingData['appointmentDate']); } // ISO 8601 format
+             try { date = DateTime.parse(widget.bookingData['appointmentDate']); }
              catch (e) {
-                try { date = DateFormat("yyyy-MM-dd").parse(widget.bookingData['appointmentDate']); } // Explicit format
-                catch (e2){ throw FormatException("Could not parse date string"); } // Throw if still fails
+                try { date = DateFormat("yyyy-MM-dd").parse(widget.bookingData['appointmentDate']); }
+                catch (e2){ throw FormatException("Could not parse date string"); }
              }
            } else {
              throw FormatException("Unsupported date type: ${widget.bookingData['appointmentDate'].runtimeType}");
@@ -658,25 +764,28 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
            appointmentDateStr = widget.bookingData['appointmentDate']?.toString() ?? 'Invalid Date';
         }
      }
-    // Format Time (assuming it's stored as a string like "10:00 AM")
     String appointmentTime = widget.bookingData['appointmentTime'] ?? 'Time N/A';
 
-    // --- Main Scaffold and UI Structure ---
+    // --- Main Scaffold and UI Structure (Keep your original detailed build method) ---
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
-        leading: BackButton(),
+        leading: BackButton(
+            // Prevent back navigation while waiting for payment
+            onPressed: _isWaitingForPayment ? null : () => Navigator.of(context).pop(),
+        ),
         title: Text('Review and Confirm'),
         centerTitle: false,
       ),
-      body: Stack(
+      body: Stack( // Use Stack to overlay the waiting indicator
         children: [
+          // Main scrollable content
           SingleChildScrollView(
-            // Add padding to prevent content from being hidden behind the bottom bar
-            padding: EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 120.0), // Increased bottom padding
+            // Add padding to prevent content from being hidden behind the bottom bar or waiting indicator
+            padding: EdgeInsets.fromLTRB(16.0, 16.0, 16.0, _isWaitingForPayment ? 20.0 : 120.0), // Adjust bottom padding when waiting
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -684,16 +793,15 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    _getShopImage(),
+                    _getShopImage(), // Use your helper
                     SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(shopName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(widget.shopName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                           SizedBox(height: 4),
                           Text(shopLocation, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                          // TODO: Add Rating row here if available
                         ],
                       ),
                     ),
@@ -709,22 +817,22 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                      borderRadius: BorderRadius.circular(8),
                    ),
                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                          Text('Appointment Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          Divider(height: 20),
-                          Row(children: [ Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey[700]), SizedBox(width: 8), Text('$dayOfWeek, $appointmentDateStr')]),
-                          SizedBox(height: 8),
-                           Row(children: [ Icon(Icons.access_time_outlined, size: 16, color: Colors.grey[700]), SizedBox(width: 8), Text(appointmentTime)]),
-                           SizedBox(height: 8),
-                            Row(children: [ Icon(Icons.person_outline, size: 16, color: Colors.grey[700]), SizedBox(width: 8), Text('$professionalName ($professionalRole)')]),
-                      ],
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+                        Text('Appointment Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Divider(height: 20),
+                        Row(children: [ Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey[700]), SizedBox(width: 8), Text('$dayOfWeek, $appointmentDateStr')]),
+                        SizedBox(height: 8),
+                         Row(children: [ Icon(Icons.access_time_outlined, size: 16, color: Colors.grey[700]), SizedBox(width: 8), Text(appointmentTime)]),
+                         SizedBox(height: 8),
+                          Row(children: [ Icon(Icons.person_outline, size: 16, color: Colors.grey[700]), SizedBox(width: 8), Text('$professionalName ($professionalRole)')]),
+                     ],
                    ),
                  ),
                  SizedBox(height: 24),
 
                 // --- Services Section ---
-                Text('Selected Services', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('Selected Services (${_getTotalDuration(services)})', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), // Added total duration
                 SizedBox(height: 8),
                 if (services.isEmpty)
                   Padding(
@@ -732,12 +840,10 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     child: Text('No services selected.', style: TextStyle(color: Colors.grey)),
                   )
                 else
-                  // Use Column instead of ListView for non-scrolling lists inside SingleChildScrollView
                   Column(
                     children: services.map((service) {
                       String serviceName = service['name'] ?? 'Service';
                       String serviceDuration = service['duration'] ?? '-';
-                      // Ensure price is formatted as currency here too
                       double priceValue = double.tryParse(
                           (service['price']?.toString() ?? '0')
                           .replaceAll(RegExp(r'[KESKsh\s,]'), '').trim()
@@ -749,13 +855,12 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                         child: Column(
                           children: [
                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(child: Text('$serviceName ($serviceDuration)')),
-                                  Text(servicePrice, style: TextStyle(fontWeight: FontWeight.w500)),
-                                ],
+                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                               children: [
+                                 Expanded(child: Text('$serviceName ($serviceDuration)')),
+                                 Text(servicePrice, style: TextStyle(fontWeight: FontWeight.w500)),
+                               ],
                              ),
-                             // Add divider except for the last item
                              if (service != services.last)
                                Divider(height: 20, thickness: 0.5),
                           ],
@@ -771,43 +876,36 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                  SizedBox(height: 12),
                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Subtotal'), Text(_formatCurrency(_totalServicePrice))]),
                  SizedBox(height: 8),
-                 // Show Booking Fee only for Cash method
                  if (_paymentMethod == 'Cash')
                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Booking Fee (Pay at Venue)'), Text(_formatCurrency(_bookingFee))]),
-                 // Show Processing Fee for M-Pesa if applicable
                   if (_paymentMethod == 'M-Pesa' && _bookingFee > 0)
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Processing Fee (Est.)'), Text(_formatCurrency(_bookingFee))]),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Processing Fee'), Text(_formatCurrency(_bookingFee))]),
                   SizedBox(height: 8),
-                   // Show discount if applied
                    if (_discountAmount > 0)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Discount Applied'), Text('- ${_formatCurrency(_discountAmount)}', style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w500))]),
-                      ),
-
+                     Padding(
+                       padding: const EdgeInsets.symmetric(vertical: 4.0),
+                       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Discount Applied'), Text('- ${_formatCurrency(_discountAmount)}', style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w500))]),
+                     ),
                  Divider(height: 20, thickness: 1),
-                 // Show appropriate total label and amount based on payment method
                  Padding(
                    padding: const EdgeInsets.symmetric(vertical: 8.0),
                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _paymentMethod == 'M-Pesa' ? 'Total Payable Now' : 'Total Service Cost',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        Text(
-                          // M-Pesa: Show final amount including fee
-                          // Cash: Show total service cost (deposit paid separately)
-                          _paymentMethod == 'M-Pesa'
+                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                     children: [
+                       Text(
+                         _paymentMethod == 'M-Pesa' ? 'Total Payable Now' : 'Total Service Cost',
+                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                       ),
+                       Text(
+                         _paymentMethod == 'M-Pesa'
                              ? _formatCurrency(_totalServicePrice + _bookingFee - _discountAmount) // Full amount for M-Pesa
-                             : _formatCurrency(_totalServicePrice - _discountAmount), // Service cost for Cash
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                      ],
-                    ),
+                             : _formatCurrency(_totalServicePrice - _discountAmount), // Service cost for Cash (deposit shown above/below)
+                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                       ),
+                     ],
+                   ),
                  ),
-                  SizedBox(height: 24),
+                 SizedBox(height: 24),
 
                 // --- Payment Method Selection Section ---
                 Text('Mode of Payment', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -815,41 +913,44 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: _isWaitingForPayment ? Colors.grey[200]! : Colors.grey[300]!), // Dim if waiting
                     borderRadius: BorderRadius.circular(8),
+                    color: _isWaitingForPayment ? Colors.grey[100] : Colors.white, // Dim if waiting
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _paymentMethod,
                       isExpanded: true,
                       icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[700]),
+                      // Disable dropdown while waiting for payment
+                      onChanged: _isWaitingForPayment ? null : (String? value) {
+                        if (value != null && value != _paymentMethod) {
+                          setState(() {
+                            _paymentMethod = value;
+                            _calculatePrices(); // Recalculate prices
+                          });
+                        }
+                      },
                       items: [
                         DropdownMenuItem(
                             value: 'M-Pesa',
                             child: Row(children: [
-                                Image.asset('assets/images/mpesa.png', height: 24, // Use your actual asset path
-                                    errorBuilder: (context, error, stackTrace) => Icon(Icons.phone_android, color: Colors.green[700], size: 20)), // Fallback icon
-                                SizedBox(width: 10),
-                                Text('M-Pesa (Pay Now)', style: TextStyle(fontSize: 14))
+                              // Consider adding an M-Pesa logo asset
+                              Image.asset('assets/images/mpesa.png', height: 24, // Replace with your actual asset path
+                                 errorBuilder: (context, error, stackTrace) => Icon(Icons.phone_android, color: Colors.green[700], size: 20)),
+                              SizedBox(width: 10),
+                              Text('M-Pesa (Pay Now)', style: TextStyle(fontSize: 14))
                             ])),
                         DropdownMenuItem(
                             value: 'Cash',
                             child: Row(children: [
-                                Icon(Icons.money_outlined, size: 20, color: Colors.grey[700]),
-                                SizedBox(width: 10),
-                                Text('Cash (Pay Deposit at Venue)', style: TextStyle(fontSize: 14))
+                              Icon(Icons.money_outlined, size: 20, color: Colors.grey[700]),
+                              SizedBox(width: 10),
+                              Text('Cash (Pay Deposit at Venue)', style: TextStyle(fontSize: 14))
                             ])),
                       ],
-                      onChanged: (String? value) {
-                        if (value != null && value != _paymentMethod) {
-                          setState(() {
-                            _paymentMethod = value;
-                            _calculatePrices(); // Recalculate prices when payment method changes
-                          });
-                        }
-                      },
-                      style: TextStyle(color: Colors.black87, fontSize: 16), // Style for selected item
-                      dropdownColor: Colors.white, // Background color of dropdown
+                      style: TextStyle(color: _isWaitingForPayment ? Colors.grey[500] : Colors.black87, fontSize: 16),
+                      dropdownColor: Colors.white,
                     ),
                   ),
                 ),
@@ -859,31 +960,31 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                 Text('Discount Code (Optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 SizedBox(height: 8),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start, // Align items to top
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: SizedBox(
-                        // height: 48, // Allow height to adjust for potential error text
-                        child: TextField(
-                          controller: _discountCodeController,
-                          decoration: InputDecoration(
-                            hintText: 'Enter code',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                            isDense: true, // Makes it more compact
-                          ),
-                           textCapitalization: TextCapitalization.characters, // Uppercase discount codes
-                           onSubmitted: (_) => _applyDiscountCode(), // Apply on submit
+                      child: TextField(
+                        controller: _discountCodeController,
+                         enabled: !_isWaitingForPayment, // Disable if waiting
+                        decoration: InputDecoration(
+                          hintText: 'Enter code',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          isDense: true,
+                           filled: _isWaitingForPayment,
+                           fillColor: _isWaitingForPayment ? Colors.grey[100] : null,
                         ),
+                         textCapitalization: TextCapitalization.characters,
+                         onSubmitted: _isWaitingForPayment ? null : (_) => _applyDiscountCode(),
                       ),
                     ),
                     SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: _applyDiscountCode, // Apply on button press
+                      onPressed: _isWaitingForPayment ? null : _applyDiscountCode, // Disable if waiting
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[200],
-                        foregroundColor: Colors.black,
-                        minimumSize: Size(80, 48), // Match text field approx height
+                        backgroundColor: _isWaitingForPayment ? Colors.grey[300] : Colors.grey[200],
+                        foregroundColor: _isWaitingForPayment ? Colors.grey[500] : Colors.black,
+                        minimumSize: Size(80, 48),
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
@@ -898,91 +999,133 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                 SizedBox(height: 8),
                 TextField(
                   controller: _notesController,
+                  enabled: !_isWaitingForPayment, // Disable if waiting
                   maxLines: 3,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
                     hintText: 'Any special requests or information for the shop?',
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     contentPadding: EdgeInsets.all(12),
+                    filled: _isWaitingForPayment,
+                    fillColor: _isWaitingForPayment ? Colors.grey[100] : null,
                   ),
                 ),
               ],
             ),
           ),
 
-          // --- Fixed Bottom Booking Bar ---
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                 color: Colors.white,
-                 border: Border(top: BorderSide(color: Colors.grey[200]!, width: 1.0)),
-                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: Offset(0,-2))] // Subtle shadow
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Price display section in bottom bar
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                         _paymentMethod == 'M-Pesa' ? 'Payable Now:' : 'Deposit (at Venue):', // Clearer labels
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                       ),
-                       SizedBox(height: 2),
-                       Text(
-                         // Show the correct amount based on payment method
-                         _paymentMethod == 'M-Pesa'
-                             ? _formatCurrency(_totalServicePrice + _bookingFee - _discountAmount) // Full amount for M-Pesa
-                             : _formatCurrency(_bookingFee), // Deposit amount for Cash
-                         style: TextStyle(
-                           fontWeight: FontWeight.bold,
-                           fontSize: 18,
-                           color: Colors.black87,
+          // --- Fixed Bottom Booking Bar --- (Only show if NOT waiting for payment)
+          if (!_isWaitingForPayment)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12).copyWith(bottom: MediaQuery.of(context).padding.bottom + 12), // Adjust for safe area
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border(top: BorderSide(color: Colors.grey[200]!, width: 1.0)),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: Offset(0,-2))]
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Price display section
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                           _paymentMethod == 'M-Pesa' ? 'Payable Now:' : 'Deposit (at Venue):',
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                         SizedBox(height: 2),
+                         Text(
+                           _paymentMethod == 'M-Pesa'
+                               ? _formatCurrency(_totalServicePrice + _bookingFee - _discountAmount)
+                               : _formatCurrency(_bookingFee), // Deposit amount for Cash
+                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black87),
+                         ),
+                         if (_paymentMethod == 'Cash')
+                           Padding(
+                             padding: const EdgeInsets.only(top: 2.0),
+                             child: Text('Total Cost: ${_formatCurrency(_totalAmount)}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                           ),
+                      ],
+                    ),
+                    // Booking Button
+                    ElevatedButton(
+                      // Disable button if processing OR waiting
+                      onPressed: (_isProcessing || _isWaitingForPayment) ? null : _handleBookingRequest,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF008080), // Teal color
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                        textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 2,
+                      ).copyWith(
+                         backgroundColor: MaterialStateProperty.resolveWith<Color?>(
+                           (Set<MaterialState> states) {
+                             if (states.contains(MaterialState.disabled)) {
+                               return Colors.grey[400]; // Grey out when disabled
+                             }
+                             return Color(0xFF008080); // Default color
+                           },
                          ),
                        ),
-                       // Optionally show total cost hint for cash
-                       if (_paymentMethod == 'Cash')
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2.0),
-                            child: Text('Total Cost: ${_formatCurrency(_totalServicePrice - _discountAmount)}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                          ),
-                    ],
-                  ),
-                  // Booking Button
-                  ElevatedButton(
-                    onPressed: _isProcessing ? null : _handleBookingRequest, // Calls the main booking handler
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF008080), // Example Teal color
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                      textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      elevation: 2,
-                    ).copyWith(
-                       // Make disabled state clearer
-                       backgroundColor: MaterialStateProperty.resolveWith<Color?>(
-                         (Set<MaterialState> states) {
-                           if (states.contains(MaterialState.disabled)) {
-                             return Colors.grey[400]; // Grey out when disabled
-                           }
-                           return Color(0xFF008080); // Default color
-                         },
-                       ),
+                      child: _isProcessing
+                          ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
+                          : Text(_paymentMethod == 'M-Pesa' ? 'Pay & Confirm' : 'Request Booking'),
                     ),
-                    child: _isProcessing
-                        ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)))
-                        : Text(_paymentMethod == 'M-Pesa' ? 'Pay & Confirm' : 'Request Booking'),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
+
+          // --- NEW: WAITING OVERLAY ---
+          if (_isWaitingForPayment)
+            Positioned.fill( // Covers the whole screen
+              child: Container(
+                color: Colors.black.withOpacity(0.75), // Dark overlay
+                child: Center(
+                  child: Container(
+                     margin: EdgeInsets.symmetric(horizontal: 40), // Add some horizontal margin
+                     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                     decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [ BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, spreadRadius: 2)]
+                     ),
+                     child: Column(
+                        mainAxisSize: MainAxisSize.min, // Size column to content
+                        children: [
+                           CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF008080)), // Use theme color
+                           ),
+                           SizedBox(height: 24),
+                           Text(
+                              'Processing Payment...',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                           SizedBox(height: 12),
+                           Text(
+                              'Waiting for M-Pesa confirmation.\nPlease complete the payment prompt sent to your phone.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 13, color: Colors.grey[700], height: 1.4),
+                            ),
+                           // Optional: Add a cancel button (requires more logic to handle cancellation)
+                           // SizedBox(height: 20),
+                           // TextButton(
+                           //   onPressed: _cancelPaymentWait, // Implement this method
+                           //   child: Text('Cancel Payment', style: TextStyle(color: Colors.red)),
+                           // ),
+                         ],
+                     ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

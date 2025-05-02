@@ -1,7 +1,4 @@
-/**
- * Import function triggers from their respective v2 submodules:
- */
-// Using the specific v2 require statements as requested
+
 // eslint-disable-next-line no-unused-vars
 const {onRequest} = require("firebase-functions/v2/https");
 // eslint-disable-next-line max-len
@@ -13,8 +10,15 @@ const admin = require("firebase-admin");
 // eslint-disable-next-line no-unused-vars
 const fetch = require("node-fetch"); // Kept as requested
 // Add this near the top of your index.js file
-const IntaSend = require("intasend-node");
+// --- IntaSend SDK Import (Use this style) ---
+const APIService = require("intasend-node");
+console.log("Attempting to import IntaSend APIService:", APIService);
+// eslint-disable-next-line max-len
+const functions = require("firebase-functions");
 
+const {onCall, HttpsError} = require("firebase-functions/v2/https");
+
+// --- Other require statements (examples based on your file) ---
 
 // --- Service Account and Initialization (As Requested) ---
 const serviceAccount = {
@@ -48,7 +52,18 @@ const db = admin.firestore();
 const messaging = admin.messaging(); // Initialize globally here
 const Timestamp = admin.firestore.Timestamp; // Get Timestamp class
 const FieldValue = admin.firestore.FieldValue; // Get FieldValue class
-
+// eslint-disable-next-line max-len
+const INTASEND_PUBLISHABLE_KEY = "ISPubKey_live_a754b295-ef19-4e9a-9746-9d8dd56c070a";
+// eslint-disable-next-line max-len
+const INTASEND_SECRET_KEY = "ISSecretKey_live_11e1a802-47b9-4d44-9a20-102d6438344d";
+const INTASEND_IS_TEST_ENVIRONMENT = false;
+const INTASEND_SOURCE_WALLET_ID = "04WR7JY";
+const intasend = new APIService(
+    INTASEND_PUBLISHABLE_KEY,
+    INTASEND_SECRET_KEY,
+    INTASEND_IS_TEST_ENVIRONMENT,
+);
+const wallets = intasend.wallets();
 // --- Helper Functions ---
 
 /**
@@ -1177,7 +1192,7 @@ exports.sendRebookingReminders = onSchedule({
         const processUserPromise = async () => {
           try {
             const recentAppointmentsSnapshot = await db
-                // eslint-disable-next-line max-len
+            // eslint-disable-next-line max-len
                 .collection("businesses").doc(businessId).collection("appointments")
                 .where("customerId", "==", userId) // Assuming customerId links
                 .where("appointmentDate", ">", thresholdDateTs)
@@ -2030,507 +2045,1413 @@ reminderIntervals.forEach((interval) => {
     }
   });
 });
-
-
-// --- Intasend Webhook Handler (Payment Collection) ---
 // eslint-disable-next-line max-len
-
-// --- Intasend Webhook Handler (Payment Collection) ---
-exports.intasendWebhookHandler = onRequest({cors: true}, async (req, res) => {
-  console.log("Intasend Webhook Received - Payment Collection Event");
-
-  if (req.method !== "POST") {
-    console.error("Webhook Error: Invalid method:", req.method);
-    res.status(405).send("Method Not Allowed");
-    return;
-  }
-
-  console.log("Raw Request Body:", JSON.stringify(req.body));
-  const payload = req.body;
-
-  // --- Challenge Validation ---
-  // 1. Get the challenge sent BY Intasend in the request.
-  //    IMPORTANT: Verify how Intasend sends this. Common ways are:
-  //    - In the body: req.body.challenge
-  //    - In headers: req.headers['x-intacend-challenge'] (or similar)
-  //    - In query params: req.query.challenge
-  //    Assuming it's in the body for this example:
-  const receivedChallenge = payload.challenge; // Adjust this line if needed!
-
-  // 2. Get the expected challenge you configured (from environment variables)
-  const expectedChallenge = process.env.INTASEND_CHALLENGE;
-
-  // 3. Compare
-  if (!expectedChallenge) {
-  // eslint-disable-next-line max-len
-    console.error("Webhook Warning: INTASEND_CHALLENGE environment variable not set. Skipping challenge validation.");
-  } else if (receivedChallenge !== expectedChallenge) {
-    // eslint-disable-next-line max-len
-    console.error(`Webhook Error: Invalid challenge received. Expected: "${expectedChallenge}", Received: "${receivedChallenge}"`);
-    res.status(403).send("Forbidden: Invalid challenge"); // Reject the request
-    return; // Stop processing
-  } else {
-    console.log("Webhook challenge validation successful.");
-  }
-  // --- End Challenge Validation ---
-
-
-  // eslint-disable-next-line max-len
-  if (!payload || !payload.state || !payload.api_ref || !payload.invoice_id) {
-    // eslint-disable-next-line max-len
-    console.error("Webhook Error: Missing required fields (state, api_ref, invoice_id).");
-    // eslint-disable-next-line max-len
-    res.status(200).send("Accepted (Error: Missing required fields)"); // Respond OK to Intasend
-    return;
-  }
+// eslint-disable-next-line max-len
+exports.intasendWebhook = onRequest({secrets: ["INTASEND_SECRET_KEY"]}, async (req, res) => {
+  console.log(">>>> Received IntaSend Webhook Request - START ");
+  console.log("Webhook Body:", JSON.stringify(req.body, null, 2));
 
   const {
-    invoice_id: invoiceId,
     state,
-    api_ref: apiRef,
+    invoice_id: invoiceId,
+    api_ref: apiRef, // Expected appointmentId or unique booking ref
     value,
     currency,
-    failed_reason: failedReason,
-    failed_code: failedCode,
-    // Add other fields if needed: provider, account, created_at, updated_at
-  } = payload;
+    method,
+  } = req.body;
 
+  // --- 1. Basic Validation ---
+  if (!state || !apiRef || !invoiceId) {
+    console.error("[Validation Failed] Webhook missing required fields.");
+    // eslint-disable-next-line max-len
+    console.log("Missing fields - state:", !!state, "apiRef:", !!apiRef, "invoiceId:", !!invoiceId);
+    res.status(200).json({message: "Accepted (Missing required fields)"});
+    return;
+  }
   // eslint-disable-next-line max-len
-  console.log(`Processing Intasend Event: Invoice=${invoiceId}, State=${state}, ApiRef=${apiRef}`);
+  console.log(`[Validation Passed] State: ${state}, Ref: ${apiRef}, Method: ${method}`);
 
-
-  let appointmentDocRef = null;
-  let businessId = null;
-  let isGroup = false;
-  let customerId = null; // User ID for notifications
-  let bookingData = null;
-
+  // --- 2. Process based on state ---
   try {
-    // --- Find the booking using api_ref ---
-    // ** IMPORTANT: Assumes 'intasendApiRef' field exists on booking docs **
-    const appointmentQuery = db.collectionGroup("appointments")
-        .where("intasendApiRef", "==", apiRef).limit(1);
+    console.log(`[Processing] Checking state for api_ref: ${apiRef}`);
+    const appointmentId = apiRef; // Assuming apiRef holds the appointment ID
     // eslint-disable-next-line max-len
-    const groupAppointmentQuery = db.collectionGroup("groupAppointments") // Check group bookings too
-        .where("intasendApiRef", "==", apiRef).limit(1);
-
-    const [appointmentSnapshot, groupSnapshot] = await Promise.all([
-      appointmentQuery.get(),
-      groupAppointmentQuery.get(),
-    ]);
-
-
-    if (!appointmentSnapshot.empty) {
-      const doc = appointmentSnapshot.docs[0];
-      appointmentDocRef = doc.ref;
-      bookingData = doc.data() || {};
-      const businessRef = appointmentDocRef.parent.parent;
-      businessId = businessRef ? businessRef.id : null;
-      customerId = bookingData.customerId || bookingData.userId;
-      isGroup = false;
-      console.log(`Found single appointment: ${appointmentDocRef.path}`);
-    } else if (!groupSnapshot.empty) {
-      const doc = groupSnapshot.docs[0];
-      appointmentDocRef = doc.ref;
-      bookingData = doc.data() || {};
-      const businessRef = appointmentDocRef.parent.parent;
-      businessId = businessRef ? businessRef.id : null;
-      customerId = bookingData.bookedByCustomerId; // User who booked the group
-      isGroup = true;
-      console.log(`Found group appointment: ${appointmentDocRef.path}`);
-    }
-
-    if (!appointmentDocRef || !businessId || !bookingData) {
-      // eslint-disable-next-line max-len
-      console.error(`Webhook Error: Could not find booking matching api_ref: ${apiRef}`);
-      // eslint-disable-next-line max-len
-      res.status(200).json({message: "Accepted (Error: Booking Not Found)"});
-      return;
-    }
-
-    // --- Avoid processing if already completed/failed ---
+    console.log(`[Firestore Query] Attempting collection group query for intasendApiRef: ${apiRef}`);
     // eslint-disable-next-line max-len
-    if (bookingData.paymentStatus === "paid" || bookingData.paymentStatus === "failed") {
-      // eslint-disable-next-line max-len
-      console.log(`Booking ${appointmentDocRef.id} already processed (status: ${bookingData.paymentStatus}). Ignoring webhook state: ${state}.`);
-      // eslint-disable-next-line max-len
-      res.status(200).json({message: "Webhook ignored, booking already finalized."});
-      return;
-    }
+    const appointmentsQuery = db.collectionGroup("appointments").where("intasendApiRef", "==", apiRef).limit(1);
+    const querySnapshot = await appointmentsQuery.get();
 
+    let appointmentDoc = null;
+    let appointmentDocRef = null;
+    let businessId = null; // Extract businessId here
 
-    // --- Process based on Intasend state ---
-    const updateData = {
-      intasendWebhookReceivedAt: Timestamp.now(),
-      intasendInvoiceId: invoiceId,
-      intasendState: state, // Store the latest state from Intasend
-      // Optionally store more fields like 'provider', 'account' if useful
-    };
-    let notificationTitle = "";
-    let notificationBody = "";
-    let sendNotification = false;
-
-    if (state === "COMPLETE") {
-      console.log(`Payment successful for api_ref: ${apiRef}`);
-      updateData.paymentStatus = "paid";
-      updateData.status = "confirmed"; // Confirm the booking
+    if (!querySnapshot.empty) {
+      appointmentDoc = querySnapshot.docs[0];
+      appointmentDocRef = appointmentDoc.ref;
       // eslint-disable-next-line max-len
-      updateData.amountPaid = parseFloat(value) || bookingData.totalAmount || 0.0; // Use payload value, fallback to booking total
-      updateData.intasendCurrency = currency;
-
-      notificationTitle = "Payment Successful!";
+      businessId = appointmentDocRef.parent.parent.id;
       // eslint-disable-next-line max-len
-      notificationBody = `Your payment of ${currency} ${value} for booking ${isGroup ? "group " : ""}ref ${invoiceId.substring(0, 6)}.. is complete. Your appointment is confirmed!`;
-      sendNotification = true;
-    } else if (state === "FAILED") {
-      // eslint-disable-next-line max-len
-      console.warn(`Payment failed for api_ref: ${apiRef}. Reason: ${failedReason} (Code: ${failedCode})`);
-      updateData.paymentStatus = "failed";
-      updateData.intasendFailReason = failedReason || "Unknown";
-      updateData.intasendFailCode = failedCode || "Unknown";
-
-      notificationTitle = "Payment Failed";
-      // eslint-disable-next-line max-len
-      notificationBody = `Your payment for booking ${isGroup ? "group " : ""}ref ${invoiceId.substring(0, 6)}.. failed. Reason: ${failedReason || "Unknown"}. Please try booking again or contact support.`;
-      sendNotification = true;
-    } else if (state === "PROCESSING") {
-      console.log(`Payment processing for api_ref: ${apiRef}`);
-      // eslint-disable-next-line max-len
-      if (bookingData.paymentStatus !== "processing") { // Update only if not already processing
-        updateData.paymentStatus = "processing";
-      }
-    } else if (state === "PENDING") {
-      console.log(`Payment pending for api_ref: ${apiRef}`);
-      // eslint-disable-next-line max-len
-      // Usually no update needed if already 'pending', but ensures consistency
-      if (bookingData.paymentStatus !== "pending") {
-        updateData.paymentStatus = "pending";
-      }
+      console.log(`[Firestore Query Success] Found appointment document at path: ${appointmentDocRef.path}. Business ID: ${businessId}`);
     } else {
       // eslint-disable-next-line max-len
-      console.log(`Received unhandled Intasend state: ${state} for api_ref: ${apiRef}`);
+      console.log(`[Firestore Query] No document found with intasendApiRef ${apiRef} in any 'appointments' subcollection.`);
+      // eslint-disable-next-line max-len
+      const groupAppointmentsQuery = db.collectionGroup("group_appointments").where("intasendApiRef", "==", apiRef).limit(1);
+      const groupQuerySnapshot = await groupAppointmentsQuery.get();
+      if (!groupQuerySnapshot.empty) {
+        appointmentDoc = groupQuerySnapshot.docs[0];
+        appointmentDocRef = appointmentDoc.ref;
+        businessId = appointmentDocRef.parent.parent.id;
+        // eslint-disable-next-line max-len
+        console.log(`[Firestore Query Success - Fallback] Found group appointment document at path: ${appointmentDocRef.path}. Business ID: ${businessId}`);
+      } else {
+        // eslint-disable-next-line max-len
+        console.log(`[Firestore Query] No document found with intasendApiRef ${apiRef} in 'group_appointments' either.`);
+      }
     }
 
-    // Perform Firestore update only if there are changes beyond timestamps/IDs
-    // eslint-disable-next-line max-len
-    if (Object.keys(updateData).length > 3) { // Check if more than timestamp, invoiceId, and state were added
-      await appointmentDocRef.update(updateData);
+    if (!appointmentDoc || !appointmentDoc.exists || !businessId) {
       // eslint-disable-next-line max-len
-      console.log(`Updated booking ${appointmentDocRef.id} with Intasend state: ${state}`);
+      console.warn(`[Appointment Check FAILED] Appointment document for api_ref ${apiRef} not found or missing businessId. Acknowledging webhook.`);
+      // eslint-disable-next-line max-len
+      res.status(200).json({message: "Webhook received, corresponding appointment not found or missing business ID"});
+      return;
+    }
+    // eslint-disable-next-line max-len
+    console.log(`[Appointment Check PASSED] Found appointment ${appointmentId}. Business ID: ${businessId}`);
 
-      // Update linked individual appointments if group succeeded/failed
-      if (isGroup && (state === "COMPLETE" || state === "FAILED")) {
+    // --- 4. Extract Data and Check Current Status ---
+    const appointmentData = appointmentDoc.data();
+    const currentPaymentStatus = appointmentData.paymentStatus;
+    const customerId = appointmentData.customerId || appointmentData.userId;
+    // eslint-disable-next-line max-len
+    console.log(`[Appointment Data] Appt ${appointmentId}: Current Status='${currentPaymentStatus}', Received State='${state}', BusinessID='${businessId}', CustomerID='${customerId}'`);
+
+    // --- 5. Process Only if Payment is 'COMPLETE' and Not Already 'Paid' ---
+    if (state === "COMPLETE" && currentPaymentStatus !== "Paid") {
+      // eslint-disable-next-line max-len
+      console.log(`[State Check PASSED] State is 'COMPLETE' and current status is not 'Paid'. Proceeding to update appointment ${appointmentId}.`);
+      // eslint-disable-next-line max-len
+      const businessDocRef = db.collection("businesses").doc(businessId); // Define businessDocRef here
+
+      // --- Update Appointment Status and Trigger Transfer ---
+      try {
+        // 1. Update Appointment Status
+        await appointmentDocRef.update({
+          paymentStatus: "Paid",
+          intasendInvoiceId: invoiceId,
+          paymentTimestamp: FieldValue.serverTimestamp(),
+          amountPaid: parseFloat(value) || 0,
+          internalTransferStatus: "pending",
+        });
         // eslint-disable-next-line max-len
-        const newStatus = (state === "COMPLETE") ? "confirmed" : bookingData.status; // Keep old status on fail? Or set to cancelled?
-        const newPaymentStatus = (state === "COMPLETE") ? "paid" : "failed";
-        try {
-          const groupData = bookingData; // Already fetched
+        console.log(`[Appointment Update SUCCESS] Firestore: Appointment ${appointmentId} updated to 'Paid'.`);
+
+        // 2. Send Client Notification (Optional)
+        if (customerId) {
+          const notificationTitle = "Payment Successful!";
           // eslint-disable-next-line max-len
-          if (groupData && Array.isArray(groupData.individualAppointmentIds)) {
+          const notificationBody = `Your payment of ${currency} ${value} for booking ref ${apiRef.substring(0, 6)}... was successful.`;
+          // eslint-disable-next-line max-len
+          const notificationDataPayload = {type: "payment_success", appointmentId: appointmentId, businessId: businessId};
+          // eslint-disable-next-line max-len
+          const additionalNotificationDocData = {relatedAppointmentId: appointmentId, paymentAmount: value, paymentCurrency: currency, paymentMethod: method || "Unknown"};
+          // eslint-disable-next-line max-len
+          await sendClientNotification(customerId, notificationTitle, notificationBody, notificationDataPayload, additionalNotificationDocData);
+          // eslint-disable-next-line max-len
+          console.log(`[Notification SUCCESS] Payment success notification sent to customer ${customerId}`);
+        } else {
+          // eslint-disable-next-line max-len
+          console.warn(`[Notification SKIPPED] Customer ID not found for appointment ${appointmentId}.`);
+        }
+
+        // eslint-disable-next-line max-len
+        const firestorePaymentMethod = appointmentData.paymentMethod;
+        // eslint-disable-next-line max-len
+        console.log(`[Balance/Transfer Check] Method: ${firestorePaymentMethod}, Business ID: ${businessId}`);
+        // eslint-disable-next-line max-len
+        if (firestorePaymentMethod && firestorePaymentMethod.toUpperCase() === "M-PESA") {
+          // eslint-disable-next-line max-len
+          console.log(`[Balance Update] Conditions met (Firestore Method: M-Pesa).`);
+          // eslint-disable-next-line max-len
+          const totalServicePrice = parseFloat(appointmentData.totalServicePrice || 0);
+          // eslint-disable-next-line max-len
+          if (typeof totalServicePrice === "number" && !isNaN(totalServicePrice) && totalServicePrice > 0 ) {
             // eslint-disable-next-line max-len
-            const updatePromises = groupData.individualAppointmentIds.map((apptId) => {
+            console.log(`[Balance Update] Valid totalServicePrice: ${totalServicePrice}`);
+
+            // --- Fetch Business Data for Wallet ID and Balance Update ---
+            const businessSnap = await businessDocRef.get();
+            if (!businessSnap.exists) {
               // eslint-disable-next-line max-len
-              const individualApptRef = db.doc(`businesses/${businessId}/appointments/${apptId}`);
+              console.error(`!!! Business ${businessId} not found during balance update phase !!!`);
               // eslint-disable-next-line max-len
-              return individualApptRef.update({status: newStatus, paymentStatus: newPaymentStatus})
-              // eslint-disable-next-line max-len
-                  .catch((err) => console.error(`Error updating individual appt ${apptId} for group:`, err));
-            });
-            await Promise.all(updatePromises);
+              await appointmentDocRef.update({internalTransferStatus: "failed", internalTransferError: "Business not found for balance update"});
+              throw new Error(`Business ${businessId} not found.`);
+            }
+            const businessData = businessSnap.data() || {};
             // eslint-disable-next-line max-len
-            console.log(`Updated individual appointments linked to group ${appointmentDocRef.id} with status: ${newStatus}, payment: ${newPaymentStatus}`);
+            const destinationWalletId = businessData.intasendWalletId; // <<< GET DESTINATION WALLET ID
+
+            // --- Check Wallet ID ---
+            if (!destinationWalletId) {
+              // eslint-disable-next-line max-len
+              console.error(`!!! Business ${businessId} is MISSING intasendWalletId. Cannot transfer. !!!`);
+              // eslint-disable-next-line max-len
+              await appointmentDocRef.update({internalTransferStatus: "failed", internalTransferError: "Missing destination wallet ID"});
+            } else {
+              // eslint-disable-next-line max-len
+              console.log(`[Balance Update] Destination Wallet ID: ${destinationWalletId}`);
+              // eslint-disable-next-line max-len
+              const amountToAdd = Math.round((totalServicePrice * 0.92) * 100) / 100;
+              // eslint-disable-next-line max-len
+              console.log(`[Balance Update] Calculated amountToAdd (net): ${amountToAdd}`);
+              try {
+                // eslint-disable-next-line max-len
+                await businessDocRef.update({balance: FieldValue.increment(amountToAdd)});
+                // eslint-disable-next-line max-len
+                console.log(`[Balance Update SUCCESS] Business ${businessId} Firestore balance incremented by KES ${amountToAdd}.`);
+                // eslint-disable-next-line max-len
+                if (amountToAdd > 0) {
+                  // eslint-disable-next-line max-len
+                  const sourceWalletId = INTASEND_SOURCE_WALLET_ID;
+                  // eslint-disable-next-line max-len
+                  const narrative = `Disbursement for booking Ref: ${apiRef}`;
+                  // eslint-disable-next-line max-len
+                  console.log(`[Post-Balance Update] Initiating internal transfer of ${amountToAdd} from SOURCE (${sourceWalletId}) to ${destinationWalletId}`);
+
+                  try {
+                    // Use the global 'wallets' object
+                    const transferResp = await wallets.intraTransfer(
+                        sourceWalletId,
+                        destinationWalletId,
+                        amountToAdd,
+                        narrative,
+                    );
+                    // eslint-disable-next-line max-len
+                    console.log(`[Post-Balance Update] Internal Transfer Success for booking ${apiRef}:`, transferResp);
+                    // Update appointment log with transfer success
+                    await appointmentDocRef.update({
+                      internalTransferStatus: "completed",
+                      internalTransferId: transferResp.tracking_id || null,
+                      internalTransferTimestamp: FieldValue.serverTimestamp(),
+                    });
+                    // eslint-disable-next-line max-len
+                    console.log(`[Post-Balance Update] Updated appointment ${appointmentId} internalTransferStatus to completed.`);
+                  } catch (transferError) {
+                    // eslint-disable-next-line max-len
+                    console.error(`[Post-Balance Update] Internal Transfer Failed for booking ${apiRef}:`, transferError);
+                    // Update appointment log with transfer failure
+                    await appointmentDocRef.update({
+                      internalTransferStatus: "failed",
+                      // eslint-disable-next-line max-len
+                      internalTransferError: transferError.message || JSON.stringify(transferError),
+                      internalTransferTimestamp: FieldValue.serverTimestamp(),
+                    });
+                    // eslint-disable-next-line max-len
+                    console.error(`[Post-Balance Update] Updated appointment ${appointmentId} internalTransferStatus to failed.`);
+                    // Consider notifying admin
+                  }
+                } else {
+                  // eslint-disable-next-line max-len
+                  console.warn(`[Post-Balance Update] Skipping internal transfer for ${apiRef}: Zero/negative amountToAdd (${amountToAdd}).`);
+                  await appointmentDocRef.update({
+                    internalTransferStatus: "skipped",
+                    internalTransferError: "Zero/negative net amount",
+                  });
+                }
+              } catch (balanceUpdateError) {
+                // eslint-disable-next-line max-len
+                console.error(`!!! Balance Update FAILED for business ${businessId} !!! Path: ${businessDocRef.path}`);
+                // eslint-disable-next-line max-len
+                console.error("Balance Update Error Details:", balanceUpdateError);
+                await appointmentDocRef.update({
+                  internalTransferStatus: "skipped",
+                  internalTransferError: "Failed to update Firestore balance",
+                });
+              }
+            } // End Wallet ID check else
+          } else {
+            // eslint-disable-next-line max-len
+            console.error(`[Balance Update SKIPPED] Invalid totalServicePrice ('${totalServicePrice}') for business ${businessId}.`);
+            // eslint-disable-next-line max-len
+            await appointmentDocRef.update({internalTransferStatus: "skipped", internalTransferError: "Invalid service price"});
           }
-        } catch (groupUpdateError) {
+        } else {
           // eslint-disable-next-line max-len
-          console.error(`Error updating individual appointments for group ${appointmentDocRef.id}:`, groupUpdateError);
+          console.log(`[Balance Update SKIPPED] Conditions not met (Method: ${firestorePaymentMethod}, BusinessId: ${businessId}).`);
+          // eslint-disable-next-line max-len
+          await appointmentDocRef.update({internalTransferStatus: "skipped", internalTransferError: "Not an M-Pesa payment or missing business ID"});
+        }
+      } catch (updateError) {
+        // eslint-disable-next-line max-len
+        console.error(`!!! Firestore Update or Subsequent Logic FAILED for Appointment ${appointmentId} !!!`);
+        console.error("Update Error Details:", updateError);
+        // Log error on appointment if possible
+        try {
+          await appointmentDocRef.update({
+            internalTransferStatus: "failed",
+            // eslint-disable-next-line max-len
+            internalTransferError: `Main update block error: ${updateError.message || JSON.stringify(updateError)}`,
+          });
+        } catch (logError) {
+          // eslint-disable-next-line max-len
+          console.error("Failed to log main update error to appointment:", logError);
         }
       }
-
-      // Send notification if applicable
-      if (sendNotification && customerId) {
-        await sendClientNotification(
-            customerId,
-            notificationTitle,
-            notificationBody,
-            { // Notification click data
-              // eslint-disable-next-line max-len
-              type: state === "COMPLETE" ? "payment_success" : "payment_failed",
-              appointmentId: isGroup ? null : appointmentDocRef.id,
-              groupAppointmentId: isGroup ? appointmentDocRef.id : null,
-              businessId: businessId,
-            },
-            { // Additional data stored with notification doc
-              relatedApiRef: apiRef,
-              relatedInvoiceId: invoiceId,
-            },
-        );
-      }
     } else {
       // eslint-disable-next-line max-len
-      console.log(`No significant status change for ${apiRef} (State: ${state}). No update performed.`);
+      console.log(`[State Check SKIPPED] Received state '${state}' or already 'Paid' status '${currentPaymentStatus}'. No action needed.`);
+      if (state === "FAILED") {
+        // eslint-disable-next-line max-len
+        console.warn(`[Webhook Info] Received FAILED payment state for appointment ${appointmentId}. Failed Reason: ${req.body.failed_reason || "N/A"}`);
+        // Optionally update status to 'Payment Failed' here if desired
+        try {
+          // eslint-disable-next-line max-len
+          await appointmentDocRef.update({paymentStatus: "failed", failedReason: req.body.failed_reason || "Unknown"});
+        } catch (e) {
+          console.error("Failed to update status to failed:", e);
+        }
+      }
     }
-
-
-    // Send Success Response back to Intasend
-    console.log("Webhook processed. Sending confirmation to Intasend.");
+    // eslint-disable-next-line max-len
+    console.log(`>>>> Webhook processing finished for api_ref: ${apiRef}. Sending success response. >>>>`);
     res.status(200).json({message: "Webhook received successfully"});
   } catch (error) {
     // eslint-disable-next-line max-len
-    console.error("Webhook Error: Unhandled exception processing event:", error);
+    console.error("!!! Webhook Error: Unhandled exception during processing !!!!");
+    console.error("Unhandled Exception Details:", error);
     // eslint-disable-next-line max-len
-    res.status(200).json({message: "Accepted (Internal Server Error)"}); // Respond OK but log
+    res.status(200).json({message: "Accepted (Internal Server Error during processing)"});
+  }
+});
+// eslint-disable-next-line max-len
+
+
+exports.handleWalletTransfer = onCall(
+    async (request) => {
+      console.log("Received handleWalletTransfer request");
+
+      // 1. Authentication Check
+      if (!request.auth || !request.auth.uid) {
+        console.error("Authentication Error: User not authenticated.");
+        throw new HttpsError("unauthenticated", "User must be authenticated.");
+      }
+      const userId = request.auth.uid;
+      console.log(`Authenticated User ID: ${userId}`);
+
+      // 2. Validate Input Data
+      const {amount, recipientDetails} = request.data;
+      console.log("Request Data:", request.data); // Log received data
+
+      if (!amount || typeof amount !== "number" || amount <= 0) {
+        console.error("Validation Error: Invalid amount.", amount);
+        throw new HttpsError("invalid-argument", "Invalid transfer amount.");
+      }
+      if (!recipientDetails || typeof recipientDetails !== "object" ||
+        !recipientDetails.type || !recipientDetails.number) {
+        // eslint-disable-next-line max-len
+        console.error("Validation Error: Invalid recipient details.", recipientDetails);
+        throw new HttpsError("invalid-argument", "Invalid recipient details.");
+      }
+      const recipientType = recipientDetails.type;
+      const recipientNumber = recipientDetails.number;
+      const recipientName = recipientDetails.name || recipientNumber;
+      const accountNumber = recipientDetails.accountNumber;
+      // eslint-disable-next-line max-len
+      console.log(`Parsed Details: Amount=${amount}, Type=${recipientType}, Number=${recipientNumber}, Name=${recipientName}, AccRef=${accountNumber}`);
+      // 3. Fetch Business Balance & Perform Check within Transaction
+      const businessDocRef = db.collection("businesses").doc(userId);
+      try {
+        let intasendApiResponse; // To store the IntaSend API response
+        await db.runTransaction(async (transaction) => {
+          // eslint-disable-next-line max-len
+          console.log(`[Transaction Start] Checking balance for user ${userId}`);
+          const businessSnap = await transaction.get(businessDocRef);
+          if (!businessSnap.exists) {
+            // eslint-disable-next-line max-len
+            console.error(`[Transaction Error] Business document ${userId} does not exist.`);
+            throw new HttpsError("not-found", "Business profile not found.");
+          }
+          const businessData = businessSnap.data() || {};
+          const currentBalance = parseFloat(businessData.balance || 0);
+          console.log(`[Transaction] Current Balance: ${currentBalance}`);
+          if (amount > currentBalance) {
+            // eslint-disable-next-line max-len
+            console.error(`[Transaction Error] Insufficient balance. Required: ${amount}, Available: ${currentBalance}`);
+            // eslint-disable-next-line max-len
+            throw new HttpsError("failed-precondition", `Insufficient balance. Available: KES ${currentBalance.toFixed(2)}`);
+          }
+          // eslint-disable-next-line max-len
+          console.log("[Transaction] Balance sufficient. Proceeding to IntaSend.");
+          // 4. Initiate IntaSend Payout
+          const intasend = new APIService(
+              INTASEND_PUBLISHABLE_KEY,
+              INTASEND_SECRET_KEY,
+              INTASEND_IS_TEST_ENVIRONMENT,
+          );
+          const payouts = intasend.payouts();
+          let apiCallPromise;
+          const transactions = [];
+          if (recipientType === "phone") {
+          // --- M-Pesa B2C (Phone) ---
+            let formattedPhoneNumber = recipientNumber;
+            // Basic formatting (adjust if needed)
+            if (!formattedPhoneNumber.startsWith("254")) {
+              if (formattedPhoneNumber.startsWith("0")) {
+                // eslint-disable-next-line max-len
+                formattedPhoneNumber = "254" + formattedPhoneNumber.substring(1);
+              } else {
+                // eslint-disable-next-line max-len
+                console.error("Invalid B2C phone number format:", recipientNumber);
+                // eslint-disable-next-line max-len
+                throw new HttpsError("invalid-argument", "Invalid phone number format for M-Pesa B2C.");
+              }
+            }
+            transactions.push({
+              name: recipientName,
+              account: formattedPhoneNumber,
+              amount: amount.toString(),
+              narrative: "Wallet Transfer Payout",
+            });
+            const payload = {
+              currency: "KES",
+              transactions: transactions,
+              wallet_id: INTASEND_SOURCE_WALLET_ID,
+            };
+              // eslint-disable-next-line max-len
+            console.log("[IntaSend B2C] Payload:", JSON.stringify(payload, null, 2));
+            apiCallPromise = payouts.mpesa(payload); // Correct method for B2C
+          } else if (recipientType === "till" || recipientType === "paybill") {
+          // --- M-Pesa B2B (Till/Paybill) ---
+            const b2bPayloadItem = {
+              name: recipientName,
+              account: recipientNumber,
+              // eslint-disable-next-line max-len
+              account_type: recipientType === "paybill" ? "PayBill" : "TillNumber",
+              amount: amount.toString(),
+              narrative: "Wallet Transfer Payment",
+            };
+            if (recipientType === "paybill") {
+              // eslint-disable-next-line max-len
+              if (!accountNumber || typeof accountNumber !== "string" || accountNumber.trim() === "") {
+                // eslint-disable-next-line max-len
+                console.error("Validation Error: Account reference is required for Paybill transfers.");
+                // eslint-disable-next-line max-len
+                throw new HttpsError("invalid-argument", "Account reference is required for Paybill transfers.");
+              }
+              b2bPayloadItem.account_reference = accountNumber.trim();
+            }
+            transactions.push(b2bPayloadItem);
+            const payload = {
+              currency: "KES",
+              transactions: transactions,
+              wallet_id: INTASEND_SOURCE_WALLET_ID,
+              requires_approval: "NO",
+            };
+            // eslint-disable-next-line max-len
+            console.log("[IntaSend B2B] Payload:", JSON.stringify(payload, null, 2));
+            apiCallPromise = payouts.mpesaB2B(payload);
+          } else {
+            console.error("Unsupported recipient type:", recipientType);
+            // eslint-disable-next-line max-len
+            throw new HttpsError("invalid-argument", `Unsupported recipient type: ${recipientType}`);
+          }
+          try {
+            intasendApiResponse = await apiCallPromise; // Wait for IntaSend
+            // eslint-disable-next-line max-len
+            console.log("[IntaSend Response]:", JSON.stringify(intasendApiResponse, null, 2));
+            // eslint-disable-next-line max-len
+            if (!intasendApiResponse || (intasendApiResponse.status && intasendApiResponse.status === "Failed") || !intasendApiResponse.tracking_id) {
+              // eslint-disable-next-line max-len
+              const errorMessage = (intasendApiResponse && intasendApiResponse.error) || (intasendApiResponse && intasendApiResponse.details) || "IntaSend payout initiation failed.";
+              console.error("[IntaSend Failed]", errorMessage);
+              // eslint-disable-next-line max-len
+              throw new HttpsError("internal", `Payout failed: ${errorMessage}`);
+            }
+            // eslint-disable-next-line max-len
+            console.log("[IntaSend Success] Payout initiated successfully. Tracking ID:", intasendApiResponse.tracking_id);
+          } catch (intasendError) {
+            console.error("!!! IntaSend API Call Error !!!");
+            let errorMessage = "Payout initiation failed.";
+            if (intasendError.response && intasendError.response.data) {
+              errorMessage = JSON.stringify(intasendError.response.data);
+            } else if (intasendError.message) {
+              errorMessage = intasendError.message;
+            }
+            console.error("Error Details:", errorMessage);
+            // Rethrow as an HttpsError so the transaction fails cleanly
+            throw new HttpsError("internal", `IntaSend Error: ${errorMessage}`);
+          }
+          // eslint-disable-next-line max-len
+          console.log(`[Transaction] Decrementing balance by ${amount} for user ${userId}`);
+          transaction.update(businessDocRef, {
+            balance: FieldValue.increment(-amount),
+          });
+          // eslint-disable-next-line max-len
+          const transactionName = `Transfer to ${recipientName} (${recipientType.toUpperCase()})`;
+          // eslint-disable-next-line max-len
+          let transactionDescription = `Sent to ${recipientType}: ${recipientNumber}`;
+          if (recipientType === "paybill" && accountNumber) {
+            transactionDescription += ` Acc: ${accountNumber}`;
+          }
+          if (intasendApiResponse && intasendApiResponse.tracking_id) {
+            // eslint-disable-next-line max-len
+            transactionDescription += ` (Ref: ${intasendApiResponse.tracking_id})`;
+          }
+          const transactionLog = {
+            name: transactionName,
+            amount: amount,
+            type: "debit", // This is a withdrawal from the wallet
+            description: transactionDescription,
+            timestamp: FieldValue.serverTimestamp(), // Use server time
+            status: "completed", // Mark as completed since IntaSend initiated
+            // eslint-disable-next-line max-len
+            intasendTrackingId: (intasendApiResponse && intasendApiResponse.tracking_id) || null,
+          };
+
+          // eslint-disable-next-line max-len
+          const newTransactionRef = businessDocRef.collection("transactions").doc(); // Auto-generate ID
+          console.log("[Transaction] Adding transaction log:", transactionLog);
+          transaction.set(newTransactionRef, transactionLog);
+
+          console.log("[Transaction] Firestore updates prepared.");
+        }); // End Firestore Transaction
+
+        console.log(">>>> Firestore Transaction Completed Successfully <<<<");
+        return {
+          success: true,
+          message: "Transfer initiated successfully.",
+          details: intasendApiResponse,
+        };
+      } catch (error) {
+        console.error("!!!! Transfer Processing Error !!!!");
+        // Log the specific error
+        console.error("Error Details:", error);
+
+        // Check if it's already an HttpsError, otherwise wrap it
+        if (error instanceof HttpsError) {
+          throw error; // Re-throw the specific HttpsError
+        } else {
+          // Wrap the error in an HttpsError for consistent handling
+          // eslint-disable-next-line max-len
+          throw new HttpsError("internal", "An unexpected error occurred during the transfer.", error.message);
+        }
+      }
+    });
+
+// eslint-disable-next-line max-len
+exports.initiateMpesaStkPushCollection = onCall(async (data, context) => {
+  // eslint-disable-next-line max-len
+  console.log(">>> Starting initiateMpesaStkPushCollection (Secure Backend) <<<");
+  console.log("Received data:", Object.keys(data).join(", "));
+  const {
+    amount,
+    phoneNumber,
+    apiRef,
+    email,
+    firstName,
+    lastName,
+    narrative,
+  } = data.data; // Destructure from the 'data' argument directly
+
+  console.log("Actual data", data); // Log the actual data received
+  if (!amount || typeof amount !== "number" || amount <= 0) {
+    console.error("Validation Error: Invalid 'amount'.", {amount});
+    // eslint-disable-next-line max-len
+    throw new HttpsError("invalid-argument", "A valid 'amount' (number > 0) is required.");
+  }
+  // eslint-disable-next-line max-len
+  if (!phoneNumber || typeof phoneNumber !== "string" || !phoneNumber.startsWith("254")) {
+    console.error("Validation Error: Invalid 'phoneNumber'.", {phoneNumber});
+    // eslint-disable-next-line max-len
+    throw new HttpsError("invalid-argument", "A valid 'phoneNumber' (string starting with 254) is required.");
+  }
+  if (!apiRef || typeof apiRef !== "string") {
+    console.error("Validation Error: Invalid 'apiRef'.", {apiRef});
+    // eslint-disable-next-line max-len
+    throw new HttpsError("invalid-argument", "A valid 'apiRef' (string booking reference) is required.");
+  }
+  // Add more robust email validation if needed
+  if (!email || typeof email !== "string") {
+    console.error("Validation Error: Invalid 'email'.", {email});
+    // eslint-disable-next-line max-len
+    throw new HttpsError("invalid-argument", "A valid 'email' (string) is required.");
+  }
+  if (!firstName || typeof firstName !== "string") {
+    console.error("Validation Error: Invalid 'firstName'.", {firstName});
+    // eslint-disable-next-line max-len
+    throw new HttpsError("invalid-argument", "A valid 'firstName' (string) is required.");
+  }
+  if (!lastName || typeof lastName !== "string") {
+    console.error("Validation Error: Invalid 'lastName'.", {lastName});
+    // eslint-disable-next-line max-len
+    throw new HttpsError("invalid-argument", "A valid 'lastName' (string) is required.");
+  }
+  if (!narrative || typeof narrative !== "string") {
+    console.error("Validation Error: Invalid 'narrative'.", {narrative});
+    // eslint-disable-next-line max-len
+    throw new HttpsError("invalid-argument", "A valid 'narrative' (string description) is required.");
+  }
+  console.log("Input validation passed.");
+
+  // --- IntaSend Configuration (Using User-Provided Hardcoded Values) ---
+  // 🚨 Hardcoding the secretKey is a significant security risk!
+  // Use Firebase config (environment variables) instead if possible.
+  // eslint-disable-next-line max-len
+  const publishableKey = "ISPubKey_live_a754b295-ef19-4e9a-9746-9d8dd56c070a"; // User provided LIVE key
+  // eslint-disable-next-line max-len
+  const secretKey = "ISSecretKey_live_11e1a802-47b9-4d44-9a20-102d6438344d"; // User provided LIVE key (HIGH RISK!)
+  // eslint-disable-next-line max-len
+  const callbackUrl = "https://intasendwebhookhandler-uovd7uxrra-uc.a.run.app"; // User provided callback URL
+  const fixedWalletId = "04WR7JY"; // User provided fixed wallet ID
+
+  // Determine if running in emulator or production for test mode
+  const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+  const testMode = isEmulator; // Set to false when deployed, true in emulator
+
+  // Basic validation for hardcoded values (check if they seem valid - optional)
+  if (!publishableKey || !publishableKey.startsWith("ISPubKey_")) {
+    // eslint-disable-next-line max-len
+    console.error("!!!! Configuration Warning: Hardcoded IntaSend Publishable Key seems invalid. !!!!");
+    // Consider throwing error if critical:
+  }
+  if (!secretKey || !secretKey.startsWith("ISSecretKey_")) {
+    // eslint-disable-next-line max-len
+    console.error("!!!! Configuration Warning: Hardcoded IntaSend Secret Key seems invalid. !!!!");
+    // Consider throwing error:
+  }
+  if (!callbackUrl || !callbackUrl.startsWith("https://")) {
+    // eslint-disable-next-line max-len
+    console.error("!!!! Configuration Warning: Hardcoded IntaSend Callback URL seems invalid. !!!!");
+    // Consider throwing error:
+  }
+
+  // eslint-disable-next-line max-len
+  console.log(`IntaSend Config: TestMode=${testMode}, WalletID=${fixedWalletId}, Callback=${callbackUrl}`);
+  // Log partial key for verification
+  // eslint-disable-next-line max-len
+  console.log(`Using Publishable Key: ${publishableKey.substring(0, 12)}...`);
+
+  // --- Prepare Payload for IntaSend API ---
+  // (Mapping camelCase variables to snake_case keys)
+  const payload = {
+    public_key: publishableKey, // IntaSend API expects this key
+    api_ref: apiRef,
+    method: "M-PESA",
+    currency: "KES",
+    amount: amount,
+    phone_number: phoneNumber,
+    email: email,
+    first_name: firstName,
+    last_name: lastName,
+    host: callbackUrl,
+    narrative: narrative,
+    wallet_id: fixedWalletId,
+  };
+
+  // Log the final payload being sent
+  // eslint-disable-next-line max-len
+  console.log("Prepared IntaSend API Payload:", JSON.stringify(payload));
+
+  // --- Call IntaSend API using node-fetch ---
+  // Use LIVE endpoint unless explicitly in test mode (emulator)
+  const intasendApiUrl = testMode ?
+    "https://sandbox.intasend.com/api/v1/payment/mpesa-stk-push/" :
+    "https://api.intasend.com/api/v1/payment/mpesa-stk-push/";
+
+  console.log(`Calling IntaSend Endpoint: ${intasendApiUrl}`);
+
+  try {
+    const fetchResponse = await fetch(intasendApiUrl, {
+      method: "POST",
+      headers: {
+        // Use the SECRET key for authorization from the backend
+        "Authorization": `Bearer ${secretKey}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify(payload), // Send the snake_case payload
+    });
+
+    // Get response body as text first for better error logging
+    const responseBodyText = await fetchResponse.text();
+    console.log("IntaSend Raw Response Status:", fetchResponse.status);
+    console.log("IntaSend Raw Response Body:", responseBodyText);
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseBodyText); // Try parsing the JSON
+    } catch (parseError) {
+      console.error("!!!! Failed to parse IntaSend JSON response:", parseError);
+      console.error("Response Text was:", responseBodyText);
+      // Throw error indicating failure to communicate
+      // eslint-disable-next-line max-len
+      throw new HttpsError("internal", `Failed to understand response from payment gateway (Status: ${fetchResponse.status}).`, {
+        status: fetchResponse.status,
+        body: responseBodyText,
+      });
+    }
+
+    // Check if the API call itself was successful (HTTP 2xx status)
+    if (!fetchResponse.ok) {
+      // Extract error message from IntaSend's response if possible
+      const errorMessage =
+        (responseData && responseData.detail) ||
+        // eslint-disable-next-line max-len
+        (responseData && responseData.invoice && responseData.invoice.failed_reason) ||
+        `IntaSend API Error (${fetchResponse.status})`;
+      // eslint-disable-next-line max-len
+      console.error("!!!! IntaSend API returned a non-OK status:", fetchResponse.status, errorMessage);
+      // Throw an HttpsError that Flutter can catch
+      // Use 'internal' or map status codes appropriately
+      throw new HttpsError("internal", errorMessage, {
+        statusCode: fetchResponse.status,
+        details: responseData,
+      });
+    }
+
+    // --- Process SUCCESSFUL IntaSend Response ---
+    // Check the structure and state of the successful response
+    // eslint-disable-next-line max-len
+    if (responseData.invoice && responseData.invoice.invoice_id && (responseData.invoice.state === "PROCESSING" || responseData.invoice.state === "PENDING")) {
+      const invoiceId = responseData.invoice.invoice_id;
+      const state = responseData.invoice.state;
+      // eslint-disable-next-line max-len
+      console.log(`STK Push initiated successfully via backend. State: ${state}, Invoice ID: ${invoiceId}`);
+      // Return success status and invoice ID to Flutter client
+      return {
+        success: true,
+        invoiceId: invoiceId,
+        message: `STK Push initiated (${state}). Check your phone.`,
+      };
+    } else {
+      // Handle cases where HTTP status was OK, but IntaSend logic failed
+      // eslint-disable-next-line max-len
+      const failureReason = (responseData.invoice && responseData.invoice.failed_reason) || responseData.detail || "Unknown processing issue reported by IntaSend.";
+      // eslint-disable-next-line max-len
+      console.error("!!!! IntaSend response indicates failure despite OK status:", failureReason, responseData);
+      // eslint-disable-next-line max-len
+      throw new HttpsError("internal", `Payment initiation failed: ${failureReason}`, responseData);
+    }
+  } catch (error) {
+    // eslint-disable-next-line max-len
+    console.error("!!!! Error during IntaSend API call or response processing !!!!");
+    console.error("Error Details:", error);
+
+    // Handle fetch errors (network issues) or previously thrown HttpsErrors
+    if (error instanceof HttpsError) {
+      throw error; // Re-throw if it's already the correct type
+    }
+
+    // Wrap other errors (e.g., network errors from fetch) in HttpsError
+    // eslint-disable-next-line max-len
+    const message = error.message || "An unexpected error occurred while contacting the payment gateway.";
+    // eslint-disable-next-line max-len
+    throw new HttpsError("internal", message, {originalError: error.toString()});
   }
 });
 
-exports.initiateMpesaPayment = onRequest({
-  cors: true, // Allow requests from your Flutter app's domain in production
-  secrets: ["INTASEND_PUBLISHABLE_KEY", "INTASEND_SECRET_KEY"],
-}, async (req, res) => {
-  // --- Security Check: Ensure it's a POST request ---
-  if (req.method !== "POST") {
-    console.error("Initiate Payment Error: Invalid method:", req.method);
-    // eslint-disable-next-line max-len
-    return res.status(405).json({success: false, error: "Method Not Allowed"});
-  }
 
-  // --- Get Data from Flutter App ---
+// Top-level export (Indentation level 0)
+exports.processBusinessTransfer = onCall(async (data, context) => {
+  console.log(">>> Starting processBusinessTransfer <<<");
+  console.log("Received data keys:", Object.keys(data).join(", "));
+
+
+  // --- Input Destructuring & Validation (Level 1: 2 spaces) ---
   const {
+    businessId,
     amount,
-    phoneNumber, // Expected format: 254xxxxxxxxx
-    accountReference,
-    transactionDesc, // Optional description
-    userId, // Firebase Auth User ID of the customer
-    shopId,
-  } = req.body;
+    accountNumber, // Changed from account_number
+    accountName, // Changed from account_name
+    narrative,
+    transactionType, // Changed from transaction_type
+  } = data.data;
+  // eslint-disable-next-line max-len
+  if (!businessId || typeof businessId !== "string") {
+    throw new HttpsError("invalid-argument", "Valid 'businessId' is required.");
+  }
+  // eslint-disable-next-line max-len
+  if (!amount || typeof amount !== "number" || amount <= 0) {
+    // eslint-disable-next-line max-len
+    throw new HttpsError("invalid-argument", "Valid 'amount' (number > 0) is required.");
+  }
+  // eslint-disable-next-line max-len
+  if (!accountNumber || typeof accountNumber !== "string") {
+    // eslint-disable-next-line max-len
+    throw new HttpsError("invalid-argument", "Valid 'accountNumber' is required.");
+  }
+  // eslint-disable-next-line max-len
+  if (!accountName || typeof accountName !== "string") {
+    // eslint-disable-next-line max-len
+    throw new HttpsError("invalid-argument", "Valid 'accountName' is required.");
+  }
+  // eslint-disable-next-line max-len
+  if (!narrative || typeof narrative !== "string") {
+    throw new HttpsError("invalid-argument", "Valid 'narrative' is required.");
+  }
+  // eslint-disable-next-line max-len
+  if (!transactionType || typeof transactionType !== "string") {
+    // eslint-disable-next-line max-len
+    throw new HttpsError("invalid-argument", "Valid 'transactionType' is required.");
+  }
+  console.log("processBusinessTransfer validation passed.");
 
-  console.log("Received payment initiation request:", req.body);
+  // --- IntaSend Configuration (Level 1: 2 spaces) ---
+  // 🚨 Hardcoding the secretKey is a significant security risk!
+  // Use Firebase config or environment variables instead.
+  // eslint-disable-next-line max-len
+  const publishableKey = "ISPubKey_live_a754b295-ef19-4e9a-9746-9d8dd56c070a"; // User provided LIVE key
+  // eslint-disable-next-line max-len
+  const secretKey = "ISSecretKey_live_11e1a802-47b9-4d44-9a20-102d6438344d"; // User provided LIVE key (HIGH RISK!)
 
-  // --- Basic Validation ---
-  if (!amount || !phoneNumber || !accountReference || !userId) {
-    // eslint-disable-next-line max-len
-    console.error("Initiate Payment Error: Missing required fields in request.");
-    // eslint-disable-next-line max-len
-    return res.status(400).json({success: false, error: "Missing required fields (amount, phoneNumber, accountReference, userId)."});
-  }
-  const phoneRegex = /^254[17]\d{8}$/;
-  if (!phoneRegex.test(phoneNumber)) {
-    // eslint-disable-next-line max-len
-    console.error(`Initiate Payment Error: Invalid phone number format: ${phoneNumber}`);
-    // eslint-disable-next-line max-len
-    return res.status(400).json({success: false, error: `Invalid phone number format.`});
-  }
-  if (isNaN(Number(amount)) || Number(amount) <= 0) {
-    console.error(`Initiate Payment Error: Invalid amount: ${amount}`);
-    // eslint-disable-next-line max-len
-    return res.status(400).json({success: false, error: `Invalid payment amount.`});
-  }
+  const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+  // Use test mode ONLY if in emulator. Assume LIVE otherwise.
+  const testMode = isEmulator; // Set false when deployed, true in emulator
 
   // eslint-disable-next-line max-len
-  const publishableKey = process.env.INTASEND_PUBLISHABLE_KEY;
-  const secretKey = process.env.INTASEND_SECRET_KEY;
-
-  const isTestEnvironment = process.env.NODE_ENV !== "production";
-
-  console.log(`Intasend Config: Test Environment = ${isTestEnvironment}`);
-
-  if (!publishableKey || !secretKey) {
+  if (!publishableKey || !publishableKey.startsWith("ISPubKey_")) {
     // eslint-disable-next-line max-len
-    console.error("Initiate Payment Error: Intasend API keys not configured. Ensure INTASEND_PUBLISHABLE_KEY and INTASEND_SECRET_KEY are set in Firebase Functions environment variables or secrets.");
-    // eslint-disable-next-line max-len
-    return res.status(500).json({success: false, error: "Server configuration error [API Keys Missing]."});
+    console.error("!!!! Config Warning: Hardcoded IntaSend Publishable Key seems invalid (Transfer). !!!!");
   }
-
   // eslint-disable-next-line max-len
-  const paymentAttemptRef = db.collection("paymentAttempts").doc(accountReference);
-  const paymentAttemptData = {
-    userId: userId,
-    shopId: shopId || null, // Store shopId if available
-    amount: Number(amount),
-    phoneNumber: phoneNumber,
-    accountReference: accountReference,
-    transactionDesc: transactionDesc || `Payment for ${accountReference}`,
-    status: "initiated", // Initial status before Intasend call
-    initiationTimestamp: Timestamp.now(), // Record when the attempt started
-    intasendEnvironment: isTestEnvironment ? "test" : "live",
-    currency: "KES",
-  };
-
-  try {
+  if (!secretKey || !secretKey.startsWith("ISSecretKey_")) {
     // eslint-disable-next-line max-len
-    await paymentAttemptRef.set(paymentAttemptData); // Use set() to create or overwrite with the specific ID
-    console.log(`Payment attempt ${accountReference} logged to Firestore.`);
-  } catch (dbError) {
-    // eslint-disable-next-line max-len
-    console.error(`Firestore Error: Failed to log payment attempt ${accountReference}:`, dbError);
-    // eslint-disable-next-line max-len
-    return res.status(500).json({success: false, error: "Failed to record payment attempt before initiation."});
+    console.error("!!!! Config Warning: Hardcoded IntaSend Secret Key seems invalid (Transfer). !!!!");
   }
 
-  // --- Fetch User Details (No Hardcoded Defaults) ---
-  let firstName = null;
-  let lastName = null;
-  let email = null;
-
-  try {
-    if (userId && typeof userId === "string") {
-      // Assuming user profiles are in the 'clients' collection
-      const userDocRef = db.collection("clients").doc(userId);
-      const userDoc = await userDocRef.get();
-
-      if (userDoc.exists) {
-        const userData = userDoc.data();
-        console.log(`Workspaceed user data for ${userId}:`, userData);
-        // eslint-disable-next-line max-len
-        if (userData && typeof userData.name === "string" && userData.name.trim()) {
-          const nameParts = userData.name.trim().split("");
-          firstName = nameParts[0];
-          if (nameParts.length > 1) {
-            lastName = nameParts.slice(1).join("");
-          }
-        } else {
-          // eslint-disable-next-line max-len
-          console.warn(`User ${userId} data exists but 'name' field is missing or empty.`);
-        }
-        // eslint-disable-next-line max-len
-        if (userData && typeof userData.email === "string" && userData.email.trim()) {
-          email = userData.email;
-        } else {
-          // eslint-disable-next-line max-len
-          console.warn(`User ${userId} data exists but 'email' field is missing or empty.`);
-        }
-      } else {
-        // eslint-disable-next-line max-len
-        console.warn(`User document not found for ID: ${userId}. Cannot fetch details.`);
-      }
-    } else {
-      // eslint-disable-next-line max-len
-      console.warn(`Invalid or missing userId ('${userId}'). Cannot fetch details.`);
-    }
-  } catch (fetchError) {
-    console.error(`Error fetching user details for ${userId}:`, fetchError);
-  }
-
-  // --- Check if critical information was found ---
-  // Modify this check based on Intasend's *actual* minimum requirements
-  if (!email) {
-    // eslint-disable-next-line max-len
-    console.error(`Initiate Payment Error: Required user details (email) could not be found for userId: ${userId}.`);
-    // eslint-disable-next-line max-len
-    await paymentAttemptRef.update({status: "failed_missing_details", error: "User email not found"}).catch((err) => console.error("Failed to update payment attempt status:", err));
-    // eslint-disable-next-line max-len
-    return res.status(400).json({success: false, error: "User details missing or incomplete. Cannot initiate payment."});
-  }
-  // Use placeholders only if necessary and allowed by Intasend
-  if (!firstName) firstName = "Client"; // Or another suitable placeholder
-  if (!lastName) lastName = userId.substring(0, 8);
-
-
-  // --- Initialize Intasend SDK ---
+  console.log(`IntaSend Config (Transfer): TestMode=${testMode}`);
   let intasend;
   try {
-    intasend = new IntaSend(publishableKey, secretKey, isTestEnvironment);
-    console.log("Intasend SDK initialized.");
-  } catch (initError) {
-    console.error("Fatal Error: Could not initialize IntaSend SDK:", initError);
+    intasend = new APIService({
+      publishable_key: publishableKey,
+      secret_key: secretKey,
+      test: testMode,
+    });
+  } catch (sdkError) {
+    console.error("!!!! Failed to initialize IntaSend SDK !!!!", sdkError);
     // eslint-disable-next-line max-len
-    await paymentAttemptRef.update({status: "failed_sdk_init", error: "Intasend SDK init failed"}).catch((err) => console.error("Failed to update payment attempt status:", err));
-    // eslint-disable-next-line max-len
-    return res.status(500).json({success: false, error: "Payment service initialization failed."});
+    throw new HttpsError("internal", "Failed to initialize payment service SDK.", sdkError.message);
   }
 
-  // --- Prepare STK Push Payload ---
-  const collection = intasend.collection();
-  // Ensure your webhook URL is correct and publicly accessible
-  const callbackUrl = `https://us-central1-${process.env.GCLOUD_PROJECT || serviceAccount.project_id}.cloudfunctions.net/intasendWebhookHandler`; // Dynamically get project ID if possible
-  const payload = {
-    first_name: firstName,
-    last_name: lastName,
-    email: email, // Guaranteed to be non-null due to the check above
-    host: callbackUrl, // Your deployed webhook handler URL
-    amount: Number(amount),
-    phone_number: phoneNumber,
-    api_ref: accountReference,
-    method: "MPESA-STK-PUSH",
-    currency: "KES",
-  };
-  // eslint-disable-next-line max-len
-  console.log(`Sending STK Push request to Intasend. TestMode=${isTestEnvironment}. Payload:`, JSON.stringify(payload));
-  // --- Make the STK Push Request ---
-  try {
-    const resp = await collection.charge(payload);
-    console.log("Intasend STK Push Response:", resp);
+  // --- Prepare Payload (Level 1: 2 spaces) ---
+  // Map camelCase back to snake_case for the API
+  const transferPayload = [{
+    account: accountNumber, // IntaSend expects 'account' key
+    name: accountName, // IntaSend expects 'name' key
+    amount: amount,
+    narrative: narrative,
+  }];
 
-    // --- Update Firestore record with Intasend response details ---
-    const updateData = {
-      // eslint-disable-next-line max-len
-      intasendInvoiceId: (resp && resp.invoice && resp.invoice.invoice_id) || null,
-      // eslint-disable-next-line max-len
-      intasendCheckoutId: (resp && resp.invoice && resp.invoice.checkout_id) || null,
-      // eslint-disable-next-line max-len
-      intasendState: (resp && resp.invoice && resp.invoice.state) || "unknown_response",
-      intasendResponseTimestamp: Timestamp.now(),
-      // eslint-disable-next-line max-len
-      status: (resp && resp.invoice && resp.invoice.state) === "PENDING" ? "pending_stk" : "initiated_with_response",
-      error: null,
-    };
-    try {
-      await paymentAttemptRef.update(updateData);
-      // eslint-disable-next-line max-len
-      console.log(`Updated payment attempt ${accountReference} with Intasend response.`);
-    } catch (updateError) {
-      // eslint-disable-next-line max-len
-      console.error(`Firestore Update Error: Failed to update payment attempt ${accountReference} after Intasend call:`, updateError);
-    }
+  // eslint-disable-next-line max-len
+  console.log("Calling IntaSend Transfers API with payload keys:", Object.keys(transferPayload[0]).join(", "));
+  try {
+    // Firestore Transaction (Level 2: 4 spaces)
+    // eslint-disable-next-line max-len
+    const businessDocRef = admin.firestore().collection("businesses").doc(businessId);
 
     // eslint-disable-next-line max-len
-    if (resp && resp.invoice && resp.invoice.state === "PENDING" && resp.invoice.checkout_id) {
-      // eslint-disable-next-line max-len
-      console.log(`STK Push initiated successfully via Intasend. Checkout ID: ${resp.invoice.checkout_id}, Invoice ID: ${resp.invoice.invoice_id}`);
-      // Send success response back to Flutter
-      res.status(200).json({
-        success: true,
+    const intasendApiResponse = await admin.firestore().runTransaction(async (transaction) => {
+      // Transaction Callback (Level 3: 6 spaces)
+      console.log("[Transaction] Starting Firestore transaction.");
+      const businessDoc = await transaction.get(businessDocRef);
+      if (!businessDoc.exists) {
         // eslint-disable-next-line max-len
-        message: "STK Push initiated successfully. Check your phone to enter PIN.",
-        checkoutRequestId: resp.invoice.checkout_id,
-        invoiceId: resp.invoice.invoice_id,
-        accountReference: accountReference,
-      });
+        console.error(`[Transaction] Error: Business document ${businessId} not found.`);
+        // eslint-disable-next-line max-len
+        throw new HttpsError("not-found", `Business ${businessId} not found.`);
+      }
+
+      const businessData = businessDoc.data();
+      // Ensure walletBalance field exists (Level 3: 6 spaces)
+      const currentBalance = (typeof businessData.walletBalance === "number") ?
+        businessData.walletBalance :
+        0;
+
+      // eslint-disable-next-line max-len
+      console.log(`[Transaction] Current Balance for ${businessId}: ${currentBalance}`);
+
+      // Check balance (Level 3: 6 spaces for 'if', Level 4: 8 for content)
+      if (currentBalance < amount) {
+        // eslint-disable-next-line max-len
+        console.error(`[Transaction] Error: Insufficient balance for ${businessId}. Required: ${amount}, Available: ${currentBalance}`);
+        // eslint-disable-next-line max-len
+        throw new HttpsError("failed-precondition", "Insufficient wallet balance for the transfer.");
+      }
+
+      console.log("[Transaction] Calling IntaSend Transfers API...");
+      let response;
+      try {
+        // eslint-disable-next-line max-len
+        response = await intasend.transfers().mpesa(transferPayload);
+      } catch (apiError) {
+        // eslint-disable-next-line max-len
+        console.error("[Transaction] IntaSend API call failed:", apiError);
+        // Extract useful error message (Level 4: 8 spaces)
+        let errorMessage = "IntaSend API communication error during transfer.";
+        // eslint-disable-next-line max-len
+        if (apiError && apiError.response && apiError.response.data && apiError.response.data.detail) {
+          errorMessage = apiError.response.data.detail;
+        } else if (apiError && apiError.message) {
+          errorMessage = apiError.message;
+        }
+        // eslint-disable-next-line max-len
+        throw new HttpsError("internal", `Payment gateway error: ${errorMessage}`, apiError);
+      }
+
+      // Log specific response fields (Level 3: 6 spaces)
+      // eslint-disable-next-line max-len
+      console.log("[Transaction] IntaSend Transfers API Response Status:", response && response.status);
+      // eslint-disable-next-line max-len
+      console.log("[Transaction] IntaSend Transfers API Tracking ID:", response && response.tracking_id);
+      // eslint-disable-next-line max-len
+      console.log("[Transaction] IntaSend Transfers API Message:", response && response.message);
+      // CHECK IntaSend Transfer API success indicator. Assuming 'Success'.
+      // eslint-disable-next-line max-len
+      if (!response || response.status !== "Success") { // <<< Adjust based on actual success indicator
+        // eslint-disable-next-line max-len
+        const failureReason = response && response.message || response && response.error || "IntaSend transfer initiation failed or returned unexpected status.";
+        // Avoid logging full response again
+        // eslint-disable-next-line max-len
+        console.error("[Transaction] IntaSend transfer failed:", failureReason);
+        // eslint-disable-next-line max-len
+        throw new HttpsError("internal", `Payment gateway failed: ${failureReason}`);
+      }
+      // eslint-disable-next-line max-len
+      console.log("[Transaction] IntaSend transfer initiated successfully.");
+
+      // Prepare Firestore Updates (Level 3: 6 spaces)
+      const newBalance = currentBalance - amount;
+      // eslint-disable-next-line max-len
+      console.log(`[Transaction] Updating balance for ${businessId} to: ${newBalance}`);
+      transaction.update(businessDocRef, {walletBalance: newBalance});
+
+      // Log the transaction (Level 3: 6 spaces)
+      const transactionLog = {
+        type: transactionType, // Use camelCase variable
+        amount: -amount, // Negative for withdrawal/transfer out
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        description: narrative,
+        status: "completed", // Mark as completed since IntaSend initiated
+        // eslint-disable-next-line max-len
+        intasendTrackingId: response && response.tracking_id || null,
+      };
+
+      // eslint-disable-next-line max-len
+      const newTransactionRef = businessDocRef.collection("transactions").doc();
+      // Log keys safely
+      // eslint-disable-next-line max-len
+      console.log("[Transaction] Adding transaction log keys:", Object.keys(transactionLog).join(", "));
+      transaction.set(newTransactionRef, transactionLog);
+
+      console.log("[Transaction] Firestore updates prepared.");
+      // Return relevant parts of the response (Level 3: 6 spaces)
+      return {
+        status: response.status,
+        tracking_id: response.tracking_id,
+        message: response.message,
+        // Add other safe fields if needed
+      };
+    }); // End Firestore Transaction
+
+    // Return success (Level 2: 4 spaces)
+    // eslint-disable-next-line max-len
+    console.log(">>>> Firestore Transaction Completed Successfully <<<<");
+    return {
+      success: true,
+      message: "Transfer initiated successfully.",
+      details: intasendApiResponse, // Return the safe details object
+    };
+  } catch (error) { // Catch block for the main try (Level 1: 2 spaces)
+    // Error handling (Level 2: 4 spaces)
+    console.error("!!!! Transfer Processing Error !!!!");
+    console.error("Error Message:", error.message);
+    if (error.stack) {
+      console.error("Error Stack:", error.stack);
+    }
+    if (error instanceof HttpsError) {
+      throw error; // Re-throw the specific HttpsError
+    } else {
+      // Wrap the error for consistent client handling
+      // eslint-disable-next-line max-len
+      throw new HttpsError("internal", "An unexpected error occurred during the transfer.", error.message);
+    }
+  }
+});
+// eslint-disable-next-line max-len
+exports.createIntasendWalletForUser = functions.https.onCall(async (data, context) => {
+  console.log("Received data object:", data); // <<< Log the object directly
+  console.log("Keys present in data:", Object.keys(data));
+  console.log("Value of data.userId:", data.userId);
+  // Authentication check
+  // index.js (inside exports.createIntasendWalletForUser)
+  const {userId, email, currency = "KES", canDisburse = true} = data.data;
+
+  // Input validation
+  if (!userId || typeof userId !== "string" || userId.trim() === "") {
+    // eslint-disable-next-line max-len
+    console.error("Validation Error: Invalid or missing 'userId' in request data.", {userId});
+    // eslint-disable-next-line max-len
+    throw new functions.https.HttpsError("invalid-argument", "A valid 'userId' must be provided in the request data.");
+  }
+  if (!email || typeof email !== "string") {
+    console.error("Validation Error: Invalid email.", {email});
+    // eslint-disable-next-line max-len
+    throw new functions.https.HttpsError("invalid-argument", "A valid 'email' is required.");
+  }
+  if (!currency || typeof currency !== "string") {
+    console.error("Validation Error: Invalid currency.", {currency});
+    // eslint-disable-next-line max-len
+    throw new functions.https.HttpsError("invalid-argument", "A valid 'currency' is required.");
+  }
+  // eslint-disable-next-line max-len
+  console.log(`Creating wallet for User ID: ${userId}, Email: ${email}, Currency: ${currency}, CanDisburse: ${canDisburse}`);
+
+  try {
+    // Check if user already has a wallet ID stored
+    const userClientRef = admin.firestore().collection("clients").doc(userId);
+    // eslint-disable-next-line max-len
+    const userBusinessRef = admin.firestore().collection("businesses").doc(userId);
+
+    const [clientSnap, businessSnap] = await Promise.all([
+      userClientRef.get(),
+      userBusinessRef.get(),
+    ]);
+
+    let userRef = null;
+    let userDocData = null;
+
+    if (clientSnap.exists) {
+      userRef = userClientRef;
+      userDocData = clientSnap.data();
+      console.log("Found user in 'clients' collection.");
+    } else if (businessSnap.exists) {
+      userRef = userBusinessRef;
+      userDocData = businessSnap.data();
+      console.log("Found user in 'businesses' collection.");
     } else {
       // eslint-disable-next-line max-len
-      console.error("Intasend response received, but state is not PENDING or checkout_id/invoice_id is missing:", resp);
-      await paymentAttemptRef.update({
-        status: "failed_intasend_response",
-        // eslint-disable-next-line max-len
-        error: `Unexpected Intasend state: ${(resp && resp.invoice && resp.invoice.state) || "Unknown"}`,
-        intasendError: JSON.stringify(resp),
-        // eslint-disable-next-line max-len
-      }).catch((err) => console.error("Failed to update payment attempt status:", err));
-      // eslint-disable-next-line max-len
-      res.status(500).json({success: false, error: "Payment initiation acknowledged by Intasend but response state is unexpected.", details: resp});
+      console.warn(`User document not found for ID ${userId} in 'clients' or 'businesses'. Wallet might not be linkable.`);
     }
-  } catch (err) {
+
+    if (userDocData && userDocData.intasendWalletId) {
+      // eslint-disable-next-line max-len
+      console.log(`User ${userId} already has an Intasend Wallet ID: ${userDocData.intasendWalletId}. Skipping creation.`);
+      // eslint-disable-next-line max-len
+      return {success: true, wallet_id: userDocData.intasendWalletId, message: "Wallet already exists."};
+    }
+
+
+    // Prepare IntaSend payload
+    const walletPayload = {
+      currency: currency,
+      label: userId,
+      wallet_type: "WORKING",
+      can_disburse: canDisburse,
+      email: email,
+    };
+
+    console.log("Calling IntaSend wallets.create with payload:", walletPayload);
+    const walletResponse = await wallets.create(walletPayload);
     // eslint-disable-next-line max-len
-    console.error("Intasend STK Push API Error:", err.message || err);
+    console.log("IntaSend Wallet Create Response:", JSON.stringify(walletResponse, null, 2));
+
+    // Check IntaSend response
+    if (!walletResponse || !walletResponse.wallet_id) {
+      // eslint-disable-next-line max-len
+      const errorMessage = (walletResponse && walletResponse.detail) || "Failed to create Intasend wallet (unknown error).";
+      console.error("IntaSend Wallet Creation Failed:", errorMessage);
+      // eslint-disable-next-line max-len
+      throw new functions.https.HttpsError("internal", `Payment Gateway Error: ${errorMessage}`);
+    }
+
+    const intasendWalletId = walletResponse.wallet_id;
     // eslint-disable-next-line max-len
-    const errorDetails = err.details || err.message || "Unknown Intasend API error";
-    const errorCode = err.code || "Unknown";
-    // --- Update Firestore record to reflect the initiation failure ---
+    console.log(`IntaSend wallet created successfully. Wallet ID: ${intasendWalletId}`);
+
+    // Update Firestore with the new wallet ID if user doc exists
+    if (userRef) {
+      await userRef.set({
+        intasendWalletId: intasendWalletId,
+        intasendWalletCurrency: currency,
+        intasendWalletLabel: userId,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+      // eslint-disable-next-line max-len
+      console.log(`Successfully updated user document ${userRef.path} with Intasend Wallet ID.`);
+    } else {
+      // eslint-disable-next-line max-len
+      console.warn(`Could not link Wallet ID ${intasendWalletId} as user document for ${userId} was not found.`);
+    }
+    // eslint-disable-next-line max-len
+    return {success: true, wallet_id: intasendWalletId, message: "Intasend wallet created and linked."};
+  } catch (error) {
+    console.error("!!!! Error in createIntasendWalletForUser !!!!");
+    console.error("Error Details:", error);
+    // Throw HttpsError for client-side handling
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    } else {
+      // eslint-disable-next-line max-len
+      throw new functions.https.HttpsError("internal", "An unexpected error occurred while creating the wallet.", error.message);
+    }
+  }
+});
+
+exports.getUserWalletBalance = functions.https.onCall(async (data, context) => {
+  console.log(">>> Starting getUserWalletBalance <<<");
+  // Authentication check
+  if (!context.auth) {
+    console.error("Authentication Error: User not authenticated.");
+    // eslint-disable-next-line max-len
+    throw new functions.https.HttpsError("unauthenticated", "User must be authenticated.");
+  }
+  const userId = context.auth.uid;
+  console.log(`Workspaceing balance for User ID: ${userId}`);
+
+  try {
+    // Find the user document and get their Intasend Wallet ID
+    const userClientRef = admin.firestore().collection("clients").doc(userId);
+    // eslint-disable-next-line max-len
+    const userBusinessRef = admin.firestore().collection("businesses").doc(userId);
+
+    const [clientSnap, businessSnap] = await Promise.all([
+      userClientRef.get(),
+      userBusinessRef.get(),
+    ]);
+
+    let userDocData = null;
+
+    if (clientSnap.exists) {
+      userDocData = clientSnap.data();
+      console.log("Found user in 'clients' collection.");
+    } else if (businessSnap.exists) {
+      userDocData = businessSnap.data();
+      console.log("Found user in 'businesses' collection.");
+    }
+
+    if (!userDocData || !userDocData.intasendWalletId) {
+      // eslint-disable-next-line max-len
+      console.error(`User ${userId} does not have an Intasend Wallet ID linked.`);
+      // eslint-disable-next-line max-len
+      throw new functions.https.HttpsError("not-found", "User does not have a linked wallet.");
+    }
+
+    const intasendWalletId = userDocData.intasendWalletId;
+    // eslint-disable-next-line max-len
+    console.log(`Found Intasend Wallet ID: ${intasendWalletId} for user ${userId}. Fetching details...`);
+
+    // Fetch wallet details from Intasend
+    const walletDetails = await wallets.details(intasendWalletId);
+    // eslint-disable-next-line max-len
+    console.log("Intasend Wallet Details Response:", JSON.stringify(walletDetails, null, 2));
+    // eslint-disable-next-line max-len
+    if (!walletDetails || typeof walletDetails.available_balance === "undefined") {
+      // eslint-disable-next-line max-len
+      const errorMessage = (walletDetails && walletDetails.detail) ? walletDetails.detail : "Failed to retrieve wallet balance.";
+      // eslint-disable-next-line max-len
+      console.error("Failed to get wallet details from Intasend:", errorMessage);
+      // eslint-disable-next-line max-len
+      throw new functions.https.HttpsError("internal", `Payment Gateway Error: ${errorMessage}`);
+    }
+
+    // Extract and return balance
+    const balance = parseFloat(walletDetails.available_balance) || 0.0;
+    const currency = walletDetails.currency || "KES";
+    console.log(`Returning balance: ${balance} ${currency}`);
+    return {success: true, balance: balance, currency: currency};
+  } catch (error) {
+    console.error("!!!! Error in getUserWalletBalance !!!!");
+    console.error("Error Details:", error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    } else {
+      // eslint-disable-next-line max-len
+      throw new functions.https.HttpsError("internal", "An unexpected error occurred while fetching the wallet balance.", error.message);
+    }
+  }
+});
+
+exports.processBusinessTransfer = onCall(async (request) => {
+  try {
+    // eslint-disable-next-line max-len
+    console.log(">>> Starting processBusinessTransfer (v8 - Two-Step Approval Logic) <<<");
+    // Ensure request.data exists, especially if coming from older clients
+    const data = request.data || {};
+    console.log("Raw Request Data:", JSON.stringify(data, null, 2));
+
+    // --- 1. Authentication Check ---
+    if (!request.auth || !request.auth.uid) {
+      console.error("Authentication Error: User not authenticated.");
+      throw new HttpsError("unauthenticated", "User must be authenticated.");
+    }
+    const userId = request.auth.uid; // This is the Business User ID
+    console.log(`Authenticated Business User ID: ${userId}`);
+    // eslint-disable-next-line max-len
+    const {amount, accountNumber, accountName, narrative} = data;
+    // eslint-disable-next-line max-len
+    console.log("Parsed Request Data:", {amount, accountNumber, accountName, narrative});
+    // eslint-disable-next-line max-len
+    if (!amount || typeof amount !== "number" || amount <= 0) throw new HttpsError("invalid-argument", "Invalid amount provided.");
+    // eslint-disable-next-line max-len
+    if (!accountNumber || typeof accountNumber !== "string") throw new HttpsError("invalid-argument", "Valid recipient phone number (accountNumber) required.");
+    // eslint-disable-next-line max-len
+    if (!accountName || typeof accountName !== "string") throw new HttpsError("invalid-argument", "Valid recipient name (accountName) required.");
+    // eslint-disable-next-line max-len
+    if (!narrative || typeof narrative !== "string") throw new HttpsError("invalid-argument", "Valid narrative required.");
+
+    // --- Format Recipient Phone Number ---
+    let formattedPhoneNumber = accountNumber.trim().replace(/\s+/g, "");
+    // eslint-disable-next-line max-len
+    if (formattedPhoneNumber.startsWith("0") && formattedPhoneNumber.length === 10) {
+      formattedPhoneNumber = "254" + formattedPhoneNumber.substring(1);
+    // eslint-disable-next-line max-len
+    } else if (formattedPhoneNumber.length === 9 && (formattedPhoneNumber.startsWith("7") || formattedPhoneNumber.startsWith("1"))) {
+      formattedPhoneNumber = "254" + formattedPhoneNumber;
+    // eslint-disable-next-line max-len
+    } else if (!formattedPhoneNumber.startsWith("254") || formattedPhoneNumber.length !== 12) {
+      // eslint-disable-next-line max-len
+      throw new HttpsError("invalid-argument", "Invalid Kenyan phone number format provided.");
+    }
+    console.log(`Formatted Recipient Phone: ${formattedPhoneNumber}`);
+    console.log("Input validation passed.");
+    // eslint-disable-next-line max-len
+    const publishableKey = process.env.INTASEND_PUBLISHABLE_KEY || "ISPubKey_live_a754b295-ef19-4e9a-9746-9d8dd56c070a";
+    // eslint-disable-next-line max-len
+    const secretKey = process.env.INTASEND_SECRET_KEY || "ISSecretKey_live_11e1a802-47b9-4d44-9a20-102d6438344d";
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+    const testMode = isEmulator;
+    console.log(`*** IntaSend Config (Payout): TestMode=${testMode} ***`);
+
+    let intasend;
     try {
-      await paymentAttemptRef.update({
-        status: "failed_initiation",
-        error: `Intasend API Error: ${errorCode}`,
-        intasendError: errorDetails, // Store the error message/details
-        intasendResponseTimestamp: Timestamp.now(),
-      });
+      intasend = new APIService(publishableKey, secretKey, testMode);
+    } catch (sdkError) {
+      console.error("!!!! Failed to initialize IntaSend SDK !!!!", sdkError);
       // eslint-disable-next-line max-len
-      console.log(`Updated payment attempt ${accountReference} status to failed_initiation.`);
-    } catch (failUpdateError) {
-      // eslint-disable-next-line max-len
-      console.error(`Firestore Update Error: Failed to update payment attempt ${accountReference} after Intasend failure:`, failUpdateError);
+      throw new HttpsError("internal", "Failed to initialize payment service SDK.", sdkError.message);
     }
+    const payouts = intasend.payouts(); // Get the payouts service
+
     // eslint-disable-next-line max-len
-    const statusCode = (errorCode === "INVALID_PHONE_NUMBER" || errorCode === "BAD_REQUEST") ? 400 : 500;
+    const businessDocRef = admin.firestore().collection("businesses").doc(userId);
+    let finalStatus = "failed"; // Default final status
+    let finalMessage = "Payout processing encountered an issue.";
+    let trackingId = null;
+    let fetchedSourceWalletId = null;
+    let intasendApiResponse = null;
+
+    console.log("[Transaction] Starting Firestore transaction.");
+    await admin.firestore().runTransaction(async (transaction) => {
+      // eslint-disable-next-line max-len
+      console.log(`[Transaction] Checking balance/wallet for business user ${userId}`);
+      const businessDoc = await transaction.get(businessDocRef);
+      if (!businessDoc.exists) {
+        // eslint-disable-next-line max-len
+        console.error(`[Transaction] Error: Business document ${userId} not found.`);
+        // eslint-disable-next-line max-len
+        throw new HttpsError("not-found", `Business profile for ${userId} not found.`);
+      }
+
+      const businessData = businessDoc.data() || {}; // Use default empty object
+
+      // Fetch IntaSend Wallet ID from Business Document
+      fetchedSourceWalletId = businessData.intasendWalletId;
+      // eslint-disable-next-line max-len
+      if (!fetchedSourceWalletId || typeof fetchedSourceWalletId !== "string" || fetchedSourceWalletId.trim() === "") {
+        // eslint-disable-next-line max-len
+        console.error(`[Transaction] Error: Business ${userId} missing valid 'intasendWalletId'.`);
+        // eslint-disable-next-line max-len
+        throw new HttpsError("failed-precondition", "Business wallet ID is missing or invalid. Cannot perform payout.");
+      }
+      // eslint-disable-next-line max-len
+      console.log(`*** [Transaction] Using Source Wallet ID from Firestore: ${fetchedSourceWalletId} ***`);
+
+      // eslint-disable-next-line max-len
+      const currentBalance = (typeof businessData.balance === "number") ? businessData.balance : 0;
+      // eslint-disable-next-line max-len
+      console.log(`[Transaction] Current Balance for ${userId}: ${currentBalance}`);
+
+      if (currentBalance < amount) {
+        // eslint-disable-next-line max-len
+        console.error(`[Transaction] Error: Insufficient balance. Required: ${amount}, Available: ${currentBalance}`);
+        // eslint-disable-next-line max-len
+        throw new HttpsError("failed-precondition", `Insufficient balance. Available: KES ${currentBalance.toFixed(2)}`);
+      }
+      // eslint-disable-next-line max-len
+      console.log(`[Transaction] Balance sufficient (${currentBalance} >= ${amount}). Proceeding with IntaSend.`);
+
+      // --- Step 1: Initiate IntaSend M-Pesa B2C Payout ---
+      const mpesaB2CPayload = {
+        currency: "KES",
+        transactions: [{
+          name: accountName,
+          account: formattedPhoneNumber, // Formatted Recipient Phone from input
+          amount: amount.toString(),
+          narrative: narrative,
+        }],
+        wallet_id: fetchedSourceWalletId, // Source Wallet ID from Firestore
+        // NO requires_approval flag here - we will handle the response
+      };
+      // eslint-disable-next-line max-len
+      console.log("[Transaction] Calling IntaSend payouts.mpesa (B2C)... with payload:", JSON.stringify(mpesaB2CPayload, null, 2));
+
+      let initialResponse;
+      try {
+        // *** THE ACTUAL INITIAL API CALL ***
+        initialResponse = await payouts.mpesa(mpesaB2CPayload);
+        trackingId = initialResponse && initialResponse.tracking_id;
+        // eslint-disable-next-line max-len
+        console.log("[Transaction] Initial IntaSend Response:", JSON.stringify(initialResponse, null, 2));
+      } catch (apiError) {
+        // eslint-disable-next-line max-len
+        console.error("[Transaction] Initial IntaSend API call failed:", apiError);
+        // eslint-disable-next-line max-len
+        let detailedErrorMessage = "IntaSend API communication error during payout initiation.";
+        // eslint-disable-next-line max-len
+        if (apiError && apiError.response && apiError.response.data && apiError.response.data.detail) {
+          detailedErrorMessage = apiError.response.data.detail;
+        } else if (apiError && apiError.message) {
+          detailedErrorMessage = apiError.message;
+          // eslint-disable-next-line max-len
+        } else if (apiError && apiError.details && apiError.details instanceof Buffer) {
+          try {
+            detailedErrorMessage = apiError.details.toString("utf-8");
+            // eslint-disable-next-line max-len
+            console.error("[Transaction] Decoded Error Buffer:", detailedErrorMessage);
+          } catch (decodeError) {
+            // eslint-disable-next-line max-len
+            console.error("[Transaction] Failed to decode error buffer:", decodeError);
+          }
+        }
+        // eslint-disable-next-line max-len
+        throw new HttpsError("internal", `Payment gateway error during initiation: ${detailedErrorMessage}`, apiError);
+      }
+      // eslint-disable-next-line max-len
+      const initialStatus = initialResponse && initialResponse.status;
+
+      if (initialStatus === "Preview and approve") {
+        // eslint-disable-next-line max-len
+        console.log("[Transaction] IntaSend payout requires approval. Attempting auto-approval...");
+        try {
+          // *** Step 3: Approve Programmatically ***
+          const approvalResponse = await payouts.approve(initialResponse);
+          // eslint-disable-next-line max-len
+          console.log("[Transaction] IntaSend Auto-Approval Response:", JSON.stringify(approvalResponse, null, 2));
+          // eslint-disable-next-line max-len
+          intasendApiResponse = approvalResponse;
+
+          // Check the status AFTER the approval attempt
+          const approvalStatus = (approvalResponse && approvalResponse.status);
+          // eslint-disable-next-line max-len
+          if (approvalStatus === "Success" || approvalStatus === "Queued" || approvalStatus === "Processing" || approvalStatus === "Confirming balance") {
+            // eslint-disable-next-line max-len
+            console.log("[Transaction] Payout approved programmatically or is now processing.");
+            finalStatus = "pending_confirmation";
+            // eslint-disable-next-line max-len
+            finalMessage = approvalResponse.message || "Payout approved, awaiting final confirmation via webhook.";
+            // eslint-disable-next-line max-len
+            const newBalance = currentBalance - amount;
+            // eslint-disable-next-line max-len
+            console.log(`[Transaction] Updating balance for ${userId} to: ${newBalance} (After Approval)`);
+            // eslint-disable-next-line max-len
+            transaction.update(businessDocRef, {balance: newBalance, updatedAt: FieldValue.serverTimestamp()});
+          } else {
+            // eslint-disable-next-line max-len
+            console.error("[Transaction] Auto-Approval Failed According to IntaSend:", approvalResponse);
+            finalStatus = "approval_failed";
+            // eslint-disable-next-line max-len
+            finalMessage = (approvalResponse && approvalResponse.message) ? approvalResponse.message : "Auto-approval failed.";
+          }
+        } catch (approvalError) {
+          // eslint-disable-next-line max-len
+          console.error("[Transaction] Error during auto-approval API call:", approvalError);
+          finalStatus = "approval_error";
+          // eslint-disable-next-line max-len
+          finalMessage = approvalError.message || "Error occurred during auto-approval process.";
+        }
+        // eslint-disable-next-line max-len
+      } else if (initialStatus === "Success" || initialStatus === "Queued" || initialStatus === "Processing") {
+        // eslint-disable-next-line max-len
+        console.log("[Transaction] Payout initiated directly without needing approval step.");
+        intasendApiResponse = initialResponse;
+        finalStatus = "pending_confirmation";
+        // eslint-disable-next-line max-len
+        finalMessage = initialResponse.message || "Payout initiated, awaiting final confirmation via webhook.";
+        const newBalance = currentBalance - amount;
+        // eslint-disable-next-line max-len
+        console.log(`[Transaction] Updating balance for ${userId} to: ${newBalance} (Direct Initiation)`);
+        // eslint-disable-next-line max-len
+        transaction.update(businessDocRef, {balance: newBalance, updatedAt: FieldValue.serverTimestamp()});
+      } else {
+        // eslint-disable-next-line max-len
+        const failureReason = (initialResponse && initialResponse.message) || (initialResponse && initialResponse.error) || (initialResponse && initialResponse.details) || "IntaSend payout initiation failed with unexpected status.";
+        // eslint-disable-next-line max-len
+        console.error("[Transaction] Initial IntaSend payout failed:", failureReason);
+        finalStatus = "failed";
+        finalMessage = `Payment gateway failed: ${failureReason}`;
+        // Log failure but don't throw HttpsError yet, let it complete logging
+      }
+      const transactionLog = {
+        name: `Payout to ${accountName}`, // Use consistent naming
+        amount: amount,
+        type: "debit",
+        description: narrative,
+        status: finalStatus,
+        timestamp: FieldValue.serverTimestamp(), // Use server time
+        recipientType: "M-Pesa Phone",
+        recipientIdentifier: formattedPhoneNumber,
+        intasendTrackingId: trackingId || null,
+        // eslint-disable-next-line max-len
+        error: (finalStatus.includes("fail") || finalStatus.includes("error")) ? finalMessage : null,
+      };
+      // Use server timestamp for log entry
+      const newTransactionRef = businessDocRef.collection("transactions").doc();
+      console.log("[Transaction] Adding transaction log:", transactionLog);
+      transaction.set(newTransactionRef, transactionLog);
+      // eslint-disable-next-line max-len
+      console.log("[Transaction] Firestore updates (balance deduction if applicable, transaction log) prepared.");
+      // eslint-disable-next-line max-len
+      if (finalStatus.includes("fail") || finalStatus.includes("error") || finalStatus === "api_error") {
+        // eslint-disable-next-line max-len
+        console.error(`[Transaction] Throwing HttpsError due to finalStatus: ${finalStatus}`);
+        throw new HttpsError("internal", finalMessage);
+      }
+    }); // End Firestore Transaction
+
     // eslint-disable-next-line max-len
-    res.status(statusCode).json({success: false, error: "Failed to initiate M-Pesa payment via Intasend.", code: errorCode, details: errorDetails});
+    console.log(">>>> Firestore Transaction Completed (Commit/Rollback Attempted) <<<<");
+    // eslint-disable-next-line max-len
+    const isOverallSuccess = (finalStatus === "pending_confirmation" || finalStatus === "pending_approval");
+
+    return {
+      success: isOverallSuccess, // True if initiated/approved, false otherwise
+      message: finalMessage, // Message reflecting the outcome
+      details: {
+        status: finalStatus, // The status after attempting approval
+        tracking_id: trackingId,
+        // Ensure intasendApiResponse is not null before accessing fields
+        intasend_response: intasendApiResponse || null,
+        source_wallet_id_used: fetchedSourceWalletId,
+      },
+    };
+  } catch (error) {
+    console.error("!!!! Payout Processing Error !!!");
+    console.error("Error Type:", error.constructor.name);
+    // Log HttpsError specific details if available
+    console.error("Error Code:", error.code);
+    console.error("Error Message:", error.message);
+    if (error.details) console.error("Error Details:", error.details);
+    // Log stack trace for better debugging
+    if (error.stack) console.error("Error Stack:", error.stack);
+
+    // Re-throw HttpsError to be caught by the client, or wrap others
+    if (error instanceof HttpsError) {
+      throw error;
+    } else {
+      // eslint-disable-next-line max-len
+      throw new HttpsError("internal", "An unexpected error occurred during the payout process.", error.message);
+    }
   }
 });

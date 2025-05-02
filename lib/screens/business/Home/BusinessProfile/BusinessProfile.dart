@@ -14,7 +14,7 @@ import 'MarketDevelopment/Marketdevelopment.dart';
 import 'Analysis/Analysis.dart';
 import 'Staff/staff.dart';
 
-// *** Import Wallet Screens ***
+// *** Import Wallet Screens (Kept for logic) ***
 import 'PaymentMethod/walletpage.dart';         // Import WalletPage
 import 'PaymentMethod/walletcreation/welcome.dart'; // Import WelcomeScreen
 
@@ -63,22 +63,22 @@ class _BusinessProfileState extends State<BusinessProfile> {
       }
       var loadedData = appBox.get('businessData');
       if (loadedData is Map) {
-         // Ensure correct type before casting
-         businessData = Map<String, dynamic>.from(loadedData);
+        // Ensure correct type before casting
+        businessData = Map<String, dynamic>.from(loadedData);
       } else {
-         businessData = {};
+        businessData = {};
       }
       print("BusinessProfile initial data loaded from Hive: $businessData");
     } catch(e) {
        print("Error initializing Hive in BusinessProfile: $e");
-        if(mounted){
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error loading profile data: $e')),
-          );
+       if(mounted){
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Error loading profile data: $e')),
+         );
        }
     } finally {
        if(mounted){
-          setState(() { _isLoading = false; });
+         setState(() { _isLoading = false; });
        }
     }
   }
@@ -123,7 +123,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
     final String? businessId = businessData['userId'] ?? businessData['documentId'];
     if (businessId == null) {
        ScaffoldMessenger.of(context).showSnackBar(
-         const SnackBar(content: Text('Error: Business ID not found.')),
+        const SnackBar(content: Text('Error: Business ID not found.')),
        );
        return;
     }
@@ -142,30 +142,30 @@ class _BusinessProfileState extends State<BusinessProfile> {
 
          bool isComplete = false;
          if (docSnapshot.exists && docSnapshot.data() != null) {
-            final Map<String, dynamic> firestoreData = docSnapshot.data() as Map<String, dynamic>;
-            // Update local cache immediately
-            firestoreData.forEach((key, value) {
-               if (value is Timestamp) {
-                  firestoreData[key] = value.toDate().toIso8601String();
-               }
-            });
-            businessData = {...businessData, ...firestoreData};
-            await appBox.put('businessData', businessData);
+           final Map<String, dynamic> firestoreData = docSnapshot.data() as Map<String, dynamic>;
+           // Update local cache immediately
+           firestoreData.forEach((key, value) {
+              if (value is Timestamp) {
+                 firestoreData[key] = value.toDate().toIso8601String();
+              }
+           });
+           businessData = {...businessData, ...firestoreData};
+           await appBox.put('businessData', businessData);
 
-            // Check the relevant flag
-            if (pageName == 'Lotus Business Profile') {
-              isComplete = firestoreData['isLotusProfileComplete'] ?? false;
-              print("Firestore check: isLotusProfileComplete = $isComplete");
-              destinationPage = isComplete ? const FinalBusinessProfile() : const OpeningHoursScreen();
-            } else { // Payment Method
-              isComplete = firestoreData['isWalletSetupComplete'] ?? false; // <<< Check Wallet flag
-              print("Firestore check: isWalletSetupComplete = $isComplete");
-              destinationPage = isComplete ? const WalletPage() : const WelcomeScreen(); // <<< Navigate based on Wallet flag
-            }
+           // Check the relevant flag
+           if (pageName == 'Lotus Business Profile') {
+             isComplete = firestoreData['isLotusProfileComplete'] ?? false;
+             print("Firestore check: isLotusProfileComplete = $isComplete");
+             destinationPage = isComplete ? const FinalBusinessProfile() : const OpeningHoursScreen();
+           } else { // Payment Method (Logic remains)
+             isComplete = firestoreData['isWalletSetupComplete'] ?? false; // <<< Check Wallet flag
+             print("Firestore check: isWalletSetupComplete = $isComplete");
+             destinationPage = isComplete ? const WalletPage() : const WelcomeScreen(); // <<< Navigate based on Wallet flag
+           }
          } else {
-            print("Firestore document $businessId not found. Defaulting to setup.");
-            // Default to setup screen if document not found
-             destinationPage = (pageName == 'Payment Method') ? const WelcomeScreen() : const OpeningHoursScreen();
+           print("Firestore document $businessId not found. Defaulting to setup.");
+           // Default to setup screen if document not found
+            destinationPage = (pageName == 'Payment Method') ? const WelcomeScreen() : const OpeningHoursScreen();
          }
 
          // Navigate after check
@@ -176,13 +176,13 @@ class _BusinessProfileState extends State<BusinessProfile> {
 
        } catch (e) {
          print("Error checking Firestore flag ($pageName): $e");
-          if(mounted) {
-             ScaffoldMessenger.of(context).showSnackBar(
+         if(mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
                SnackBar(content: Text('Error checking status: $e')),
-             );
-          }
+            );
+         }
        } finally {
-          if(mounted) setState(() { _isCheckingFlag = false; });
+         if(mounted) setState(() { _isCheckingFlag = false; });
        }
        return; // Exit after handling flag checks
     }
@@ -193,7 +193,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
     switch (pageName) {
       case 'Service listing':
          destinationPage = const ServiceListingScreen();
-        break;
+       break;
       case 'Market Development':
         destinationPage = const MarketDevelopmentScreen();
         break;
@@ -203,7 +203,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
       case 'Staff':
         destinationPage = const StaffScreen();
         break;
-      // Payment Method is now handled above by flag check
+      // Payment Method logic is handled above by flag check, UI is removed below
       case 'Business Summary':
          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$pageName page not implemented yet')));
          return;
@@ -332,11 +332,13 @@ class _BusinessProfileState extends State<BusinessProfile> {
                         icon: Icons.trending_up_outlined,
                         onTap: () => _navigateToPage('Market Development'),
                       ),
-                      _buildProfileItem(
-                        title: 'Payment Method', // <<< Stays the same
-                        icon: Icons.payment_outlined,
-                        onTap: () => _navigateToPage('Payment Method'), // <<< Calls the updated function
-                      ),
+                      // --- vvv PAYMENT METHOD UI REMOVED vvv ---
+                      // _buildProfileItem(
+                      //   title: 'Payment Method', // UI Text
+                      //   icon: Icons.payment_outlined, // UI Icon
+                      //   onTap: () => _navigateToPage('Payment Method'), // Logic Call (Still works if called elsewhere)
+                      // ),
+                      // --- ^^^ PAYMENT METHOD UI REMOVED ^^^ ---
                       _buildProfileItem(
                         title: 'Analysis',
                         icon: Icons.analytics_outlined,
@@ -362,7 +364,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
         backgroundColor: const Color.fromARGB(255, 0, 0, 0),
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), activeIcon: Icon(Icons.calendar_today), label: ''), // Use outlined/filled
-          BottomNavigationBarItem(icon: Icon(Icons.label_outline), activeIcon: Icon(Icons.label), label: ''),          // Use outlined/filled
+          BottomNavigationBarItem(icon: Icon(Icons.label_outline), activeIcon: Icon(Icons.label), label: ''),         // Use outlined/filled
           BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: ''),       // Use outlined/filled
           BottomNavigationBarItem(icon: Icon(Icons.grid_view_outlined), activeIcon: Icon(Icons.grid_view_rounded), label: ''), // Use outlined/filled
         ],
@@ -372,7 +374,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed, // Keep fixed type
          showSelectedLabels: false, // Hide labels
-         showUnselectedLabels: false, // Hide labels
+          showUnselectedLabels: false, // Hide labels
       ),
     );
   }
