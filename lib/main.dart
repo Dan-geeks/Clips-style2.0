@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+
 import 'screens/customer/CustomerService/notification_hub.dart';
-import 'firebase_options.dart';
 import 'screens/signup.dart';
 import 'screens/login.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'firebase_options.dart';
 
 // Create a Hive TypeAdapter for Firebase Timestamp
 class TimestampAdapter extends TypeAdapter<Timestamp> {
   @override
-  final int typeId = 42; // Choose a unique typeId
+  final int typeId = 42; // Unique typeId for Timestamp
 
   @override
   Timestamp read(BinaryReader reader) {
@@ -27,29 +29,72 @@ class TimestampAdapter extends TypeAdapter<Timestamp> {
   }
 }
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
- 
+Future<void> main() async {
+  // Preserve splash screen until Flutter is ready
+  final binding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: binding);
+
+  // Simple logger for init steps
+  void log(String message) => debugPrint('[INIT] $message');
+
+  // Load environment variables
+  try {
+    await dotenv.load(fileName: '.env');
+    log('Loaded .env');
+  } catch (e, st) {
+    log('Failed to load .env: $e');
+    log(st.toString());
+  }
+
   // Initialize Hive
-  await Hive.initFlutter();
+  try {
+    await Hive.initFlutter();
+    log('Hive initialized');
+    Hive.registerAdapter(TimestampAdapter());
+    log('TimestampAdapter registered');
+  } catch (e, st) {
+    log('Hive init failed: $e');
+    log(st.toString());
+  }
 
-  await dotenv.load(fileName: ".env");
-  
-  // Register the Timestamp adapter before any boxes are opened
-  Hive.registerAdapter(TimestampAdapter());
+  // Initialize Firebase if not already
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      log('Firebase initialized');
+    } else {
+      log('Firebase already initialized');
+    }
+  } catch (e, st) {
+    log('Firebase init failed: $e');
+    log(st.toString());
+  }
 
-  // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
-  // Open the box after registering adapters
-  await Hive.openBox('appBox');
-  
-  // Initialize notification hub (this will also initialize the notification service)
-  await NotificationHub.instance.initialize();
+  // Open Hive box
+  try {
+    await Hive.openBox('appBox');
+    log('Opened Hive box: appBox');
+  } catch (e, st) {
+    log('Failed to open Hive box: $e');
+    log(st.toString());
+  }
 
+  // Defer heavy work until after first frame
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      await NotificationHub.instance.initialize();
+      log('NotificationHub initialized');
+    } catch (e, st) {
+      log('NotificationHub init failed: $e');
+      log(st.toString());
+    }
+  });
+
+  // Run the app and then remove splash
   runApp(const MyApp());
+  FlutterNativeSplash.remove();
 }
 
 class MyApp extends StatelessWidget {
@@ -222,9 +267,7 @@ class _MainScreenState extends State<MainScreen> {
               ],
             ),
           ),
-          Container(
-            height: 70,
-          ),
+          const SizedBox(height: 70),
         ],
       ),
     );

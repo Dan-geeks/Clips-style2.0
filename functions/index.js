@@ -2047,17 +2047,20 @@ reminderIntervals.forEach((interval) => {
 });
 // eslint-disable-next-line max-len
 // eslint-disable-next-line max-len
+// eslint-disable-next-line max-len
 exports.intasendWebhook = onRequest({secrets: ["INTASEND_SECRET_KEY"]}, async (req, res) => {
-  console.log(">>>> Received IntaSend Webhook Request - START ");
+  // eslint-disable-next-line max-len
+  console.log(">>>> Received IntaSend Webhook Request - START (v_booking_fee_direct_credit) ");
   console.log("Webhook Body:", JSON.stringify(req.body, null, 2));
 
   const {
     state,
     invoice_id: invoiceId,
     api_ref: apiRef, // Expected appointmentId or unique booking ref
-    value,
+    value, // This is the amount PAID by the customer (the 8% booking fee)
     currency,
     method,
+    // Note: Customer details might be in req.body.customer if sent by IntaSend
   } = req.body;
 
   // --- 1. Basic Validation ---
@@ -2065,238 +2068,184 @@ exports.intasendWebhook = onRequest({secrets: ["INTASEND_SECRET_KEY"]}, async (r
     console.error("[Validation Failed] Webhook missing required fields.");
     // eslint-disable-next-line max-len
     console.log("Missing fields - state:", !!state, "apiRef:", !!apiRef, "invoiceId:", !!invoiceId);
+    // Respond politely but acknowledge receipt
     res.status(200).json({message: "Accepted (Missing required fields)"});
     return;
   }
   // eslint-disable-next-line max-len
-  console.log(`[Validation Passed] State: ${state}, Ref: ${apiRef}, Method: ${method}`);
+  console.log(`[Validation Passed] State: ${state}, Ref: ${apiRef}, Method: ${method}, Value: ${value} ${currency}`);
 
   // --- 2. Process based on state ---
   try {
     console.log(`[Processing] Checking state for api_ref: ${apiRef}`);
-    const appointmentId = apiRef; // Assuming apiRef holds the appointment ID
+
+    // --- 3. Find the Appointment Document ---
+    // The apiRef should uniquely identify the booking (either single or group)
+    let appointmentDoc = null;
+    let appointmentDocRef = null;
+    let businessId = null;
+    let isGroupBooking = false; // Flag to know which collection to check
+
     // eslint-disable-next-line max-len
     console.log(`[Firestore Query] Attempting collection group query for intasendApiRef: ${apiRef}`);
     // eslint-disable-next-line max-len
     const appointmentsQuery = db.collectionGroup("appointments").where("intasendApiRef", "==", apiRef).limit(1);
     const querySnapshot = await appointmentsQuery.get();
 
-    let appointmentDoc = null;
-    let appointmentDocRef = null;
-    let businessId = null; // Extract businessId here
-
     if (!querySnapshot.empty) {
       appointmentDoc = querySnapshot.docs[0];
       appointmentDocRef = appointmentDoc.ref;
-      // eslint-disable-next-line max-len
       businessId = appointmentDocRef.parent.parent.id;
+      isGroupBooking = false;
       // eslint-disable-next-line max-len
-      console.log(`[Firestore Query Success] Found appointment document at path: ${appointmentDocRef.path}. Business ID: ${businessId}`);
+      console.log(`[Firestore Query Success] Found INDIVIDUAL appointment document at path: ${appointmentDocRef.path}. Business ID: ${businessId}`);
     } else {
       // eslint-disable-next-line max-len
-      console.log(`[Firestore Query] No document found with intasendApiRef ${apiRef} in any 'appointments' subcollection.`);
+      console.log(`[Firestore Query] No document found with intasendApiRef ${apiRef} in 'appointments'. Trying 'group_appointments'...`);
       // eslint-disable-next-line max-len
       const groupAppointmentsQuery = db.collectionGroup("group_appointments").where("intasendApiRef", "==", apiRef).limit(1);
       const groupQuerySnapshot = await groupAppointmentsQuery.get();
+
       if (!groupQuerySnapshot.empty) {
         appointmentDoc = groupQuerySnapshot.docs[0];
         appointmentDocRef = appointmentDoc.ref;
         businessId = appointmentDocRef.parent.parent.id;
+        isGroupBooking = true;
         // eslint-disable-next-line max-len
-        console.log(`[Firestore Query Success - Fallback] Found group appointment document at path: ${appointmentDocRef.path}. Business ID: ${businessId}`);
+        console.log(`[Firestore Query Success] Found GROUP appointment document at path: ${appointmentDocRef.path}. Business ID: ${businessId}`);
       } else {
         // eslint-disable-next-line max-len
         console.log(`[Firestore Query] No document found with intasendApiRef ${apiRef} in 'group_appointments' either.`);
       }
     }
 
+    // Check if a document was found
     if (!appointmentDoc || !appointmentDoc.exists || !businessId) {
       // eslint-disable-next-line max-len
       console.warn(`[Appointment Check FAILED] Appointment document for api_ref ${apiRef} not found or missing businessId. Acknowledging webhook.`);
       // eslint-disable-next-line max-len
-      res.status(200).json({message: "Webhook received, corresponding appointment not found or missing business ID"});
+      res.status(200).json({message: "Webhook received, corresponding booking not found or missing business ID"});
       return;
     }
     // eslint-disable-next-line max-len
-    console.log(`[Appointment Check PASSED] Found appointment ${appointmentId}. Business ID: ${businessId}`);
+    console.log(`[Appointment Check PASSED] Found ${isGroupBooking ? "GROUP" : "INDIVIDUAL"} booking ${appointmentDoc.id}. Business ID: ${businessId}`);
 
-    // --- 4. Extract Data and Check Current Status ---
-    const appointmentData = appointmentDoc.data();
+    // eslint-disable-next-line max-len
+    const appointmentData = appointmentDoc.data() || {}; // Use default empty object
     const currentPaymentStatus = appointmentData.paymentStatus;
     const customerId = appointmentData.customerId || appointmentData.userId;
     // eslint-disable-next-line max-len
-    console.log(`[Appointment Data] Appt ${appointmentId}: Current Status='${currentPaymentStatus}', Received State='${state}', BusinessID='${businessId}', CustomerID='${customerId}'`);
+    console.log(`[Appointment Data] Appt ${appointmentDoc.id}: Current PaymentStatus='${currentPaymentStatus}', Received State='${state}', BusinessID='${businessId}', CustomerID='${customerId}'`);
 
     // --- 5. Process Only if Payment is 'COMPLETE' and Not Already 'Paid' ---
     if (state === "COMPLETE" && currentPaymentStatus !== "Paid") {
       // eslint-disable-next-line max-len
-      console.log(`[State Check PASSED] State is 'COMPLETE' and current status is not 'Paid'. Proceeding to update appointment ${appointmentId}.`);
-      // eslint-disable-next-line max-len
-      const businessDocRef = db.collection("businesses").doc(businessId); // Define businessDocRef here
+      console.log(`[State Check PASSED] State is 'COMPLETE' and current status is not 'Paid'. Proceeding to update booking ${appointmentDoc.id}.`);
+      const businessDocRef = db.collection("businesses").doc(businessId);
 
-      // --- Update Appointment Status and Trigger Transfer ---
       try {
-        // 1. Update Appointment Status
+        // 1. Update Booking Status (Store amount paid from webhook)
+        const amountPaidFromWebhook = parseFloat(value) || 0;
+        // eslint-disable-next-line max-len
+        const expectedBookingFee = parseFloat(appointmentData.bookingFeePaymentAttempted || appointmentData.bookingFee || 0);
+        // eslint-disable-next-line max-len
+        if (expectedBookingFee > 0 && Math.abs(amountPaidFromWebhook - expectedBookingFee) > 1) {
+          // eslint-disable-next-line max-len
+          console.warn(`[Amount Mismatch] Webhook amount ${amountPaidFromWebhook} doesn't match expected booking fee ${expectedBookingFee} for ${appointmentDoc.id}. Proceeding but logging.`);
+          // Decide if you want to throw an error here or just log it
+        }
+
         await appointmentDocRef.update({
-          paymentStatus: "Paid",
+          paymentStatus: "Paid", // Mark booking fee as Paid
+          status: "confirmed", // Optimistically confirm appointment status
           intasendInvoiceId: invoiceId,
           paymentTimestamp: FieldValue.serverTimestamp(),
-          amountPaid: parseFloat(value) || 0,
-          internalTransferStatus: "pending",
+          amountPaid: amountPaidFromWebhook,
+          internalTransferStatus: "pending_credit",
+          updatedAt: FieldValue.serverTimestamp(),
+          clientPhone: req.body.account,
         });
         // eslint-disable-next-line max-len
-        console.log(`[Appointment Update SUCCESS] Firestore: Appointment ${appointmentId} updated to 'Paid'.`);
+        console.log(`[Booking Update SUCCESS] Firestore: Booking ${appointmentDoc.id} updated to 'Paid' and 'confirmed'. Amount paid (Booking Fee): ${amountPaidFromWebhook}`);
 
-        // 2. Send Client Notification (Optional)
+        // 2. Send Client Notification (Optional - Keep as is)
         if (customerId) {
-          const notificationTitle = "Payment Successful!";
+          const notificationTitle = "Booking Fee Paid!";
           // eslint-disable-next-line max-len
-          const notificationBody = `Your payment of ${currency} ${value} for booking ref ${apiRef.substring(0, 6)}... was successful.`;
+          const notificationBody = `Your booking fee of ${currency} ${value} for ${appointmentData.businessName || "your booking"} (Ref: ${apiRef.substring(0, 6)}...) was successful. Your appointment is confirmed!`;
           // eslint-disable-next-line max-len
-          const notificationDataPayload = {type: "payment_success", appointmentId: appointmentId, businessId: businessId};
+          const notificationDataPayload = {type: "payment_success", appointmentId: appointmentDoc.id, businessId: businessId};
           // eslint-disable-next-line max-len
-          const additionalNotificationDocData = {relatedAppointmentId: appointmentId, paymentAmount: value, paymentCurrency: currency, paymentMethod: method || "Unknown"};
+          const additionalNotificationDocData = {relatedAppointmentId: appointmentDoc.id, paymentAmount: value, paymentCurrency: currency, paymentMethod: method || "M-Pesa"};
           // eslint-disable-next-line max-len
           await sendClientNotification(customerId, notificationTitle, notificationBody, notificationDataPayload, additionalNotificationDocData);
           // eslint-disable-next-line max-len
           console.log(`[Notification SUCCESS] Payment success notification sent to customer ${customerId}`);
         } else {
           // eslint-disable-next-line max-len
-          console.warn(`[Notification SKIPPED] Customer ID not found for appointment ${appointmentId}.`);
+          console.warn(`[Notification SKIPPED] Customer ID not found for booking ${appointmentDoc.id}.`);
         }
+        const intasendFeeRate = 0.08;
+        const netAmountToCredit = amountPaidFromWebhook * (1 - intasendFeeRate);
+        // eslint-disable-next-line max-len
+        console.log(`[Balance Update] Processing amount (Booking Fee): ${amountPaidFromWebhook}. Assumed IntaSend Fee Rate: ${intasendFeeRate * 100}%. Net to credit business balance: ${netAmountToCredit}`);
 
-        // eslint-disable-next-line max-len
-        const firestorePaymentMethod = appointmentData.paymentMethod;
-        // eslint-disable-next-line max-len
-        console.log(`[Balance/Transfer Check] Method: ${firestorePaymentMethod}, Business ID: ${businessId}`);
-        // eslint-disable-next-line max-len
-        if (firestorePaymentMethod && firestorePaymentMethod.toUpperCase() === "M-PESA") {
-          // eslint-disable-next-line max-len
-          console.log(`[Balance Update] Conditions met (Firestore Method: M-Pesa).`);
-          // eslint-disable-next-line max-len
-          const totalServicePrice = parseFloat(appointmentData.totalServicePrice || 0);
-          // eslint-disable-next-line max-len
-          if (typeof totalServicePrice === "number" && !isNaN(totalServicePrice) && totalServicePrice > 0 ) {
+        if (netAmountToCredit > 0) {
+          const businessSnap = await businessDocRef.get();
+          if (!businessSnap.exists) {
             // eslint-disable-next-line max-len
-            console.log(`[Balance Update] Valid totalServicePrice: ${totalServicePrice}`);
-
-            // --- Fetch Business Data for Wallet ID and Balance Update ---
-            const businessSnap = await businessDocRef.get();
-            if (!businessSnap.exists) {
+            console.error(`!!! Business ${businessId} not found during balance update !!!`);
+            await appointmentDocRef.update({
+              internalTransferStatus: "balance_update_failed",
               // eslint-disable-next-line max-len
-              console.error(`!!! Business ${businessId} not found during balance update phase !!!`);
-              // eslint-disable-next-line max-len
-              await appointmentDocRef.update({internalTransferStatus: "failed", internalTransferError: "Business not found for balance update"});
-              throw new Error(`Business ${businessId} not found.`);
-            }
-            const businessData = businessSnap.data() || {};
-            // eslint-disable-next-line max-len
-            const destinationWalletId = businessData.intasendWalletId; // <<< GET DESTINATION WALLET ID
-
-            // --- Check Wallet ID ---
-            if (!destinationWalletId) {
-              // eslint-disable-next-line max-len
-              console.error(`!!! Business ${businessId} is MISSING intasendWalletId. Cannot transfer. !!!`);
-              // eslint-disable-next-line max-len
-              await appointmentDocRef.update({internalTransferStatus: "failed", internalTransferError: "Missing destination wallet ID"});
-            } else {
-              // eslint-disable-next-line max-len
-              console.log(`[Balance Update] Destination Wallet ID: ${destinationWalletId}`);
-              // eslint-disable-next-line max-len
-              const amountToAdd = Math.round((totalServicePrice * 0.92) * 100) / 100;
-              // eslint-disable-next-line max-len
-              console.log(`[Balance Update] Calculated amountToAdd (net): ${amountToAdd}`);
-              try {
-                // eslint-disable-next-line max-len
-                await businessDocRef.update({balance: FieldValue.increment(amountToAdd)});
-                // eslint-disable-next-line max-len
-                console.log(`[Balance Update SUCCESS] Business ${businessId} Firestore balance incremented by KES ${amountToAdd}.`);
-                // eslint-disable-next-line max-len
-                if (amountToAdd > 0) {
-                  // eslint-disable-next-line max-len
-                  const sourceWalletId = INTASEND_SOURCE_WALLET_ID;
-                  // eslint-disable-next-line max-len
-                  const narrative = `Disbursement for booking Ref: ${apiRef}`;
-                  // eslint-disable-next-line max-len
-                  console.log(`[Post-Balance Update] Initiating internal transfer of ${amountToAdd} from SOURCE (${sourceWalletId}) to ${destinationWalletId}`);
-
-                  try {
-                    // Use the global 'wallets' object
-                    const transferResp = await wallets.intraTransfer(
-                        sourceWalletId,
-                        destinationWalletId,
-                        amountToAdd,
-                        narrative,
-                    );
-                    // eslint-disable-next-line max-len
-                    console.log(`[Post-Balance Update] Internal Transfer Success for booking ${apiRef}:`, transferResp);
-                    // Update appointment log with transfer success
-                    await appointmentDocRef.update({
-                      internalTransferStatus: "completed",
-                      internalTransferId: transferResp.tracking_id || null,
-                      internalTransferTimestamp: FieldValue.serverTimestamp(),
-                    });
-                    // eslint-disable-next-line max-len
-                    console.log(`[Post-Balance Update] Updated appointment ${appointmentId} internalTransferStatus to completed.`);
-                  } catch (transferError) {
-                    // eslint-disable-next-line max-len
-                    console.error(`[Post-Balance Update] Internal Transfer Failed for booking ${apiRef}:`, transferError);
-                    // Update appointment log with transfer failure
-                    await appointmentDocRef.update({
-                      internalTransferStatus: "failed",
-                      // eslint-disable-next-line max-len
-                      internalTransferError: transferError.message || JSON.stringify(transferError),
-                      internalTransferTimestamp: FieldValue.serverTimestamp(),
-                    });
-                    // eslint-disable-next-line max-len
-                    console.error(`[Post-Balance Update] Updated appointment ${appointmentId} internalTransferStatus to failed.`);
-                    // Consider notifying admin
-                  }
-                } else {
-                  // eslint-disable-next-line max-len
-                  console.warn(`[Post-Balance Update] Skipping internal transfer for ${apiRef}: Zero/negative amountToAdd (${amountToAdd}).`);
-                  await appointmentDocRef.update({
-                    internalTransferStatus: "skipped",
-                    internalTransferError: "Zero/negative net amount",
-                  });
-                }
-              } catch (balanceUpdateError) {
-                // eslint-disable-next-line max-len
-                console.error(`!!! Balance Update FAILED for business ${businessId} !!! Path: ${businessDocRef.path}`);
-                // eslint-disable-next-line max-len
-                console.error("Balance Update Error Details:", balanceUpdateError);
-                await appointmentDocRef.update({
-                  internalTransferStatus: "skipped",
-                  internalTransferError: "Failed to update Firestore balance",
-                });
-              }
-            } // End Wallet ID check else
+              internalTransferError: "Business document not found for balance update",
+            });
           } else {
-            // eslint-disable-next-line max-len
-            console.error(`[Balance Update SKIPPED] Invalid totalServicePrice ('${totalServicePrice}') for business ${businessId}.`);
-            // eslint-disable-next-line max-len
-            await appointmentDocRef.update({internalTransferStatus: "skipped", internalTransferError: "Invalid service price"});
+            try {
+              // Increment the business balance field in Firestore
+              await businessDocRef.update({
+                balance: FieldValue.increment(netAmountToCredit),
+                updatedAt: FieldValue.serverTimestamp(),
+              });
+              // eslint-disable-next-line max-len
+              console.log(`[Balance Update SUCCESS] Business ${businessId} Firestore balance incremented by KES ${netAmountToCredit}.`);
+              await appointmentDocRef.update({
+                internalTransferStatus: "balance_credited",
+                internalTransferTimestamp: FieldValue.serverTimestamp(),
+              });
+            } catch (balanceUpdateError) {
+              // eslint-disable-next-line max-len
+              console.error(`!!! Balance Update FAILED for business ${businessId} !!! Path: ${businessDocRef.path}`);
+              // eslint-disable-next-line max-len
+              console.error("Balance Update Error Details:", balanceUpdateError);
+              await appointmentDocRef.update({
+                internalTransferStatus: "balance_update_failed",
+                internalTransferError: "Failed to update Firestore balance",
+              });
+            }
           }
         } else {
           // eslint-disable-next-line max-len
-          console.log(`[Balance Update SKIPPED] Conditions not met (Method: ${firestorePaymentMethod}, BusinessId: ${businessId}).`);
-          // eslint-disable-next-line max-len
-          await appointmentDocRef.update({internalTransferStatus: "skipped", internalTransferError: "Not an M-Pesa payment or missing business ID"});
+          console.warn(`[Balance Update SKIPPED] Net amount to credit is zero or negative (${netAmountToCredit}).`);
+          await appointmentDocRef.update({
+            internalTransferStatus: "skipped",
+            internalTransferError: "Zero/negative net amount calculated",
+          });
         }
       } catch (updateError) {
         // eslint-disable-next-line max-len
-        console.error(`!!! Firestore Update or Subsequent Logic FAILED for Appointment ${appointmentId} !!!`);
+        console.error(`!!! Firestore Update or Subsequent Logic FAILED for Booking ${appointmentDoc.id} !!!`);
         console.error("Update Error Details:", updateError);
-        // Log error on appointment if possible
+        // Log error on booking if possible
         try {
           await appointmentDocRef.update({
-            internalTransferStatus: "failed",
+            internalTransferStatus: "update_block_failed",
             // eslint-disable-next-line max-len
             internalTransferError: `Main update block error: ${updateError.message || JSON.stringify(updateError)}`,
           });
         } catch (logError) {
           // eslint-disable-next-line max-len
-          console.error("Failed to log main update error to appointment:", logError);
+          console.error("Failed to log main update error to booking:", logError);
         }
       }
     } else {
@@ -2304,14 +2253,21 @@ exports.intasendWebhook = onRequest({secrets: ["INTASEND_SECRET_KEY"]}, async (r
       console.log(`[State Check SKIPPED] Received state '${state}' or already 'Paid' status '${currentPaymentStatus}'. No action needed.`);
       if (state === "FAILED") {
         // eslint-disable-next-line max-len
-        console.warn(`[Webhook Info] Received FAILED payment state for appointment ${appointmentId}. Failed Reason: ${req.body.failed_reason || "N/A"}`);
-        // Optionally update status to 'Payment Failed' here if desired
+        console.warn(`[Webhook Info] Received FAILED payment state for booking ${appointmentDoc.id}. Failed Reason: ${req.body.failed_reason || "N/A"}`);
+        // Update status to 'Payment Failed'
         try {
-          // eslint-disable-next-line max-len
-          await appointmentDocRef.update({paymentStatus: "failed", failedReason: req.body.failed_reason || "Unknown"});
+          await appointmentDocRef.update({
+            paymentStatus: "failed",
+            status: "payment_failed",
+            failedReason: req.body.failed_reason || "Unknown IntaSend failure",
+            updatedAt: FieldValue.serverTimestamp(),
+          });
         } catch (e) {
           console.error("Failed to update status to failed:", e);
         }
+      } else if (state === "COMPLETE" && currentPaymentStatus === "Paid") {
+        // eslint-disable-next-line max-len
+        console.log(`[Webhook Info] Received duplicate COMPLETE webhook for already Paid booking ${appointmentDoc.id}. Ignoring.`);
       }
     }
     // eslint-disable-next-line max-len
@@ -2325,7 +2281,6 @@ exports.intasendWebhook = onRequest({secrets: ["INTASEND_SECRET_KEY"]}, async (r
     res.status(200).json({message: "Accepted (Internal Server Error during processing)"});
   }
 });
-// eslint-disable-next-line max-len
 
 
 exports.handleWalletTransfer = onCall(

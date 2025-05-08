@@ -131,7 +131,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
     Widget destinationPage;
 
     // --- Flag Check Logic ---
-    if (pageName == 'Lotus Business Profile' || pageName == 'Payment Method') {
+    if (pageName == 'Lotus Business Profile') {
        if(mounted) setState(() { _isCheckingFlag = true; });
        try {
          print("Fetching latest data from Firestore for flag check (Page: $pageName)...");
@@ -158,22 +158,18 @@ class _BusinessProfileState extends State<BusinessProfile> {
              print("Firestore check: isLotusProfileComplete = $isComplete");
              destinationPage = isComplete ? const FinalBusinessProfile() : const OpeningHoursScreen();
            } else { // Payment Method (Logic remains)
-             isComplete = firestoreData['isWalletSetupComplete'] ?? false; // <<< Check Wallet flag
-             print("Firestore check: isWalletSetupComplete = $isComplete");
-             destinationPage = isComplete ? const WalletPage() : const WelcomeScreen(); // <<< Navigate based on Wallet flag
+          ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Coming Soon')),
+           );
+             
            }
          } else {
            print("Firestore document $businessId not found. Defaulting to setup.");
            // Default to setup screen if document not found
-            destinationPage = (pageName == 'Payment Method') ? const WelcomeScreen() : const OpeningHoursScreen();
+             ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Coming Soon')),
+           );
          }
-
-         // Navigate after check
-         Navigator.push(
-           context,
-           MaterialPageRoute(builder: (context) => destinationPage),
-         ).then((_) => _initializeHiveAndLoad()); // Refresh on return
-
        } catch (e) {
          print("Error checking Firestore flag ($pageName): $e");
          if(mounted) {
@@ -209,7 +205,7 @@ class _BusinessProfileState extends State<BusinessProfile> {
          return;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$pageName page not implemented yet')),
+          SnackBar(content: Text('$pageName Coming Soon')),
         );
         return;
     }
@@ -332,12 +328,11 @@ class _BusinessProfileState extends State<BusinessProfile> {
                         icon: Icons.trending_up_outlined,
                         onTap: () => _navigateToPage('Market Development'),
                       ),
-                      // --- vvv PAYMENT METHOD UI REMOVED vvv ---
-                      // _buildProfileItem(
-                      //   title: 'Payment Method', // UI Text
-                      //   icon: Icons.payment_outlined, // UI Icon
-                      //   onTap: () => _navigateToPage('Payment Method'), // Logic Call (Still works if called elsewhere)
-                      // ),
+                      _buildProfileItem(
+                       title: 'Payment Method',
+                       icon: Icons.payment_outlined, // UI Icon
+                       onTap: () => _navigateToPage('Payment Method'), // Logic Call (Still works if called elsewhere)
+                     ),
                       // --- ^^^ PAYMENT METHOD UI REMOVED ^^^ ---
                       _buildProfileItem(
                         title: 'Analysis',

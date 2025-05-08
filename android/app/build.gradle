@@ -24,7 +24,7 @@ if (keystorePropertiesFile.exists()) {
 // >>>>> End of code to load properties <<<<<
 
 android {
-    namespace = "com.example.clipsandstyles3" // Updated namespace
+    namespace = "com.Openlabs.clipsandstyles3" // Updated namespace
     compileSdk = flutter.compileSdkVersion // Use Flutter's settings
     ndkVersion = flutter.ndkVersion     // Use Flutter's settings
 
@@ -56,12 +56,12 @@ android {
 
     defaultConfig {
         // Keep your defaultConfig settings
-        applicationId = "com.example.clipsandstyles3"
+        applicationId = "com.Openlabs.clipsandstyles3"
         multiDexEnabled true
         minSdkVersion 23 // Keep your minSdkVersion
         targetSdk = flutter.targetSdkVersion // Use Flutter's targetSdkVersion
-        versionCode = 1 // Keep your versionCode (or use local.properties logic if preferred)
-        versionName = "1.0" // Keep your versionName (or use local.properties logic if preferred)
+        versionCode = 3 // Keep your versionCode (or use local.properties logic if preferred)
+        versionName = "1.03"
     }
 
     buildTypes {
