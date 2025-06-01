@@ -316,7 +316,7 @@ class _FlashSalesState extends State<FlashSales> {
           const SnackBar(content: Text('Flash sale created successfully')),
         );
       } catch (e) {
-        print('Error creating flash sale: $e');
+        // print('Error creating flash sale: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error creating flash sale: $e')),
         );

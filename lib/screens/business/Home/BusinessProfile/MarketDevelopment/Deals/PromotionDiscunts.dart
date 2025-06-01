@@ -355,7 +355,7 @@ class _BusinessPromotionDiscountState extends State<BusinessPromotionDiscount> {
         const SnackBar(content: Text('Discount created successfully')),
       );
     } catch (e) {
-      print('Error creating discount: $e');
+      // print('Error creating discount: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error creating discount: $e')),
       );

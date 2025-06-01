@@ -77,7 +77,7 @@ class _ReviewDetailsScreenState extends State<ReviewDetailsScreen> {
         await _syncAllReviewsWithFirestore();
       }
     } catch (e) {
-      print('Error initializing data: $e');
+      // print('Error initializing data: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -118,7 +118,7 @@ class _ReviewDetailsScreenState extends State<ReviewDetailsScreen> {
         }
       }
     } catch (e) {
-      print('Error loading data from Hive: $e');
+      // print('Error loading data from Hive: $e');
     }
   }
 
@@ -129,7 +129,7 @@ class _ReviewDetailsScreenState extends State<ReviewDetailsScreen> {
         _allReviews = List<Map<String, dynamic>>.from(cachedReviews);
       }
     } catch (e) {
-      print('Error loading all reviews from Hive: $e');
+      // print('Error loading all reviews from Hive: $e');
     }
   }
 

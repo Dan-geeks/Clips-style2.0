@@ -88,7 +88,7 @@ class Deal {
         createdAtDate = DateTime.parse(map['createdAt'] as String);
       } catch (e) {
         // Handle invalid date format
-        print('Error parsing createdAt date: $e');
+        // print('Error parsing createdAt date: $e');
       }
     }
 
@@ -231,7 +231,7 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error initializing: $e');
+      // print('Error initializing: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error initializing: $e')),
@@ -246,7 +246,7 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
       final List<Map<String, dynamic>> serializedItems = items.map((item) => item.toMap()).toList();
       await appBox.put(type, serializedItems);
     } catch (e) {
-      print('Error updating Hive cache: $e');
+      // print('Error updating Hive cache: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error updating cache: $e')),
@@ -260,7 +260,7 @@ class _BusinessDealsNavState extends State<BusinessDealsNav> {
     try {
       await operation();
     } catch (e) {
-      print('Firestore operation failed: $e');
+      // print('Firestore operation failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Operation failed: $e')),

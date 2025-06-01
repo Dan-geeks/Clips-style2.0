@@ -295,7 +295,7 @@ class _PackagesState extends State<Packages> {
           const SnackBar(content: Text('Package created successfully')),
         );
       } catch (e) {
-        print('Error creating package: $e');
+        // print('Error creating package: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error creating package: ${e.toString()}')),
         );

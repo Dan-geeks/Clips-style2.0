@@ -106,7 +106,7 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error initializing deals: $e');
+      // print('Error initializing deals: $e');
       // Show an error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -208,7 +208,7 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
         }
       });
     } catch (e) {
-      print('Error syncing with Firestore: $e');
+      // print('Error syncing with Firestore: $e');
     }
   }
 
@@ -243,7 +243,7 @@ class _BusinessDealsMainState extends State<BusinessDealsMain> {
       
       Navigator.pop(context, result);
     } catch (e) {
-      print('Error navigating to deal setup: $e');
+      // print('Error navigating to deal setup: $e');
     }
   }
 

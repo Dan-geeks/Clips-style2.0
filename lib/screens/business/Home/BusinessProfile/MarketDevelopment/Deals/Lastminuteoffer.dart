@@ -225,7 +225,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
               discountDisplay = "KES ${parsedDiscountValue.toStringAsFixed(0)} off";
             }
           } catch (e) {
-            print('Error parsing discount value: $e');
+            // print('Error parsing discount value: $e');
             parsedDiscountValue = 0.0;
           }
         }
@@ -328,7 +328,7 @@ class _LastMinuteOfferState extends State<LastMinuteOffer> {
           const SnackBar(content: Text('Last-minute offer created successfully')),
         );
       } catch (e) {
-        print('Error creating last-minute offer: $e');
+        // print('Error creating last-minute offer: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error creating last-minute offer: $e')),
         );

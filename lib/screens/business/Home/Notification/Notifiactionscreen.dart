@@ -91,7 +91,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error initializing data: $e');
+      // print('Error initializing data: $e'); // Commented out or removed
       setState(() {
         _isLoading = false;
       });
@@ -199,7 +199,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
       setState(() {});
     } catch (e) {
-      print('Error syncing with Firestore: $e');
+      // print('Error syncing with Firestore: $e'); // Commented out or removed
     }
   }
 

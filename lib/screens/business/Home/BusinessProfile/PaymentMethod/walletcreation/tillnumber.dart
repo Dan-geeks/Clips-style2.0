@@ -100,7 +100,7 @@ class _PaymentNumberScreenState extends State<PaymentNumberScreen> {
           .doc(user.uid)
           .set(dataToSave, SetOptions(merge: true));
 
-      print('Payment details saved successfully: $dataToSave');
+      // print('Payment details saved successfully: $dataToSave');
 
       // Navigate to the next screen
       if (mounted) {
@@ -110,7 +110,7 @@ class _PaymentNumberScreenState extends State<PaymentNumberScreen> {
         );
       }
     } catch (e) {
-      print('Error saving payment details: $e');
+      // print('Error saving payment details: $e');
       setState(() {
         _errorMessage = 'Failed to save payment details: ${e.toString()}';
       });

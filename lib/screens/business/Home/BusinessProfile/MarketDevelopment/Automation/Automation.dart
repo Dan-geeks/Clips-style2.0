@@ -130,7 +130,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
 
       await _syncWithFirebase();
     } catch (e) {
-      print('Error initializing data: $e');
+      // print('Error initializing data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading data: $e')),
       );
@@ -206,7 +206,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
         });
       });
     } catch (e) {
-      print('Error syncing with Firebase: $e');
+      // print('Error syncing with Firebase: $e');
     }
   }
 
@@ -235,7 +235,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
 
       setState(() {});
     } catch (e) {
-      print('Error saving data: $e');
+      // print('Error saving data: $e');
       rethrow;
     }
   }
@@ -479,7 +479,7 @@ class _BusinessMarketAutomationState extends State<BusinessMarketAutomation> {
                                   await appBox.put(
                                       'appointmentUpdates', appointmentUpdates);
                                 } catch (e) {
-                                  print('Error toggling appointment status: $e');
+                                  // print('Error toggling appointment status: $e');
                                 }
                               }
                             },
