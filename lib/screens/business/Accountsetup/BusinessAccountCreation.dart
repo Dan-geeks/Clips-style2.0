@@ -3,8 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 // Import Firebase Auth (needed for user ID)
+import 'package:firebase_auth/firebase_auth.dart'; // <<< Added import
 import 'package:hive_flutter/hive_flutter.dart';     // Import Hive
-import 'Businesscategories.dart';         
+import 'Businesscategories.dart';
 import 'package:hive/hive.dart';
        // Import the next screen
 
@@ -115,6 +116,7 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
           'isInitialSetupComplete': false,
           'isLotusProfileComplete': false,
           'isWalletSetupComplete': false, // Initialize Lotus flag too
+          'subscription': 'free_tier', // Add the subscription parameter with a default value
           'accountSetupStep': 2, // Mark this step as done
           'updatedAt': DateTime.now().toIso8601String(), // Use ISO string for Hive compatibility
         };
@@ -134,6 +136,7 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
           // *** Initialize BOTH flags to false in Firestore ***
           'isInitialSetupComplete': false,
           'isLotusProfileComplete': false, // Initialize Lotus flag too
+          'subscription': 'free_tier', // Add the subscription parameter with a default value
           'accountSetupStep': 2,
           'updatedAt': FieldValue.serverTimestamp(), // Use server timestamp for Firestore
           // Set createdAt only if the document might not exist yet

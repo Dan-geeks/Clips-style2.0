@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
+import 'dart:convert'; // Import for jsonEncode
 
 import 'package:pdf/widgets.dart' as pw;
 
@@ -13,13 +14,19 @@ import 'package:flutter/services.dart';
 import 'package:open_file/open_file.dart';
 import 'package:excel/excel.dart' as excel;
 
+// ExportHelper, SalesSummary, ActivityOverview, CashFlow classes remain the same as before
+// (I'll include them here for completeness of the file)
+
 class ExportHelper {
   static Future<String> exportAsPDF(SalesSummary salesSummary, String dateRange) async {
   final pdf = pw.Document();
 
+  // Load custom font if you have one
+  // final fontData = await rootBundle.load("assets/Kavoon-Regular.ttf");
+  // final ttf = pw.Font.ttf(fontData);
+  // For simplicity, using default font here
+  final pw.Font ttf = pw.Font.helvetica();
 
-  final fontData = await rootBundle.load("assets/Kavoon-Regular.ttf");
-  final ttf = pw.Font.ttf(fontData);
 
   pdf.addPage(
     pw.Page(
@@ -343,8 +350,9 @@ class ExportHelper {
     );
   }
 }
+
 class SalesSummary {
-  final DateTime date;
+  final DateTime date; 
   final ActivityOverview activityOverview;
   final CashFlow cashFlow;
 
@@ -457,16 +465,18 @@ class SalesSummaryScreen extends StatefulWidget {
 }
 
 class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
-  late Box salesBox;
-  Map<String, dynamic> salesData = {};
+  late Box appBox; 
+  List<Map<String, dynamic>> _fetchedAppointments = []; 
   final GlobalKey _exportButtonKey = GlobalKey();
   final GlobalKey _dateButtonKey = GlobalKey();
   String _dateRangeText = '';
   bool _isLoading = true;
-  DateTime _selectedDate = DateTime.now();
-  
+  DateTime _selectedDate = DateTime.now(); 
+  DateRangeType _currentDateRangeType = DateRangeType.day; 
+  String? _businessId; 
 
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _salesSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _appointmentsSubscription;
+
 
   @override
   void initState() {
@@ -476,382 +486,277 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
 
   Future<void> _initializeSalesPage() async {
   try {
-   
-    salesBox = Hive.box('appBox');
+    if (!Hive.isBoxOpen('appBox')) { 
+      appBox = await Hive.openBox('appBox');
+    } else {
+      appBox = Hive.box('appBox');
+    }
     
-   
-    salesData = salesBox.get('currentSalesData') ?? {};
-    
+    final businessDataMap = appBox.get('businessData');
+    if (businessDataMap != null && businessDataMap is Map) {
+      final businessDataFromMap = Map<String, dynamic>.from(businessDataMap);
+      _businessId = businessDataFromMap['userId']?.toString() ?? 
+                    businessDataFromMap['documentId']?.toString() ??
+                    businessDataFromMap['id']?.toString();
+    }
+    _businessId ??= appBox.get('userId')?.toString();
 
-    _dateRangeText = DateFormat('d MMM yyyy').format(DateTime.now());
+    if (_businessId == null || _businessId!.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error: Business ID not found. Please complete setup.')),
+        );
+        setState(() => _isLoading = false);
+      }
+      return;
+    }
     
-
-    _startFirestoreListener();
+    _dateRangeText = DateFormat('d MMM yy').format(DateTime.now());
+    await _fetchAppointmentsForDateRange(); 
     
-    setState(() => _isLoading = false);
   } catch (e) {
-    print('Error initializing sales page: $e');
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error initializing: $e')),
       );
+      setState(() => _isLoading = false);
     }
-    setState(() => _isLoading = false);
   }
 }
 
-  void _startFirestoreListener() {
-    final userId = salesBox.get('userId'); 
-    if (userId == null) return;
+  Future<void> _fetchAppointmentsForDateRange() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
 
-    final salesStream = FirebaseFirestore.instance
-        .collection('sales')
-        .doc(userId)
+    if (_businessId == null) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    _appointmentsSubscription?.cancel(); 
+
+    DateTimeRange range = _calculateDateTimeRange();
+
+    final appointmentsStream = FirebaseFirestore.instance
+        .collection('businesses') 
+        .doc(_businessId)
+        .collection('appointments') 
+        .where('appointmentTimestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(range.start))
+        .where('appointmentTimestamp', isLessThanOrEqualTo: Timestamp.fromDate(range.end))
         .snapshots();
 
-    _salesSubscription = salesStream.listen(
-      (docSnapshot) async {
-        if (docSnapshot.exists && docSnapshot.data() != null) {
-         
-          salesData = docSnapshot.data()!;
-          
-       
-          await salesBox.put('currentSalesData', salesData);
-          
-     
-          if (mounted) {
-            setState(() {});
-          }
-        }
+    _appointmentsSubscription = appointmentsStream.listen(
+      (snapshot) async {
+        if (!mounted) return;
+        
+        _fetchedAppointments = snapshot.docs.map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id; 
+          data.forEach((key, value) {
+            if (value is Timestamp) {
+              data[key] = value.toDate();
+            }
+          });
+          return data;
+        }).toList();
+        
+        if(mounted) setState(() => _isLoading = false);
       },
       onError: (error) {
-        print('Error in Firestore listener: $error');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error syncing data: $error')),
+            SnackBar(content: Text('Error syncing appointment data: $error')),
           );
+          setState(() => _isLoading = false);
         }
       }
     );
   }
-  SalesSummary _getCurrentSalesSummary() {
+
+  DateTimeRange _calculateDateTimeRange() {
+    DateTime now = DateTime.now();
+    DateTime startDate;
+    DateTime endDate;
+
+    switch (_currentDateRangeType) {
+      case DateRangeType.day:
+        startDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 0, 0, 0);
+        endDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 23, 59, 59, 999);
+        break;
+      case DateRangeType.week:
+        int currentDayOfWeek = _selectedDate.weekday; 
+        startDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day - (currentDayOfWeek - 1), 0, 0, 0);
+        endDate = DateTime(startDate.year, startDate.month, startDate.day + 6, 23, 59, 59, 999);
+        break;
+      case DateRangeType.month:
+        startDate = DateTime(_selectedDate.year, _selectedDate.month, 1, 0, 0, 0);
+        endDate = DateTime(_selectedDate.year, _selectedDate.month + 1, 0, 23, 59, 59, 999); 
+        break;
+      case DateRangeType.year:
+        startDate = DateTime(_selectedDate.year, 1, 1, 0, 0, 0);
+        endDate = DateTime(_selectedDate.year, 12, 31, 23, 59, 59, 999);
+        break;
+    }
+    return DateTimeRange(start: startDate, end: endDate);
+  }
+
+  SalesSummary _calculateSalesSummaryFromAppointments(List<Map<String, dynamic>> appointments) {
+    double servicesQuantity = 0;
+    double servicesGrossTotal = 0;
+    double lateCancellationQuantity = 0;
+    double lateCancellationGrossTotal = 0;
+
+    double cashCollected = 0;
+    double cardCollected = 0;
+    double mobileMoneyCollected = 0;
+    double giftCardsCollected = 0; 
+
+    for (var appointment in appointments) {
+      final List<dynamic> servicesList = appointment['services'] as List<dynamic>? ?? [];
+      servicesQuantity += servicesList.length; 
+
+      final double servicePrice = (appointment['totalServicePrice'] ?? 0.0).toDouble();
+      servicesGrossTotal += servicePrice;
+
+      if (appointment['paymentStatus'] == 'Paid') {
+        final double amountPaid = (appointment['amountPaid'] ?? 0.0).toDouble();
+        final String paymentMethod = appointment['paymentMethod']?.toString().toLowerCase() ?? "";
+
+        if (paymentMethod.contains('cash')) {
+          cashCollected += amountPaid;
+        } else if (paymentMethod.contains('card')) {
+          cardCollected += amountPaid;
+        } else if (paymentMethod.contains('m-pesa') || paymentMethod.contains('mpesa') || paymentMethod.contains('mobile money') || paymentMethod.contains('mobile')) {
+          mobileMoneyCollected += amountPaid;
+        }
+      }
+    }
     
-    final activityData = salesData['activityOverview'] ?? {};
-    final cashFlowData = salesData['cashFlow'] ?? {};
+    double totalGrossAmount = servicesGrossTotal + lateCancellationGrossTotal;
+    double totalSalesQuantity = servicesQuantity + lateCancellationQuantity;
+    double totalCollected = cashCollected + cardCollected + mobileMoneyCollected + giftCardsCollected;
 
     return SalesSummary(
-      date: _selectedDate,
+      date: _selectedDate, 
       activityOverview: ActivityOverview(
-        servicesQuantity: activityData['servicesQuantity']?.toDouble() ?? 0.0,
-        servicesRefund: activityData['servicesRefund']?.toDouble() ?? 0.0,
-        servicesGrossTotal: activityData['servicesGrossTotal']?.toDouble() ?? 0.0,
-        lateCancellationQuantity: activityData['lateCancellationQuantity']?.toDouble() ?? 0.0,
-        lateCancellationRefund: activityData['lateCancellationRefund']?.toDouble() ?? 0.0,
-        lateCancellationGrossTotal: activityData['lateCancellationGrossTotal']?.toDouble() ?? 0.0,
-        totalSalesQuantity: activityData['totalSalesQuantity']?.toDouble() ?? 0.0,
-        totalRefundQuantity: activityData['totalRefundQuantity']?.toDouble() ?? 0.0,
-        totalGrossAmount: activityData['totalGrossAmount']?.toDouble() ?? 0.0,
+        servicesQuantity: servicesQuantity,
+        servicesRefund: 0, 
+        servicesGrossTotal: servicesGrossTotal,
+        lateCancellationQuantity: lateCancellationQuantity, 
+        lateCancellationRefund: 0, 
+        lateCancellationGrossTotal: lateCancellationGrossTotal, 
+        totalSalesQuantity: totalSalesQuantity, 
+        totalRefundQuantity: 0, 
+        totalGrossAmount: totalGrossAmount,
       ),
       cashFlow: CashFlow(
-        cashCollected: cashFlowData['cashCollected']?.toDouble() ?? 0.0,
-        cashRefunds: cashFlowData['cashRefunds']?.toDouble() ?? 0.0,
-        cardCollected: cashFlowData['cardCollected']?.toDouble() ?? 0.0,
-        cardRefunds: cashFlowData['cardRefunds']?.toDouble() ?? 0.0,
-        mobileMoneyCollected: cashFlowData['mobileMoneyCollected']?.toDouble() ?? 0.0,
-        mobileMoneyRefunds: cashFlowData['mobileMoneyRefunds']?.toDouble() ?? 0.0,
-        giftCardsCollected: cashFlowData['giftCardsCollected']?.toDouble() ?? 0.0,
-        giftCardsRefunds: cashFlowData['giftCardsRefunds']?.toDouble() ?? 0.0,
-        totalCollected: cashFlowData['totalCollected']?.toDouble() ?? 0.0,
-        totalRefunds: cashFlowData['totalRefunds']?.toDouble() ?? 0.0,
+        cashCollected: cashCollected,
+        cashRefunds: 0, 
+        cardCollected: cardCollected,
+        cardRefunds: 0, 
+        mobileMoneyCollected: mobileMoneyCollected,
+        mobileMoneyRefunds: 0, 
+        giftCardsCollected: giftCardsCollected, 
+        giftCardsRefunds: 0, 
+        totalCollected: totalCollected,
+        totalRefunds: 0, 
       ),
     );
   }
 
+
   String _getYearDates(DateTime date) {
     DateTime firstDayOfYear = DateTime(date.year, 1, 1);
     DateTime lastDayOfYear = DateTime(date.year, 12, 31);
-    String startDate = DateFormat('d MMM').format(firstDayOfYear);
-    String endDate = DateFormat('d MMM yyyy').format(lastDayOfYear);
-    return '$startDate - $endDate';
+    String startDateText = DateFormat('d MMM').format(firstDayOfYear);
+    String endDateText = DateFormat('d MMM yy').format(lastDayOfYear);
+    return '$startDateText - $endDateText';
   }
 
   String _getMonthDates(DateTime date) {
     DateTime firstDayOfMonth = DateTime(date.year, date.month, 1);
     DateTime lastDayOfMonth = DateTime(date.year, date.month + 1, 0);
-    String startDate = DateFormat('d MMM').format(firstDayOfMonth);
-    String endDate = DateFormat('d MMM yyyy').format(lastDayOfMonth);
-    return '$startDate - $endDate';
+    String startDateText = DateFormat('d MMM').format(firstDayOfMonth);
+    String endDateText = DateFormat('d MMM yy').format(lastDayOfMonth);
+    return '$startDateText - $endDateText';
   }
 
   String _getWeekDates(DateTime date) {
     DateTime firstDayOfWeek = date.subtract(Duration(days: date.weekday - 1));
     DateTime lastDayOfWeek = firstDayOfWeek.add(const Duration(days: 6));
-    String startDate = DateFormat('d MMM').format(firstDayOfWeek);
-    String endDate = DateFormat('d MMM yyyy').format(lastDayOfWeek);
-    return '$startDate - $endDate';
+    String startDateText = DateFormat('d MMM').format(firstDayOfWeek);
+    String endDateText = DateFormat('d MMM yy').format(lastDayOfWeek);
+    return '$startDateText - $endDateText';
   }
 
-  Future<void> _loadSalesData() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final userId = salesBox.get('userId');
-      if (userId == null) {
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      
-      final doc = await FirebaseFirestore.instance
-          .collection('sales')
-          .doc(userId)
-          .collection('daily')
-          .doc(_selectedDate.toIso8601String().split('T')[0])
-          .get();
-
-      if (doc.exists && doc.data() != null) {
-        salesData = doc.data()!;
-        await salesBox.put('currentSalesData', salesData);
-      } else {
-        salesData = {};
-        await salesBox.put('currentSalesData', {});
-      }
-    } catch (e) {
-      print('Error loading sales data: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading data: $e')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
   Future<void> _showDatePickerByType(DateRangeType type) async {
+    _currentDateRangeType = type; 
+    DateTime initialPickerDate = _selectedDate;
+
     switch (type) {
       case DateRangeType.day:
-        await _showDayPicker();
+        final DateTime? picked = await showDatePicker(
+          context: context, initialDate: _selectedDate,
+          firstDate: DateTime(2020), lastDate: DateTime.now(),
+          builder: (context, child) => Theme( data: Theme.of(context).copyWith(colorScheme: ColorScheme.light(primary: Colors.grey[800]!, onPrimary: Colors.white, onSurface: Colors.black)), child: child!,),
+        );
+        if (picked != null) _selectedDate = picked;
+        _dateRangeText = DateFormat('d MMM yy').format(_selectedDate);
         break;
       case DateRangeType.week:
-        await _showWeekPicker();
+        final DateTime? pickedInWeek = await showDatePicker(
+            context: context, initialDate: _selectedDate,
+            firstDate: DateTime(2020), lastDate: DateTime.now().add(Duration(days: 7*4)) 
+        );
+        if(pickedInWeek != null) _selectedDate = pickedInWeek;
+        _dateRangeText = _getWeekDates(_selectedDate);
         break;
       case DateRangeType.month:
-        await _showMonthPicker();
+        final List<String> months = List.generate(12, (i) => DateFormat('MMMM yy').format(DateTime(DateTime.now().year, i + 1)));
+        _selectedDate = DateTime(_selectedDate.year, _selectedDate.month, 1); 
+        _dateRangeText = _getMonthDates(_selectedDate);
         break;
       case DateRangeType.year:
-        await _showYearPicker();
+        _selectedDate = DateTime(_selectedDate.year, 1, 1);
+        _dateRangeText = _getYearDates(_selectedDate);
         break;
     }
+     if(mounted) setState(() {});
+    await _fetchAppointmentsForDateRange(); 
   }
 
-  Future<void> _showDayPicker() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.grey[800]!,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null && picked != _selectedDate) {
+  Future<void> _showWeekPicker() async {
+    final DateTime? picked = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 30)));
+    if (picked != null) {
       setState(() {
         _selectedDate = picked;
-        _dateRangeText = DateFormat('d MMM yyyy').format(picked);
+        _currentDateRangeType = DateRangeType.week;
+        _dateRangeText = _getWeekDates(_selectedDate);
       });
-      _loadSalesData();
+      await _fetchAppointmentsForDateRange();
     }
   }
-
-  Future<void> _showYearPicker() async {
-    final int currentYear = DateTime.now().year;
-    final List<int> years = List.generate(5, (index) => currentYear - index);
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Select Year',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ...years.map((year) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.pop(context);
-                      final selectedDate = DateTime(year, 1, 1);
-                      setState(() {
-                        _selectedDate = selectedDate;
-                        _dateRangeText = _getYearDates(selectedDate);
-                      });
-                      _loadSalesData();
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(year.toString()),
-                    ),
-                  ),
-                )),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _showMonthPicker() async {
-    final List<String> months = [
-      'January', 'February', 'March', 'April',
-      'May', 'June', 'July', 'August',
-      'September', 'October', 'November', 'December'
-    ];
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            width: 300,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Months',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                GridView.builder(
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 2,
-                  ),
-                  itemCount: 12,
-                  itemBuilder: (context, index) {
-                    return InkWell(
-                      onTap: () {
-                        Navigator.pop(context);
-                        final now = DateTime.now();
-                        final selectedDate = DateTime(now.year, index + 1, 1);
-                        setState(() {
-                          _selectedDate = selectedDate;
-                          _dateRangeText = _getMonthDates(selectedDate);
-                        });
-                        _loadSalesData();
-                      },
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(months[index]),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    final DateTime? picked = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365)), initialDatePickerMode: DatePickerMode.year); 
+    if (picked != null) {
+      setState(() {
+        _selectedDate = DateTime(picked.year, picked.month, 1);
+        _currentDateRangeType = DateRangeType.month;
+        _dateRangeText = _getMonthDates(_selectedDate);
+      });
+      await _fetchAppointmentsForDateRange();
+    }
   }
-  Future<void> _showWeekPicker() async {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            width: 300,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Weeks',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                GridView.builder(
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: 52,
-                  itemBuilder: (context, index) {
-                    return InkWell(
-                      onTap: () {
-                        Navigator.pop(context);
-                        final now = DateTime.now();
-                        final firstDayOfYear = DateTime(now.year, 1, 1);
-                        final selectedDate = firstDayOfYear.add(
-                          Duration(days: index * 7),
-                        );
-                        setState(() {
-                          _selectedDate = selectedDate;
-                          _dateRangeText = _getWeekDates(selectedDate);
-                        });
-                        _loadSalesData();
-                      },
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text('${index + 1}'),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  Future<void> _showYearPicker() async {
+    final DateTime? picked = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 365 * 5)), initialDatePickerMode: DatePickerMode.year);
+    if (picked != null) {
+      setState(() {
+        _selectedDate = DateTime(picked.year, 1, 1);
+        _currentDateRangeType = DateRangeType.year;
+        _dateRangeText = _getYearDates(_selectedDate);
+      });
+      await _fetchAppointmentsForDateRange();
+    }
   }
 
   void _showDateRangeMenu(BuildContext context) {
@@ -874,310 +779,104 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
         maxWidth: buttonSize.width,
       ),
       items: [
-        PopupMenuItem(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            'Day',
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 14,
-            ),
-          ),
-          onTap: () => _showDatePickerByType(DateRangeType.day),
-        ),
-        PopupMenuItem(
-          height: 1,
-          enabled: false,
-          padding: EdgeInsets.zero,
-          child: Divider(height: 1, thickness: 1, color: Colors.grey[200]),
-        ),
-        PopupMenuItem(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            'Week',
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 14,
-            ),
-          ),
-          onTap: () => _showDatePickerByType(DateRangeType.week),
-        ),
-        PopupMenuItem(
-          height: 1,
-          enabled: false,
-          padding: EdgeInsets.zero,
-          child: Divider(height: 1, thickness: 1, color: Colors.grey[200]),
-        ),
-        PopupMenuItem(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            'Month',
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 14,
-            ),
-          ),
-          onTap: () => _showDatePickerByType(DateRangeType.month),
-        ),
-        PopupMenuItem(
-          height: 1,
-          enabled: false,
-          padding: EdgeInsets.zero,
-          child: Divider(height: 1, thickness: 1, color: Colors.grey[200]),
-        ),
-        PopupMenuItem(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            'Year',
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 14,
-            ),
-          ),
-          onTap: () => _showDatePickerByType(DateRangeType.year),
-        ),
+        PopupMenuItem(height: 40, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Text('Day', style: TextStyle(color: Colors.grey[800], fontSize: 14)), onTap: () => _showDatePickerByType(DateRangeType.day)),
+        PopupMenuItem(height: 1, enabled: false, padding: EdgeInsets.zero, child: Divider(height: 1, thickness: 1, color: Colors.grey[200])),
+        PopupMenuItem(height: 40, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Text('Week', style: TextStyle(color: Colors.grey[800], fontSize: 14)), onTap: () => _showDatePickerByType(DateRangeType.week)),
+        PopupMenuItem(height: 1, enabled: false, padding: EdgeInsets.zero, child: Divider(height: 1, thickness: 1, color: Colors.grey[200])),
+        PopupMenuItem(height: 40, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Text('Month', style: TextStyle(color: Colors.grey[800], fontSize: 14)), onTap: () => _showDatePickerByType(DateRangeType.month)),
+        PopupMenuItem(height: 1, enabled: false, padding: EdgeInsets.zero, child: Divider(height: 1, thickness: 1, color: Colors.grey[200])),
+        PopupMenuItem(height: 40, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Text('Year', style: TextStyle(color: Colors.grey[800], fontSize: 14)), onTap: () => _showDatePickerByType(DateRangeType.year)),
       ],
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      color: Colors.white,
+      elevation: 2, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), color: Colors.white,
     );
   }
 
   void _showExportOptions(BuildContext context) {
     final RenderBox? button = _exportButtonKey.currentContext?.findRenderObject() as RenderBox?;
     if (button == null) return;
-
     final Offset offset = button.localToGlobal(Offset.zero);
     final Size buttonSize = button.size;
 
     showMenu(
       context: context,
-      position: RelativeRect.fromLTRB(
-        offset.dx,
-        offset.dy + buttonSize.height,
-        offset.dx + buttonSize.width,
-        offset.dy + buttonSize.height + 2,
-      ),
-      constraints: BoxConstraints(
-        minWidth: buttonSize.width,
-        maxWidth: buttonSize.width,
-      ),
+      position: RelativeRect.fromLTRB(offset.dx, offset.dy + buttonSize.height, offset.dx + buttonSize.width, offset.dy + buttonSize.height + 2),
+      constraints: BoxConstraints(minWidth: buttonSize.width, maxWidth: buttonSize.width),
       items: [
-        PopupMenuItem(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            'PDF',
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 14,
-            ),
-          ),
-          onTap: () => _exportAs('pdf'),
-        ),
-        PopupMenuItem(
-          height: 1,
-          enabled: false,
-          padding: EdgeInsets.zero,
-          child: Divider(height: 1, thickness: 1, color: Colors.grey[200]),
-        ),
-        PopupMenuItem(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            'Excel',
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 14,
-            ),
-          ),
-          onTap: () => _exportAs('excel'),
-        ),
+        PopupMenuItem(height: 40, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Text('PDF', style: TextStyle(color: Colors.grey[800], fontSize: 14)), onTap: () => _exportAs('pdf')),
+        PopupMenuItem(height: 1, enabled: false, padding: EdgeInsets.zero, child: Divider(height: 1, thickness: 1, color: Colors.grey[200])),
+        PopupMenuItem(height: 40, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Text('Excel', style: TextStyle(color: Colors.grey[800], fontSize: 14)), onTap: () => _exportAs('excel')),
       ],
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      color: Colors.white,
+      elevation: 2, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), color: Colors.white,
     );
   }
 
  Future<void> _exportAs(String format) async {
-  try {
-    setState(() => _isLoading = true);
-    final salesSummary = _getCurrentSalesSummary();
-    String filePath;
-
-    if (format == 'pdf') {
-      filePath = await ExportHelper.exportAsPDF(
-        salesSummary,
-        _dateRangeText,
-      );
-    } else {
-      filePath = await ExportHelper.exportAsExcel(
-        salesSummary,
-        _dateRangeText,
-      );
+    if(_fetchedAppointments.isEmpty && format != 'excel_empty_template') { 
+       ScaffoldMessenger.of(context).showSnackBar( SnackBar(content: Text('No data to export for the selected period.')),);
+       return;
     }
+    try {
+      setState(() => _isLoading = true);
+      final salesSummary = _calculateSalesSummaryFromAppointments(_fetchedAppointments); 
+      String filePath;
 
-   
-    final file = File(filePath);
-    final snackBar = SnackBar(
-      content: Text('Exported successfully to ${file.path}'),
-      action: SnackBarAction(
-        label: 'Open',
-        onPressed: () async {
-          if (await file.exists()) {
-         
-            OpenFile.open(file.path);
-          }
-        },
-      ),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Export failed: $e')),
-    );
-  } finally {
-    setState(() => _isLoading = false);
-  }
+      if (format == 'pdf') {
+        filePath = await ExportHelper.exportAsPDF(salesSummary, _dateRangeText);
+      } else { 
+        filePath = await ExportHelper.exportAsExcel(salesSummary, _dateRangeText);
+      }
+      
+      final file = File(filePath);
+      final snackBar = SnackBar( content: Text('Exported successfully to ${file.path}'), action: SnackBarAction( label: 'Open', onPressed: () async { if (await file.exists()) { OpenFile.open(file.path);}},),);
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+    } catch (e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    } finally {
+      if(mounted) setState(() => _isLoading = false);
+    }
 }
   @override
   Widget build(BuildContext context) {
-    final salesSummary = _getCurrentSalesSummary();
+    final salesSummary = _calculateSalesSummaryFromAppointments(_fetchedAppointments);
     
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        title: const Text(
-          'Sales Summary',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: Colors.grey[300],
-            height: 1,
-          ),
-        ),
+        backgroundColor: Colors.white, elevation: 0, centerTitle: false,
+        title: const Text('Sales Summary', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.w500)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: () => Navigator.pop(context)),
+        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(color: Colors.grey[300], height: 1,)),
       ),
-      body: _isLoading 
+      body: _isLoading && _fetchedAppointments.isEmpty 
         ? const Center(child: CircularProgressIndicator())
         : SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), color: Colors.white,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    InkWell(
-                      key: _dateButtonKey,
-                      onTap: () => _showDateRangeMenu(context),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.tune,
-                              size: 20,
-                              color: Colors.grey[800],
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _dateRangeText,
-                              style: TextStyle(
-                                color: Colors.grey[800],
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    InkWell(
-                      key: _exportButtonKey,
-                      onTap: () => _showExportOptions(context),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Export as',
-                              style: TextStyle(
-                                color: Colors.grey[800],
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.arrow_drop_down,
-                              color: Colors.grey[800],
-                              size: 20,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    InkWell( key: _dateButtonKey, onTap: () => _showDateRangeMenu(context),
+                      child: Container( padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        child: Row( children: [ Icon(Icons.tune, size: 20, color: Colors.grey[800]), const SizedBox(width: 8), Text(_dateRangeText, style: TextStyle(color: Colors.grey[800], fontSize: 14, fontWeight: FontWeight.w500)),],),),),
+                    InkWell( key: _exportButtonKey, onTap: () => _showExportOptions(context),
+                      child: Container( padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(16),),
+                        child: Row( children: [ Text('Export as', style: TextStyle(color: Colors.grey[800], fontSize: 14)), const SizedBox(width: 4), Icon(Icons.arrow_drop_down, color: Colors.grey[800], size: 20,),],),),),
                   ],
                 ),
               ),
               const SizedBox(height: 8),
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2),)],),
                 child: _buildActivityOverview(salesSummary),
               ),
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2),)],),
                 child: _buildCashFlow(salesSummary),
               ),
             ],
@@ -1188,43 +887,22 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
 
   @override
   void dispose() {
-    _salesSubscription?.cancel();
+    _appointmentsSubscription?.cancel();
     super.dispose();
   }
+
   Widget _buildActivityOverview(SalesSummary salesSummary) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Activity Overview',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        const Text('Activity Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         _buildActivityHeaderRow(),
         const SizedBox(height: 8),
-        _buildActivityRow(
-          'Services',
-          salesSummary.activityOverview.servicesQuantity,
-          salesSummary.activityOverview.servicesRefund,
-          salesSummary.activityOverview.servicesGrossTotal,
-        ),
-        _buildActivityRow(
-          'Late cancellation',
-          salesSummary.activityOverview.lateCancellationQuantity,
-          salesSummary.activityOverview.lateCancellationRefund,
-          salesSummary.activityOverview.lateCancellationGrossTotal,
-        ),
+        _buildActivityRow('Services', salesSummary.activityOverview.servicesQuantity, salesSummary.activityOverview.servicesRefund, salesSummary.activityOverview.servicesGrossTotal),
+        _buildActivityRow('Late cancellation', salesSummary.activityOverview.lateCancellationQuantity, salesSummary.activityOverview.lateCancellationRefund, salesSummary.activityOverview.lateCancellationGrossTotal),
         const Divider(height: 32),
-        _buildActivityRow(
-          'Total sales',
-          salesSummary.activityOverview.totalSalesQuantity,
-          salesSummary.activityOverview.totalRefundQuantity,
-          salesSummary.activityOverview.totalGrossAmount,
-          isTotal: true,
-        ),
+        _buildActivityRow('Total sales', salesSummary.activityOverview.totalSalesQuantity, salesSummary.activityOverview.totalRefundQuantity, salesSummary.activityOverview.totalGrossAmount, isTotal: true),
       ],
     );
   }
@@ -1241,24 +919,15 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
   }
 
   Widget _buildActivityRow(String title, double quantity, double refund, double total, {bool isTotal = false}) {
-    final textStyle = TextStyle(
-      fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-      fontSize: 14,
-    );
-
+    final textStyle = TextStyle(fontWeight: isTotal ? FontWeight.bold : FontWeight.normal, fontSize: 14);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Expanded(flex: 2, child: Text(title, style: textStyle)),
-          Expanded(child: Text('$quantity', style: textStyle)),
-          Expanded(child: Text('$refund', style: textStyle)),
-          Expanded(
-            child: Text(
-              'KES ${total.toStringAsFixed(2)}',
-              style: textStyle.copyWith(color: Colors.green),
-            ),
-          ),
+          Expanded(child: Text(quantity.toStringAsFixed(0), style: textStyle)), 
+          Expanded(child: Text(refund.toStringAsFixed(2), style: textStyle)),
+          Expanded(child: Text('KES ${total.toStringAsFixed(2)}', style: textStyle.copyWith(color: Colors.green))),
         ],
       ),
     );
@@ -1268,43 +937,16 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Cash Flow',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        const Text('Cash Flow', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         _buildCashFlowHeaderRow(),
         const SizedBox(height: 8),
-        _buildPaymentRow(
-          'Cash',
-          salesSummary.cashFlow.cashCollected,
-          salesSummary.cashFlow.cashRefunds,
-        ),
-        _buildPaymentRow(
-          'Card',
-          salesSummary.cashFlow.cardCollected,
-          salesSummary.cashFlow.cardRefunds,
-        ),
-        _buildPaymentRow(
-          'Mobile Money',
-          salesSummary.cashFlow.mobileMoneyCollected,
-          salesSummary.cashFlow.mobileMoneyRefunds,
-        ),
-        _buildPaymentRow(
-          'Gift cards',
-          salesSummary.cashFlow.giftCardsCollected,
-          salesSummary.cashFlow.giftCardsRefunds,
-        ),
+        _buildPaymentRow('Cash', salesSummary.cashFlow.cashCollected, salesSummary.cashFlow.cashRefunds),
+        _buildPaymentRow('Card', salesSummary.cashFlow.cardCollected, salesSummary.cashFlow.cardRefunds),
+        _buildPaymentRow('Mobile Money', salesSummary.cashFlow.mobileMoneyCollected, salesSummary.cashFlow.mobileMoneyRefunds),
+        _buildPaymentRow('Gift cards', salesSummary.cashFlow.giftCardsCollected, salesSummary.cashFlow.giftCardsRefunds),
         const Divider(height: 32),
-        _buildPaymentRow(
-          'Payment Collected',
-          salesSummary.cashFlow.totalCollected,
-          salesSummary.cashFlow.totalRefunds,
-          isTotal: true,
-        ),
+        _buildPaymentRow('Payment Collected', salesSummary.cashFlow.totalCollected, salesSummary.cashFlow.totalRefunds, isTotal: true),
       ],
     );
   }
@@ -1320,28 +962,14 @@ class _SalesSummaryScreenState extends State<SalesSummaryScreen> {
   }
 
   Widget _buildPaymentRow(String type, double collected, double refunds, {bool isTotal = false}) {
-    final textStyle = TextStyle(
-      fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-      fontSize: 14,
-    );
-
+    final textStyle = TextStyle(fontWeight: isTotal ? FontWeight.bold : FontWeight.normal, fontSize: 14);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Expanded(flex: 2, child: Text(type, style: textStyle)),
-          Expanded(
-            child: Text(
-              'KES ${collected.toStringAsFixed(2)}',
-              style: textStyle.copyWith(color: Colors.green),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              'KES ${refunds.toStringAsFixed(2)}',
-              style: textStyle.copyWith(color: Colors.red),
-            ),
-          ),
+          Expanded(child: Text('KES ${collected.toStringAsFixed(2)}', style: textStyle.copyWith(color: Colors.green))),
+          Expanded(child: Text('KES ${refunds.toStringAsFixed(2)}', style: textStyle.copyWith(color: Colors.red))),
         ],
       ),
     );

@@ -42,8 +42,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBO8Ybg93oqoQKuLd4wWPkI-Av_Qv0IMAI',
-    appId: '1:337048471338:android:ce5cba3640361a75130053',
+    apiKey: 'AIzaSyDuzLEjql52xsvBLAzHVoQV8h1pYFwRhZ8',
+    appId: '1:337048471338:android:b653de1e4aa22db5130053',
     messagingSenderId: '337048471338',
     projectId: 'lotus-76761',
     storageBucket: 'lotus-76761.appspot.com',
@@ -55,7 +55,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '337048471338',
     projectId: 'lotus-76761',
     storageBucket: 'lotus-76761.appspot.com',
-    androidClientId: '337048471338-arq0sunns0mdpsl11p7l3ftb9dqaqciv.apps.googleusercontent.com',
+    androidClientId: '337048471338-0t8lao0jgniq6k9nrjqa268iis3u04fs.apps.googleusercontent.com',
     iosClientId: '337048471338-dcittpv3bvpb7hnnqpdgif04r5l4jif8.apps.googleusercontent.com',
     iosBundleId: 'com.example.clipsandstyles2',
   );
@@ -66,7 +66,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '337048471338',
     projectId: 'lotus-76761',
     storageBucket: 'lotus-76761.appspot.com',
-    androidClientId: '337048471338-arq0sunns0mdpsl11p7l3ftb9dqaqciv.apps.googleusercontent.com',
+    androidClientId: '337048471338-0t8lao0jgniq6k9nrjqa268iis3u04fs.apps.googleusercontent.com',
     iosClientId: '337048471338-dcittpv3bvpb7hnnqpdgif04r5l4jif8.apps.googleusercontent.com',
     iosBundleId: 'com.example.clipsandstyles2',
   );
@@ -80,4 +80,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'lotus-76761.appspot.com',
     measurementId: 'G-T1F7ZGTCGJ',
   );
+
 }

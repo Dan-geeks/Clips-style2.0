@@ -117,79 +117,136 @@ class _BusinessProfileState extends State<BusinessProfile> {
   }
 
   // Handles navigation for menu items, FETCHING from Firestore for flag checks
-  Future<void> _navigateToPage(String pageName) async {
+Future<void> _navigateToPage(String pageName) async {
     if (_isLoading || _isCheckingFlag) return;
 
     final String? businessId = businessData['userId'] ?? businessData['documentId'];
     if (businessId == null) {
-       ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error: Business ID not found.')),
-       );
-       return;
+      );
+      return;
     }
 
-    Widget destinationPage;
+    Widget? destinationPage; // Make it nullable for clarity
 
-    // --- Flag Check Logic ---
     if (pageName == 'Lotus Business Profile') {
-       if(mounted) setState(() { _isCheckingFlag = true; });
-       try {
-         print("Fetching latest data from Firestore for flag check (Page: $pageName)...");
-         DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
-             .collection('businesses')
-             .doc(businessId)
-             .get();
+      if (!mounted) return; // Check if widget is still mounted
+      setState(() { _isCheckingFlag = true; });
+      try {
+        print("Fetching latest data from Firestore for flag check (Page: $pageName)...");
+        DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
+            .collection('businesses')
+            .doc(businessId)
+            .get();
 
-         bool isComplete = false;
-         if (docSnapshot.exists && docSnapshot.data() != null) {
-           final Map<String, dynamic> firestoreData = docSnapshot.data() as Map<String, dynamic>;
-           // Update local cache immediately
-           firestoreData.forEach((key, value) {
-              if (value is Timestamp) {
-                 firestoreData[key] = value.toDate().toIso8601String();
-              }
-           });
-           businessData = {...businessData, ...firestoreData};
-           await appBox.put('businessData', businessData);
+        bool isLotusProfileComplete = false; // Default to false
 
-           // Check the relevant flag
-           if (pageName == 'Lotus Business Profile') {
-             isComplete = firestoreData['isLotusProfileComplete'] ?? false;
-             print("Firestore check: isLotusProfileComplete = $isComplete");
-             destinationPage = isComplete ? const FinalBusinessProfile() : const OpeningHoursScreen();
-           } else { // Payment Method (Logic remains)
+        if (docSnapshot.exists && docSnapshot.data() != null) {
+          final Map<String, dynamic> firestoreData = docSnapshot.data() as Map<String, dynamic>;
+          
+          // Create a new map for Hive to avoid modifying the original firestoreData during iteration
+          Map<String, dynamic> hiveUpdateData = Map.from(firestoreData);
+          hiveUpdateData.forEach((key, value) {
+            if (value is Timestamp) {
+              hiveUpdateData[key] = value.toDate().toIso8601String();
+            }
+          });
+
+          // Merge with existing businessData, prioritize Firestore data, then save to Hive
+          businessData = {...businessData, ...hiveUpdateData};
+          await appBox.put('businessData', businessData);
+
+          isLotusProfileComplete = firestoreData['isLotusProfileComplete'] ?? false;
+          print("Firestore check: isLotusProfileComplete = $isLotusProfileComplete");
+        } else {
+          print("Firestore document $businessId not found. Defaulting to setup (isLotusProfileComplete = false).");
+          // If document doesn't exist, treat as incomplete
+          isLotusProfileComplete = false;
+        }
+
+        destinationPage = isLotusProfileComplete
+                            ? const FinalBusinessProfile()
+                            : const OpeningHoursScreen();
+      } catch (e) {
+        print("Error checking Firestore flag ($pageName): $e");
+        if (mounted) { // Check if mounted before showing SnackBar
           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('Coming Soon')),
-           );
-             
-           }
-         } else {
-           print("Firestore document $businessId not found. Defaulting to setup.");
-           // Default to setup screen if document not found
-             ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('Coming Soon')),
-           );
-         }
-       } catch (e) {
-         print("Error checking Firestore flag ($pageName): $e");
-         if(mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(content: Text('Error checking status: $e')),
-            );
-         }
-       } finally {
-         if(mounted) setState(() { _isCheckingFlag = false; });
-       }
-       return; // Exit after handling flag checks
+             SnackBar(content: Text('Error checking profile status: $e')),
+          );
+        }
+        destinationPage = null; // Do not navigate on error
+      } finally {
+        if (mounted) { // Check if mounted before calling setState
+          setState(() { _isCheckingFlag = false; });
+        }
+      }
+
+      // Perform navigation if destinationPage is set
+      if (destinationPage != null && mounted) { // Check if mounted before navigating
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => destinationPage!),
+        ).then((_) {
+          _initializeHiveAndLoad(); // Refresh data when returning
+        });
+      }
+      return; // Exit after handling this specific pageName
+    } 
+    // --- Handling for Payment Method (if you re-add it similarly) ---
+    else if (pageName == 'Payment Method') {
+        if(mounted) setState(() { _isCheckingFlag = true; });
+        try {
+            DocumentSnapshot docSnapshot = await FirebaseFirestore.instance
+                .collection('businesses')
+                .doc(businessId)
+                .get();
+            
+            bool isWalletSetupComplete = false; 
+            if (docSnapshot.exists && docSnapshot.data() != null) {
+                final Map<String, dynamic> firestoreData = docSnapshot.data() as Map<String, dynamic>;
+
+                Map<String, dynamic> hiveUpdateData = Map.from(firestoreData);
+                hiveUpdateData.forEach((key, value) {
+                  if (value is Timestamp) {
+                    hiveUpdateData[key] = value.toDate().toIso8601String();
+                  }
+                });
+                businessData = {...businessData, ...hiveUpdateData};
+                await appBox.put('businessData', businessData);
+                isWalletSetupComplete = firestoreData['isWalletSetupComplete'] ?? false;
+                print("Firestore check: isWalletSetupComplete = $isWalletSetupComplete");
+            } else {
+                print("Firestore document $businessId not found for payment method check.");
+            }
+            destinationPage = isWalletSetupComplete ? const WalletPage() : const WelcomeScreen();
+        } catch (e) {
+            print("Error checking Firestore flag ($pageName): $e");
+            if(mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error checking payment status: $e')));
+            }
+            destinationPage = null; // Do not navigate on error
+        } finally {
+            if(mounted) setState(() { _isCheckingFlag = false; });
+        }
+         if (destinationPage != null && mounted) { // Check if mounted before navigating
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => destinationPage!),
+          ).then((_) {
+            _initializeHiveAndLoad(); 
+          });
+        }
+        return; 
     }
-    // --- End Flag Check Logic ---
+    // --- End Handling for Payment Method ---
 
-
-    // --- Handling for other menu items ---
+    // --- Default navigation for other menu items ---
+    // This part will only be reached if pageName is not 'Lotus Business Profile' or 'Payment Method'
     switch (pageName) {
       case 'Service listing':
-         destinationPage = const ServiceListingScreen();
-       break;
+        destinationPage = const ServiceListingScreen();
+        break;
       case 'Market Development':
         destinationPage = const MarketDevelopmentScreen();
         break;
@@ -199,25 +256,24 @@ class _BusinessProfileState extends State<BusinessProfile> {
       case 'Staff':
         destinationPage = const StaffScreen();
         break;
-      // Payment Method logic is handled above by flag check, UI is removed below
       case 'Business Summary':
-         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$pageName page not implemented yet')));
-         return;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$pageName page not implemented yet')));
+        return; // No navigation
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$pageName Coming Soon')),
         );
-        return;
+        return; // No navigation
     }
 
+    // Perform navigation for the switch cases
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => destinationPage),
+      MaterialPageRoute(builder: (context) => destinationPage!), // destinationPage will be non-null here
     ).then((_) {
-       _initializeHiveAndLoad(); // Refresh data when returning
+      _initializeHiveAndLoad(); // Refresh data when returning
     });
   }
-
   // --- MODIFIED: _onItemTapped ---
   void _onItemTapped(int index) {
     if (_selectedIndex == index) return; // Don't rebuild if tapping the current tab

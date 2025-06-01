@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hive/hive.dart'; // For businessId
 import 'dart:async';
 import 'package:intl/intl.dart';
+import 'dart:math'; // For min function
 
+import 'SalesDetails.dart'; // Ensure this path is correct
 
 enum DateRangeType { day, week, month, year }
 
@@ -17,182 +19,240 @@ class SalesListPage extends StatefulWidget {
 class _SalesListPageState extends State<SalesListPage> {
   final TextEditingController _searchController = TextEditingController();
   late Box appBox;
-  List<Map<String, dynamic>> sales = [];
-  List<Map<String, dynamic>> filteredSales = [];
-  bool _isLoading = true;
-  StreamSubscription<DocumentSnapshot>? _salesSubscription;
+  String? _businessId;
 
- 
+  List<Map<String, dynamic>> _allAppointmentsAsSales = []; // Holds all "paid" appointments
+  List<Map<String, dynamic>> _filteredSalesData = []; // Holds sales after text filtering
+
+  bool _isLoading = true;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _salesSubscription;
+
   DateTime _selectedDate = DateTime.now();
-  DateRangeType _dateRangeType = DateRangeType.day;
+  DateRangeType _currentDateRangeType = DateRangeType.day;
   final GlobalKey _dateButtonKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _initializeSalesPage();
+    _searchController.addListener(() {
+      _applyTextFilter(_searchController.text);
+    });
   }
 
   Future<void> _initializeSalesPage() async {
     try {
-      appBox = Hive.box('appBox');
-
- 
-      var storedSales = appBox.get('salesData');
-      if (storedSales != null) {
-        setState(() {
-          sales = List<Map<String, dynamic>>.from(storedSales);
-          _filterSales(_searchController.text);
-        });
+      if (!Hive.isBoxOpen('appBox')) {
+        appBox = await Hive.openBox('appBox');
+      } else {
+        appBox = Hive.box('appBox');
       }
 
-      
-      _startFirestoreListener();
+      final businessDataMap = appBox.get('businessData');
+      if (businessDataMap != null && businessDataMap is Map) {
+        final businessDataFromMap = Map<String, dynamic>.from(businessDataMap);
+        _businessId = businessDataFromMap['userId']?.toString() ??
+                      businessDataFromMap['documentId']?.toString() ??
+                      businessDataFromMap['id']?.toString();
+      }
+      _businessId ??= appBox.get('userId')?.toString();
 
-      setState(() => _isLoading = false);
+      if (_businessId == null || _businessId!.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: Business ID not found.')),
+          );
+          setState(() => _isLoading = false);
+        }
+        return;
+      }
+      // Initial fetch for the current date range
+      await _fetchAppointmentsAsSalesForDateRange();
     } catch (e) {
-      print('Error initializing sales page: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error initializing: $e')),
+          SnackBar(content: Text('Error initializing sales page: $e')),
         );
+        setState(() => _isLoading = false);
       }
-      setState(() => _isLoading = false);
     }
   }
 
-  void _startFirestoreListener() {
-    final userId = appBox.get('userId');
-    if (userId == null) return;
+  DateTimeRange _calculateDateTimeRange() {
+    DateTime startDate;
+    DateTime endDate;
 
-    final salesDoc = FirebaseFirestore.instance
+    switch (_currentDateRangeType) {
+      case DateRangeType.day:
+        startDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 0, 0, 0);
+        endDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, 23, 59, 59, 999);
+        break;
+      case DateRangeType.week:
+        int currentDayOfWeek = _selectedDate.weekday; // Monday is 1, Sunday is 7
+        startDate = _selectedDate.subtract(Duration(days: currentDayOfWeek - 1));
+        startDate = DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+        endDate = startDate.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59, milliseconds: 999));
+        break;
+      case DateRangeType.month:
+        startDate = DateTime(_selectedDate.year, _selectedDate.month, 1, 0, 0, 0);
+        endDate = DateTime(_selectedDate.year, _selectedDate.month + 1, 0, 23, 59, 59, 999);
+        break;
+      case DateRangeType.year:
+        startDate = DateTime(_selectedDate.year, 1, 1, 0, 0, 0);
+        endDate = DateTime(_selectedDate.year, 12, 31, 23, 59, 59, 999);
+        break;
+    }
+    return DateTimeRange(start: startDate, end: endDate);
+  }
+
+  Future<void> _fetchAppointmentsAsSalesForDateRange() async {
+    if (!mounted || _businessId == null || _businessId!.isEmpty) return;
+    setState(() => _isLoading = true);
+
+    _salesSubscription?.cancel();
+
+    DateTimeRange range = _calculateDateTimeRange();
+
+    // Query the 'appointments' subcollection
+    final appointmentsStream = FirebaseFirestore.instance
         .collection('businesses')
-        .doc(userId)
-        .collection('sales')
-        .doc('daily');
+        .doc(_businessId)
+        .collection('appointments') // Querying the 'appointments' collection
+        .where('appointmentTimestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(range.start))
+        .where('appointmentTimestamp', isLessThanOrEqualTo: Timestamp.fromDate(range.end))
+        // Add filter for paid appointments to represent sales
+        .where('paymentStatus', isEqualTo: 'Paid') //  <--- IMPORTANT FILTER
+        .orderBy('appointmentTimestamp', descending: true) // Use appointmentTimestamp for sales
+        .snapshots();
 
-    _salesSubscription = salesDoc.snapshots().listen(
-      (docSnapshot) async {
-        if (docSnapshot.exists && docSnapshot.data() != null) {
-          var salesData = docSnapshot.data()!;
-          List<Map<String, dynamic>> newSales = [];
+    _salesSubscription = appointmentsStream.listen(
+      (snapshot) {
+        if (!mounted) return;
 
-          salesData.forEach((key, value) {
-            if (value is Map) {
-              newSales.add({
-                'id': key,
-                'client': value['clientName'] ?? 'Unknown',
-                'status': value['status'] ?? 'Pending',
-                'location': value['location'] ?? 'Unknown',
-                'total': 'KES ${value['total']?.toString() ?? '0.00'}',
-                'timestamp': value['timestamp'] ?? Timestamp.now(),
-              });
-            }
-          });
-
-      
-          newSales.sort((a, b) =>
-              (b['timestamp'] as Timestamp).compareTo(a['timestamp'] as Timestamp));
-
-          await appBox.put('salesData', newSales);
-
-          if (mounted) {
-            setState(() {
-              sales = newSales;
-              _filterSales(_searchController.text);
-            });
+        final appointmentsDocs = snapshot.docs.map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id; 
+          // Convert 'appointmentTimestamp' (and other timestamps) from Firestore Timestamp to DateTime
+          if (data['appointmentTimestamp'] is Timestamp) {
+             data['saleTimestamp_converted'] = (data['appointmentTimestamp'] as Timestamp).toDate();
+          } else {
+             data['saleTimestamp_converted'] = DateTime.now(); // Fallback or handle as error
           }
-        } else {
-          setState(() {
-            sales = [];
-            filteredSales = [];
-          });
-        }
+          if (data['paymentTimestamp'] is Timestamp) { // Also convert paymentTimestamp if needed
+             data['paymentTimestamp_converted'] = (data['paymentTimestamp'] as Timestamp).toDate();
+          }
+
+
+          // Ensure services is a list of maps
+           if (data['services'] is List) {
+            data['services'] = List<Map<String, dynamic>>.from(
+                (data['services'] as List).map((service) {
+              if (service is Map) {
+                return Map<String, dynamic>.from(service);
+              }
+              return {}; // Or handle error for non-map service items
+            }).where((serviceMap) => serviceMap.isNotEmpty));
+          } else {
+            data['services'] = <Map<String, dynamic>>[]; // Default to empty list if not a list
+          }
+
+          return data;
+        }).toList();
+
+        setState(() {
+          _allAppointmentsAsSales = appointmentsDocs;
+          _applyTextFilter(_searchController.text); 
+          _isLoading = false;
+        });
       },
       onError: (error) {
-        print('Error in Firestore listener: $error');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error syncing data: $error')),
+            SnackBar(content: Text('Error syncing sales data: $error')),
           );
+          setState(() => _isLoading = false);
         }
       },
     );
   }
 
- 
-  void _filterSales(String query) {
+  void _applyTextFilter(String query) {
     setState(() {
-      filteredSales = sales.where((sale) {
-     
+      _filteredSalesData = _allAppointmentsAsSales.where((sale) {
         bool matchesQuery = query.isEmpty ||
-            sale['client'].toString().toLowerCase().contains(query.toLowerCase()) ||
-            sale['id'].toString().toLowerCase().contains(query.toLowerCase());
-
-  
-        bool matchesDate = _isSaleInSelectedRange(sale['timestamp']);
-        return matchesQuery && matchesDate;
+            (sale['customerName']?.toString().toLowerCase().contains(query.toLowerCase()) ?? false) || // Use customerName
+            (sale['id']?.toString().toLowerCase().contains(query.toLowerCase()) ?? false);
+        return matchesQuery;
       }).toList();
     });
   }
 
-
-  bool _isSaleInSelectedRange(Timestamp saleTimestamp) {
-    final saleDate = saleTimestamp.toDate();
-    switch (_dateRangeType) {
+  String get _dateRangeText {
+    switch (_currentDateRangeType) {
       case DateRangeType.day:
-        return saleDate.year == _selectedDate.year &&
-            saleDate.month == _selectedDate.month &&
-            saleDate.day == _selectedDate.day;
+        return DateFormat('d MMM yy').format(_selectedDate);
       case DateRangeType.week:
-        DateTime firstDayOfWeek = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
-        DateTime lastDayOfWeek = firstDayOfWeek.add(const Duration(days: 6));
-        return !saleDate.isBefore(firstDayOfWeek) && !saleDate.isAfter(lastDayOfWeek);
+        final start = _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
+        final end = start.add(const Duration(days: 6));
+        return '${DateFormat('d MMM').format(start)} - ${DateFormat('d MMM yy').format(end)}';
       case DateRangeType.month:
-        return saleDate.year == _selectedDate.year && saleDate.month == _selectedDate.month;
+        return DateFormat('MMMM yyyy').format(_selectedDate);
       case DateRangeType.year:
-        return saleDate.year == _selectedDate.year;
+        return DateFormat('yyyy').format(_selectedDate);
     }
   }
 
- 
-  String _getDayText(DateTime date) => DateFormat('d MMM yyyy').format(date);
+  Future<void> _showDateRangeDialog(DateRangeType type) async {
+    DateTime? pickedDate = _selectedDate;
 
-  String _getWeekDates(DateTime date) {
-    final firstDayOfWeek = date.subtract(Duration(days: date.weekday - 1));
-    final lastDayOfWeek = firstDayOfWeek.add(const Duration(days: 6));
-    final startDate = DateFormat('d MMM').format(firstDayOfWeek);
-    final endDate = DateFormat('d MMM yyyy').format(lastDayOfWeek);
-    return '$startDate - $endDate';
-  }
+    if (type == DateRangeType.day || type == DateRangeType.week) {
+      pickedDate = await showDatePicker(
+        context: context,
+        initialDate: _selectedDate,
+        firstDate: DateTime(2020),
+        lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      );
+    } else if (type == DateRangeType.month) {
+        final DateTime? pickedMonth = await showDatePicker(
+            context: context,
+            initialDate: _selectedDate,
+            firstDate: DateTime(2020),
+            lastDate: DateTime.now().add(const Duration(days: 365*5)),
+            initialDatePickerMode: DatePickerMode.year,
+        );
+        if (pickedMonth != null) {
+            pickedDate = DateTime(pickedMonth.year, pickedMonth.month, 1);
+        }
+    } else if (type == DateRangeType.year) {
+        await showDialog(
+            context: context,
+            builder: (BuildContext context) {
+                return AlertDialog(
+                    title: const Text("Select Year"),
+                    content: SizedBox(
+                        width: 300,
+                        height: 300,
+                        child: YearPicker(
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now().add(const Duration(days: 365*5)),
+                            selectedDate: _selectedDate,
+                            onChanged: (DateTime dateTime) {
+                                pickedDate = dateTime;
+                                Navigator.of(context).pop();
+                            },
+                        ),
+                    ),
+                );
+            },
+        );
+    }
 
-  String _getMonthDates(DateTime date) {
-    final firstDayOfMonth = DateTime(date.year, date.month, 1);
-    final lastDayOfMonth = DateTime(date.year, date.month + 1, 0);
-    final startDate = DateFormat('d MMM').format(firstDayOfMonth);
-    final endDate = DateFormat('d MMM yyyy').format(lastDayOfMonth);
-    return '$startDate - $endDate';
-  }
-
-  String _getYearDates(DateTime date) {
-    final firstDayOfYear = DateTime(date.year, 1, 1);
-    final lastDayOfYear = DateTime(date.year, 12, 31);
-    final startDate = DateFormat('d MMM').format(firstDayOfYear);
-    final endDate = DateFormat('d MMM yyyy').format(lastDayOfYear);
-    return '$startDate - $endDate';
-  }
-
-
-  String get _dateRangeText {
-    switch (_dateRangeType) {
-      case DateRangeType.day:
-        return _getDayText(_selectedDate);
-      case DateRangeType.week:
-        return _getWeekDates(_selectedDate);
-      case DateRangeType.month:
-        return _getMonthDates(_selectedDate);
-      case DateRangeType.year:
-        return _getYearDates(_selectedDate);
+    if (pickedDate != null) {
+      setState(() {
+        _selectedDate = pickedDate!;
+        _currentDateRangeType = type;
+      });
+      await _fetchAppointmentsAsSalesForDateRange();
     }
   }
 
@@ -200,308 +260,35 @@ class _SalesListPageState extends State<SalesListPage> {
   void _showDateRangeMenu() {
     final RenderBox? button = _dateButtonKey.currentContext?.findRenderObject() as RenderBox?;
     if (button == null) return;
-
     final Offset offset = button.localToGlobal(Offset.zero);
     final Size buttonSize = button.size;
 
     showMenu(
       context: context,
-      position: RelativeRect.fromLTRB(
-        offset.dx,
-        offset.dy + buttonSize.height,
-        offset.dx + buttonSize.width,
-        offset.dy + buttonSize.height + 2,
-      ),
-      constraints: BoxConstraints(
-        minWidth: buttonSize.width,
-        maxWidth: buttonSize.width,
-      ),
+      position: RelativeRect.fromLTRB(offset.dx, offset.dy + buttonSize.height, offset.dx + buttonSize.width, offset.dy + buttonSize.height + 2),
       items: [
-        PopupMenuItem(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text('Day', style: TextStyle(color: Colors.grey[800], fontSize: 14)),
-          onTap: () => _showDatePickerByType(DateRangeType.day),
-        ),
-        PopupMenuItem(
-          height: 1,
-          enabled: false,
-          padding: EdgeInsets.zero,
-          child: Divider(height: 1, thickness: 1, color: Colors.grey[200]),
-        ),
-        PopupMenuItem(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text('Week', style: TextStyle(color: Colors.grey[800], fontSize: 14)),
-          onTap: () => _showDatePickerByType(DateRangeType.week),
-        ),
-        PopupMenuItem(
-          height: 1,
-          enabled: false,
-          padding: EdgeInsets.zero,
-          child: Divider(height: 1, thickness: 1, color: Colors.grey[200]),
-        ),
-        PopupMenuItem(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text('Month', style: TextStyle(color: Colors.grey[800], fontSize: 14)),
-          onTap: () => _showDatePickerByType(DateRangeType.month),
-        ),
-        PopupMenuItem(
-          height: 1,
-          enabled: false,
-          padding: EdgeInsets.zero,
-          child: Divider(height: 1, thickness: 1, color: Colors.grey[200]),
-        ),
-        PopupMenuItem(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text('Year', style: TextStyle(color: Colors.grey[800], fontSize: 14)),
-          onTap: () => _showDatePickerByType(DateRangeType.year),
-        ),
+        PopupMenuItem(child: const Text('Day'), onTap: () => _showDateRangeDialog(DateRangeType.day)),
+        PopupMenuItem(child: const Text('Week'), onTap: () => _showDateRangeDialog(DateRangeType.week)),
+        PopupMenuItem(child: const Text('Month'), onTap: () => _showDateRangeDialog(DateRangeType.month)),
+        PopupMenuItem(child: const Text('Year'), onTap: () => _showDateRangeDialog(DateRangeType.year)),
       ],
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      color: Colors.white,
     );
   }
 
-  /// Routes  [type].
-  Future<void> _showDatePickerByType(DateRangeType type) async {
-    switch (type) {
-      case DateRangeType.day:
-        await _showDayPicker();
-        break;
-      case DateRangeType.week:
-        await _showWeekPicker();
-        break;
-      case DateRangeType.month:
-        await _showMonthPicker();
-        break;
-      case DateRangeType.year:
-        await _showYearPicker();
-        break;
-    }
-  }
-
-  Future<void> _showDayPicker() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.grey[800]!,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _dateRangeType = DateRangeType.day;
-      });
-      _filterSales(_searchController.text);
-    }
-  }
-
-  Future<void> _showWeekPicker() async {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            width: 300,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Select Week',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                GridView.builder(
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: 52,
-                  itemBuilder: (context, index) {
-                    return InkWell(
-                      onTap: () {
-                        Navigator.pop(context);
-                       
-                        final now = DateTime.now();
-                        final firstDayOfYear = DateTime(now.year, 1, 1);
-                        final selectedWeekDate = firstDayOfYear.add(Duration(days: index * 7));
-                        setState(() {
-                          _selectedDate = selectedWeekDate;
-                          _dateRangeType = DateRangeType.week;
-                        });
-                        _filterSales(_searchController.text);
-                      },
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text('${index + 1}'),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showMonthPicker() async {
-    final List<String> months = [
-      'January', 'February', 'March', 'April',
-      'May', 'June', 'July', 'August',
-      'September', 'October', 'November', 'December'
-    ];
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            width: 300,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Select Month',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                GridView.builder(
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 2,
-                  ),
-                  itemCount: 12,
-                  itemBuilder: (context, index) {
-                    return InkWell(
-                      onTap: () {
-                        Navigator.pop(context);
-                        final now = DateTime.now();
-                        final selectedMonthDate = DateTime(now.year, index + 1, 1);
-                        setState(() {
-                          _selectedDate = selectedMonthDate;
-                          _dateRangeType = DateRangeType.month;
-                        });
-                        _filterSales(_searchController.text);
-                      },
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(months[index]),
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showYearPicker() async {
-    final int currentYear = DateTime.now().year;
-    final List<int> years = List.generate(5, (index) => currentYear - index);
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Select Year',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                ...years.map((year) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.pop(context);
-                          final selectedYearDate = DateTime(year, 1, 1);
-                          setState(() {
-                            _selectedDate = selectedYearDate;
-                            _dateRangeType = DateRangeType.year;
-                          });
-                          _filterSales(_searchController.text);
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(year.toString()),
-                        ),
-                      ),
-                    ))
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Color getStatusColor(String status) {
+  Color getStatusColor(String? status) {
+    if (status == null) return Colors.grey;
     switch (status.toLowerCase()) {
       case 'completed':
+      case 'paid':
         return Colors.green;
       case 'cancelled':
+      case 'failed':
         return Colors.red;
-      case 'confirmed':
-        return Colors.blue;
-      case 'in progress':
-        return Colors.yellow[700]!;
-      case 'no show':
-        return Colors.grey;
-      case 'rescheduled':
+      case 'refunded':
         return Colors.purple;
       case 'pending':
+      case 'pending_payment':
         return Colors.orange;
       default:
         return Colors.grey;
@@ -515,192 +302,128 @@ class _SalesListPageState extends State<SalesListPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Sales',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
-            onPressed: () {},
-          ),
-        ],
+        title: const Text('Sales Records', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        leading: const BackButton(color: Colors.black),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
               children: [
-         
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 45,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: _filterSales,
-                            decoration: const InputDecoration(
-                              prefixIcon: Icon(Icons.search, color: Colors.grey),
-                              hintText: 'Search by sale or client',
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 16),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-  
-                      InkWell(
-                        key: _dateButtonKey,
-                        onTap: _showDateRangeMenu,
-                        child: Container(
-                          height: 45,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              Text(_dateRangeText),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.calendar_today, size: 16),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      hintText: 'Search by Appointment ID or Client',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0), borderSide: BorderSide(color: Colors.grey[300]!)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0), borderSide: BorderSide(color: Colors.grey[300]!)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0), borderSide: BorderSide(color: Theme.of(context).primaryColor)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
                   ),
                 ),
-
-                if (filteredSales.isNotEmpty) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                const SizedBox(width: 12),
+                InkWell(
+                  key: _dateButtonKey,
+                  onTap: _showDateRangeMenu,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
                     child: Row(
                       children: [
-                        Expanded(
-                          flex: 1,
-                          child: Text('Sale #', style: TextStyle(color: Colors.grey[600])),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text('Client', style: TextStyle(color: Colors.grey[600])),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text('Status', style: TextStyle(color: Colors.grey[600])),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text('Location', style: TextStyle(color: Colors.grey[600])),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text('Gross Total', style: TextStyle(color: Colors.grey[600])),
-                        ),
+                        Text(_dateRangeText, style: const TextStyle(fontSize: 14)),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                ],
-        
-                Expanded(
-                  child: filteredSales.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.point_of_sale, size: 64, color: Colors.grey[400]),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No sales found',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Your sales will appear here',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: filteredSales.length,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemBuilder: (context, index) {
-                            final sale = filteredSales[index];
-                            return Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 1,
-                                    child: Text(
-                                      '${sale['id']}',
-                                      style: TextStyle(color: Colors.grey[800]),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      sale['client'],
-                                      style: const TextStyle(fontWeight: FontWeight.w500),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: getStatusColor(sale['status']),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Text(
-                                        sale['status'],
-                                        style: const TextStyle(color: Colors.white, fontSize: 10),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(sale['location']),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      sale['total'],
-                                      style: const TextStyle(fontWeight: FontWeight.w500),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
                 ),
               ],
             ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredSalesData.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.receipt_long_outlined, size: 60, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            const Text('No sales records found', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                            Text('Change the date range or search term.', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
+                          ],
+                        ),
+                      )
+                    : SingleChildScrollView( 
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columnSpacing: 20.0,
+                          headingRowHeight: 40,
+                          dataRowMinHeight: 48,
+                          dataRowMaxHeight: 56,
+                          columns: const [
+                            DataColumn(label: Text('Sale ID', style: TextStyle(fontWeight: FontWeight.bold))), // Was Appt. ID
+                            DataColumn(label: Text('Client', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))), // Was Appt. Date
+                            DataColumn(label: Text('Total Paid', style: TextStyle(fontWeight: FontWeight.bold))),
+                          ],
+                          rows: _filteredSalesData.map((appointment) { // Iterate through appointments considered as sales
+                            final String saleId = appointment['id'] ?? 'N/A'; // This is the appointment ID
+                            final String clientName = appointment['customerName'] ?? 'Unknown Client';
+                            final String status = appointment['paymentStatus'] ?? 'N/A'; // Use paymentStatus for sale status
+                            
+                            // Use the converted 'saleTimestamp_converted' or 'paymentTimestamp_converted' for display
+                            final DateTime? saleDateTime = appointment['paymentTimestamp_converted'] ?? appointment['saleTimestamp_converted'];
+                            final String saleDateFormatted = saleDateTime != null ? DateFormat('d MMM yy, h:mm a').format(saleDateTime) : 'N/A';
+                            
+                            // Use 'amountPaid' from the appointment as the total for the sale
+                            final double totalAmountPaid = (appointment['amountPaid'] ?? 0.0).toDouble();
+
+                            return DataRow(
+                              cells: [
+                                DataCell(
+                                  Text('#${saleId.substring(0, min(6, saleId.length))}'),
+                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SaleDetailsPage(saleData: appointment))),
+                                ),
+                                DataCell(
+                                  Text(clientName),
+                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SaleDetailsPage(saleData: appointment))),
+                                ),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: getStatusColor(status).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(status, style: TextStyle(color: getStatusColor(status), fontSize: 12, fontWeight: FontWeight.w500)),
+                                  ),
+                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SaleDetailsPage(saleData: appointment))),
+                                ),
+                                DataCell(
+                                  Text(saleDateFormatted), // Use formatted sale date
+                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SaleDetailsPage(saleData: appointment))),
+                                ),
+                                DataCell(
+                                  Text('KES ${totalAmountPaid.toStringAsFixed(0)}'), // Display amountPaid as integer
+                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SaleDetailsPage(saleData: appointment))),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+          ),
+        ],
+      ),
     );
   }
 
