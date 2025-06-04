@@ -60,8 +60,8 @@ android {
         multiDexEnabled true
         minSdkVersion 23 // Keep your minSdkVersion
         targetSdk = flutter.targetSdkVersion // Use Flutter's targetSdkVersion
-        versionCode = 15// Keep your versionCode (or use local.properties logic if preferred)
-        versionName = "1.15"
+        versionCode = 18// Keep your versionCode (or use local.properties logic if preferred)
+        versionName = "1.18"
     }
 
     buildTypes {
