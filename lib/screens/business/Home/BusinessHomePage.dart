@@ -1034,9 +1034,7 @@ onTap: () {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    print('🔄 BusinessHomePage - AppLifecycleState changed to: $state');
     if (state == AppLifecycleState.resumed) {
-      print('🔄 App resumed - refreshing data');
       _loadStaffMembers();
       _fetchAppointmentsForDate(_selectedDate);
     }
@@ -1044,7 +1042,6 @@ onTap: () {
 
   @override
   void dispose() {
-    print('🧹 BusinessHomePage - dispose called');
     WidgetsBinding.instance.removeObserver(this);
     _horizontalController.dispose();
     _verticalController.dispose();

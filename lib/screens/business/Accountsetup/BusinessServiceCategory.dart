@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:collection/collection.dart';
 
-import 'BusinessPricing.dart'; 
+import 'BusinessPricing.dart';
 
 class ServiceCategoriesPage extends StatefulWidget {
   const ServiceCategoriesPage({super.key});
@@ -12,7 +12,7 @@ class ServiceCategoriesPage extends StatefulWidget {
 }
 
 class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
- 
+  // Using single-word keys for functionality as requested
   final Map<String, List<String>> serviceCategories = {
     'Barbershop': [
       'Beard trimming',
@@ -31,19 +31,20 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
       'Eyebrow shaping',
       'Eyebrow tinting',
       'Eyelash extension',
-      'Eyelash Tinting',
-      'Henna Brows',
-      'Lash Lift and Tint',
-      'Powder brows'
+      'Eyelash lift',
+      'Eyelash tinting'
     ],
     'Nails': [
       'Acrylic nails',
-      'Dip powder nails',
+      'Gel nails',
       'Manicure',
       'Pedicure',
-      'Gel nail extension',
-      'Gel nails',
-      'Manicure and pedicure',
+      'Shellac nails',
+      'Nail art',
+      'Nail extension',
+      'Nail polish',
+      'Nail repair',
+      'Nail removal',
       'Men\'s manicure',
       'Men\'s pedicure',
       'Nail art',
@@ -64,8 +65,8 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
       'Lomi lomi massage',
       'Oil massage',
       'Prenatal massage',
-      'Relaxing massage',
-      'Spa massage',
+      'Reflexology massage',
+      'Shiatsu massage',
       'Sports massage',
       'Wood massage',
       'Trigger point massage',
@@ -82,16 +83,21 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
       'Hair treatment',
       'Hair twists',
       'Hair weaves',
-      'Locs',
-      'Permanent hair straightening',
+      'Locs maintenance',
+      'Natural hair care',
+      'Silk press',
+      'Silk wrap',
+      'Texturizer',
+      'Texturizer & Relaxer',
+      'Treatment',
+      'Weave installation',
+      'Weave maintenance',
+      'Weave removal',
+      'Wig installment',
       'Wig installation'
     ],
-    'Make up': [
-      'Bridal makeup',
-      'Makeup services',
-      'Permanent makeup'
-    ],
-    'Tattoo and piercing': [
+    'Makeup': ['Bridal makeup', 'Makeup services', 'Permanent makeup'],
+    'Tattooandpiercing': [
       'Body piercing',
       'Ear piercing',
       'Lip blushing',
@@ -103,37 +109,51 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     'Dreadlocks': [
       'Dreadlock Installation - Crochet',
       'Dreadlock Installation - Twist and Rip',
-      'Dreadlock Installation - Backcombing',
+      'Dreadlock Installation - Backcomb and Crochet',
       'Dreadlock Installation - Interlocking',
-      'Maintenance and Retwisting - Tightening',
-      'Maintenance and Retwisting - Palm Rolling',
-      'Maintenance and Retwisting - Interlocking',
-      'Dreadlock Extensions - Synthetic',
-      'Dreadlock Extensions - Natural Hair',
-      'Dreadlock Coloring - Dyes',
-      'Dreadlock Coloring - Highlights',
-      'Dreadlock Coloring - Bleaching',
-      'Dreadlock Styling - Updos',
-      'Dreadlock Styling - Braiding',
-      'Dreadlock Styling - Accessories',
-      'Dreadlock Detox'
+      'Dreadlock Installation - Freeform',
+      'Dreadlock Installation - Comb Coils',
+      'Dreadlock Installation - Double Strand Twist',
+      'Interlocking',
+      'Maintenance',
+      'Palmrolling',
+      'Crochet maintenance',
+      'Root repair',
+      'Loc extensions',
+      'Loc styling',
+      'Loc detox',
+      'Loc coloring'
     ],
   };
 
-  
+  // Mapping readable UI names to single-word functional keys
   final Map<String, String> categoryMappings = {
     'Barbering': 'Barbershop',
+    'Barbershop': 'Barbershop',
     'Salons': 'Salons',
     'Spa': 'Spa',
     'Nail Techs': 'Nails',
+    'Nails': 'Nails',
     'Dreadlocks': 'Dreadlocks',
-    'MakeUps': 'Make up',
-    'Tattoo&Piercing': 'Tattoo and piercing',
+    'MakeUps': 'Makeup',
+    'Makeups': 'Makeup',
+    'Make ups': 'Makeup',
+    'Make up': 'Makeup',
+    'Tattoo & Piercing': 'Tattooandpiercing',
+    'Tattoo&Piercing': 'Tattooandpiercing',
+    'Tattoo Piercing': 'Tattooandpiercing',
+    'Tattooandpiercing': 'Tattooandpiercing',
+    'tattoo_piercing': 'Tattooandpiercing',
     'Eyebrows & Eyelashes': 'Eyebrows',
+    'Eyebrows Eyelashes': 'Eyebrows',
+    'Eyebrows': 'Eyebrows',
+    'eyebrows_eyelashes': 'Eyebrows',
   };
 
   String searchQuery = '';
   bool _isInitialized = false;
+  bool _sameCat(String? a, String b) =>
+      (a ?? '').toLowerCase().trim() == b.toLowerCase().trim();
 
   List<String> categoriesToDisplay = [];
   String selectedCategory = '';
@@ -143,7 +163,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
   @override
   void initState() {
     super.initState();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _initializeHive();
@@ -157,54 +177,93 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     _initializeCategories();
   }
 
-
-  // update its name using our mapping and ensure a "services" list is nested in that same category map.
   void _initializeCategories() {
+    debugPrint('RAW  HIVE  LIST  ➜ ${businessData?['categories']}');
     if (_isInitialized) return;
 
-    setState(() {
-      if (businessData != null && businessData!.containsKey('categories')) {
-        final List categoryList = businessData!['categories'];
-        for (int i = 0; i < categoryList.length; i++) {
-          var category = categoryList[i];
-          if (category['isSelected'] == true) {
-        
-            String originalName = category['name'];
-            String? mappedCategory = categoryMappings[originalName];
-        
-            if (mappedCategory != null && serviceCategories.containsKey(mappedCategory)) {
-       
-              categoryList[i]['name'] = mappedCategory;
-              if (!categoriesToDisplay.contains(mappedCategory)) {
-                categoriesToDisplay.add(mappedCategory);
-              }
-        
-              if (!category.containsKey('services')) {
-                categoryList[i]['services'] = serviceCategories[mappedCategory]!
-                    .map((service) => {'name': service, 'isSelected': false})
-                    .toList();
-              }
-            }
-          }
+    debugPrint('INIT-CATS  → raw Hive list  = ${businessData?['categories']}');
+
+    categoriesToDisplay.clear();
+    bool needsSave = false;
+
+    if (businessData != null && businessData!.containsKey('categories')) {
+      final List catList = businessData!['categories'];
+
+      for (int i = 0; i < catList.length; i++) {
+        Map<String, dynamic> cat = Map<String, dynamic>.from(catList[i] as Map);
+
+        // process only rows the user selected
+        if (cat['isSelected'] != true) continue;
+
+        /* 1.  Get a safe starting label */
+        String label = (cat['name'] ?? '').toString().trim();
+
+        // if name is blank, derive it from the id   (e.g. nail_techs → Nail Techs)
+        if (label.isEmpty && cat['id'] != null) {
+          label = cat['id']
+              .toString()
+              .split('_')
+              .map((w) =>
+                  w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+              .join(' ');
+        }
+
+        /* 2.  Convert aliases to the final display name */
+        label = categoryMappings[label] ?? label;
+
+        // if still blank, skip this row entirely
+        if (label.isEmpty) continue;
+
+        // write the cleaned label back to Hive if it changed
+        if (cat['name'] != label) {
+          cat['name'] = label;
+          needsSave = true;
+        }
+
+        /* 3.  Ensure services list exists */
+        if (!cat.containsKey('services')) {
+          cat['services'] = serviceCategories[label] != null
+              ? serviceCategories[label]!
+                  .map((s) => {'name': s, 'isSelected': false})
+                  .toList()
+              : <Map<String, dynamic>>[];
+          needsSave = true;
+        }
+
+        catList[i] = cat; // put any edits back
+
+        /* 4.  Collect unique chips */
+        if (!categoriesToDisplay.contains(label)) {
+          categoriesToDisplay.add(label);
         }
       }
-      if (categoriesToDisplay.isNotEmpty) {
-        selectedCategory = categoriesToDisplay[0];
+
+      if (needsSave) {
+        businessData!['categories'] = catList;
+        appBox.put('businessData', businessData);
       }
-      _isInitialized = true;
-    });
+    }
 
+    if (categoriesToDisplay.isNotEmpty) {
+      selectedCategory = categoriesToDisplay.first;
+    }
 
-    appBox.put('businessData', businessData);
+    debugPrint('INIT-CATS  → final tabs = $categoriesToDisplay '
+        '| selected = "$selectedCategory"');
+
+    _isInitialized = true;
+    debugPrint(
+        'TABS BUILT      ➜ $categoriesToDisplay   | selected="$selectedCategory"');
+    setState(() {}); // rebuild UI
   }
-
 
   bool isServiceSelected(String categoryName, String serviceName) {
     if (businessData == null || !businessData!.containsKey('categories')) {
       return false;
     }
     List categoryList = businessData!['categories'];
-    final cat = categoryList.firstWhereOrNull((cat) => cat['name'] == selectedCategory);
+    final cat =
+        categoryList.firstWhereOrNull((cat) => cat['name'] == selectedCategory);
 
     if (cat == null || !cat.containsKey('services')) return false;
 
@@ -216,26 +275,26 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     return serviceData['isSelected'] ?? false;
   }
 
-  
-  Future<void> toggleService(String categoryName, String serviceName, bool value) async {
+  Future<void> toggleService(
+      String categoryName, String serviceName, bool value) async {
     if (businessData == null || !businessData!.containsKey('categories')) return;
-    List categoryList = businessData!['categories'];
-    final catIndex = categoryList.indexWhere((cat) => cat['name'] == categoryName);
+
+    List catList = businessData!['categories'];
+    final int catIndex =
+        catList.indexWhere((c) => _sameCat(c['name'], categoryName));
     if (catIndex == -1) return;
-    var cat = categoryList[catIndex];
-    if (!cat.containsKey('services')) return;
-    List services = cat['services'];
-    final serviceIndex = services.indexWhere((s) => s['name'] == serviceName);
-    if (serviceIndex != -1) {
-      services[serviceIndex]['isSelected'] = value;
-     
-      categoryList[catIndex]['services'] = services;
 
-      await appBox.put('businessData', businessData);
-      setState(() {});
-    }
+    List services = catList[catIndex]['services'] ?? [];
+    final int svcIndex =
+        services.indexWhere((s) => _sameCat(s['name'], serviceName));
+    if (svcIndex == -1) return;
+
+    services[svcIndex]['isSelected'] = value;
+    catList[catIndex]['services'] = services;
+
+    await appBox.put('businessData', businessData);
+    setState(() {});
   }
-
 
   Future<void> _showAddServiceDialog() async {
     final TextEditingController serviceNameController = TextEditingController();
@@ -275,10 +334,13 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
-                                items: categoriesToDisplay.map((String category) {
+                                items: categoriesToDisplay
+                                    .map((String category) {
                                   return DropdownMenuItem<String>(
                                     value: category,
-                                    child: Text(category, style: const TextStyle(fontSize: 14)),
+                                    child: Text(category,
+                                        style:
+                                            const TextStyle(fontSize: 14)),
                                   );
                                 }).toList(),
                                 onChanged: (String? newValue) {
@@ -311,7 +373,7 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
                             }
                           });
                         },
-                        tooltip: isAddingNewCategory 
+                        tooltip: isAddingNewCategory
                             ? 'Select existing category'
                             : 'Add new category',
                       ),
@@ -329,14 +391,15 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
                       backgroundColor: const Color(0xFF23461a),
                       foregroundColor: Colors.white),
                   onPressed: () async {
-                    final String serviceName = serviceNameController.text.trim();
+                    final String serviceName =
+                        serviceNameController.text.trim();
                     if (serviceName.isEmpty) return;
 
                     String categoryToUse;
                     if (isAddingNewCategory) {
                       categoryToUse = categoryNameController.text.trim();
                       if (categoryToUse.isEmpty) return;
-           
+
                       await _addNewCategory(categoryToUse);
                     } else {
                       if (dialogSelectedCategory == null) return;
@@ -356,10 +419,8 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     );
   }
 
-  
   Future<void> _addNewCategory(String categoryName) async {
     if (businessData == null) return;
-
 
     if (!categoriesToDisplay.contains(categoryName)) {
       setState(() {
@@ -369,7 +430,6 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
         }
       });
     }
-
 
     if (!businessData!.containsKey('categories')) {
       businessData!['categories'] = [];
@@ -385,13 +445,13 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     await appBox.put('businessData', businessData);
   }
 
-
-  Future<void> _addCustomService(String categoryName, String serviceName) async {
+  Future<void> _addCustomService(
+      String categoryName, String serviceName) async {
     if (businessData == null) return;
 
-   
     List categoryList = businessData!['categories'];
-    final catIndex = categoryList.indexWhere((cat) => cat['name'] == categoryName);
+    final catIndex =
+        categoryList.indexWhere((cat) => cat['name'] == categoryName);
     if (catIndex == -1) return;
     var cat = categoryList[catIndex];
     if (!cat.containsKey('services')) {
@@ -512,7 +572,8 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
             borderRadius: BorderRadius.circular(10),
             borderSide: const BorderSide(color: Colors.black, width: 2),
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
         ),
         onChanged: (value) => setState(() => searchQuery = value),
       ),
@@ -520,32 +581,30 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
   }
 
   Widget _buildCategorySelectionBar() {
+    debugPrint('BUILD-CHIPS ➜ tabs=$categoriesToDisplay');
     return SizedBox(
       height: 50,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: categoriesToDisplay.length,
         itemBuilder: (context, index) {
-          bool isSelected = selectedCategory == categoriesToDisplay[index];
+          final label = categoriesToDisplay[index];
+          final bool isSel = selectedCategory == label;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: ChoiceChip(
-              label: Text(
-                categoriesToDisplay[index],
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black,
-                ),
-              ),
-              selected: isSelected,
+              label: Text(label,
+                  style:
+                      TextStyle(color: isSel ? Colors.white : Colors.black)),
+              selected: isSel,
               selectedColor: Colors.black,
               backgroundColor: Colors.white,
-              checkmarkColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-                side: const BorderSide(color: Colors.black),
-              ),
-              onSelected: (selected) {
-                setState(() => selectedCategory = categoriesToDisplay[index]);
+                  borderRadius: BorderRadius.circular(10),
+                  side: const BorderSide(color: Colors.black)),
+              onSelected: (_) {
+                debugPrint('CHIP-TAP   ➜  $label');
+                setState(() => selectedCategory = label);
               },
             ),
           );
@@ -554,61 +613,66 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
     );
   }
 
-
   Widget _buildServiceList() {
-    List<dynamic> services = [];
+    /* 1. Pull the raw list (may be List<_Map<dynamic,dynamic>>) */
+    List<Map<String, dynamic>> services = [];
+
     if (businessData != null && businessData!.containsKey('categories')) {
-      List categoryList = businessData!['categories'];
-      final cat = categoryList.firstWhereOrNull((cat) => cat['name'] == selectedCategory);
+      final List catList = businessData!['categories'];
+      final cat =
+          catList.firstWhereOrNull((c) => c['name'] == selectedCategory);
+
       if (cat != null && cat.containsKey('services')) {
-        services = cat['services'];
+        //  🔑  clone each entry with a safe per-item cast
+        services = (cat['services'] as List)
+            .map<Map<String, dynamic>>(
+                (s) => Map<String, dynamic>.from(s as Map))
+            .toList();
       }
     }
-  
-    List filteredServices = services
-        .where((service) =>
-            service['name'].toString().toLowerCase().contains(searchQuery.toLowerCase()))
+
+    /* 2. Apply search filter */
+    final filtered = services
+        .where((s) => s['name']
+            .toString()
+            .toLowerCase()
+            .contains(searchQuery.toLowerCase()))
         .toList();
+
+    debugPrint(
+        'SERVICE-LIST ➜ ${filtered.length} items for "$selectedCategory"');
+
+    /* 3. Build the list view */
     return ListView.builder(
-      itemCount: filteredServices.length,
-      itemBuilder: (context, index) {
-        String service = filteredServices[index]['name'];
-        bool isSelected = filteredServices[index]['isSelected'] ?? false;
-        return Column(
-          children: [
-            ListTile(
-              title: Text(
-                service,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-              ),
-              trailing: GestureDetector(
-                onTap: () => toggleService(selectedCategory, service, !isSelected),
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected ? const Color(0xFF3338c2) : Colors.black,
-                      width: 8,
-                    ),
-                  ),
-                  child: isSelected
-                      ? Center(
-                          child: Container(
-                            width: 14,
-                            height: 14,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color.fromARGB(255, 255, 255, 255),
-                            ),
-                          ),
-                        )
-                      : null,
-                ),
-              ),
+      itemCount: filtered.length,
+      itemBuilder: (_, i) {
+        final svc = filtered[i];
+        final String name = svc['name'];
+        final bool sel = svc['isSelected'] ?? false;
+
+        return ListTile(
+          title:
+              Text(name, style: const TextStyle(fontWeight: FontWeight.w500)),
+          trailing: GestureDetector(
+            onTap: () => toggleService(selectedCategory, name, !sel),
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: sel ? const Color(0xFF3338c2) : Colors.black,
+                      width: 8)),
+              child: sel
+                  ? Center(
+                      child: Container(
+                          width: 14,
+                          height: 14,
+                          decoration: const BoxDecoration(
+                              shape: BoxShape.circle, color: Colors.white)))
+                  : null,
             ),
-          ],
+          ),
         );
       },
     );
@@ -639,7 +703,6 @@ class _ServiceCategoriesPageState extends State<ServiceCategoriesPage> {
 
   Future<void> _saveAndContinue() async {
     if (businessData != null) {
-
       businessData!['accountSetupStep'] = 4;
       await appBox.put('businessData', businessData);
       Navigator.pushReplacement(

@@ -98,169 +98,168 @@ class BusinessDataService {
   
   /// Get all businesses with optional filtering
   static Future<List<Map<String, dynamic>>> getBusinesses({
-    String? category,
-    Position? userPosition,
-    double maxDistance = 50.0, // Maximum distance in km
-    bool forceRefresh = false,
-    String? sortBy,
-    bool ascending = true,
-    bool showAllBusinesses = false, // Add this parameter
-  }) async {
-    try {
-      print('BusinessDataService: getBusinesses called - category: $category, position: ${userPosition?.latitude},${userPosition?.longitude}, forceRefresh: $forceRefresh, showAllBusinesses: $showAllBusinesses');
+  String? category,
+  Position? userPosition,
+  double maxDistance = 50.0, // Maximum distance in km
+  bool forceRefresh = false,
+  String? sortBy,
+  bool ascending = true,
+  bool showAllBusinesses = false, // Add this parameter
+}) async {
+  try {
+    print('BusinessDataService: getBusinesses called - category: $category, position: ${userPosition?.latitude},${userPosition?.longitude}, forceRefresh: $forceRefresh, showAllBusinesses: $showAllBusinesses');
+    
+    // Check if we can use cached data
+    if (!forceRefresh) {
+      final canUseCachedData = _canUseCachedData(
+        key: BUSINESSES_KEY, 
+        categoryFilter: category
+      );
       
-      // Check if we can use cached data
-      if (!forceRefresh) {
-        final canUseCachedData = _canUseCachedData(
-          key: BUSINESSES_KEY, 
-          categoryFilter: category
+      print('BusinessDataService: Can use cached data? $canUseCachedData');
+      
+      if (canUseCachedData) {
+        final cachedData = _appBox.get(BUSINESSES_KEY);
+        if (cachedData != null) {
+          List<Map<String, dynamic>> businesses = List<Map<String, dynamic>>.from(cachedData);
+          
+          print('BusinessDataService: Found ${businesses.length} businesses in cache');
+          
+          // Update distances if user position is provided
+          if (userPosition != null) {
+            _updateDistances(businesses, userPosition);
+            
+            // Only filter by distance if showAllBusinesses is false
+            if (!showAllBusinesses) {
+              businesses = _filterByDistance(businesses, maxDistance);
+              print('BusinessDataService: After distance filtering: ${businesses.length} businesses');
+            } else {
+              print('BusinessDataService: Showing all businesses without distance filtering');
+            }
+          }
+          
+          // Sort the data if requested
+          if (sortBy != null) {
+            _sortBusinesses(businesses, sortBy, ascending);
+          } else if (userPosition != null) {
+            // Default sort by distance when position is available
+            _sortBusinesses(businesses, 'distance', true);
+          }
+          
+          print('BusinessDataService: Returning ${businesses.length} businesses from cache');
+          return businesses;
+        }
+      }
+    } else {
+      print('BusinessDataService: Force refresh requested, skipping cache');
+    }
+    
+    // If we reach here, we need to fetch from Firebase
+    print('BusinessDataService: Fetching businesses from Firebase');
+    QuerySnapshot snapshot;
+    Query query = _firestore.collection('businesses');
+    
+    // NOTE: We're querying ALL businesses to ensure we get data
+    print('BusinessDataService: Querying ALL businesses to get data');
+    
+    // Execute query
+    print('BusinessDataService: Executing Firebase query on collection "businesses"...');
+    try {
+      snapshot = await query.get();
+      print('BusinessDataService: Firebase returned ${snapshot.docs.length} documents');
+    } catch (e) {
+      print('BusinessDataService: ❌ ERROR executing Firebase query: $e');
+      rethrow;
+    }
+    
+    if (snapshot.docs.isEmpty) {
+      print('BusinessDataService: ⚠️ WARNING: No businesses found in Firebase!');
+      print('BusinessDataService: Check your Firebase collection path and security rules');
+    } else {
+      print('BusinessDataService: First document ID: ${snapshot.docs[0].id}');
+      print('BusinessDataService: First document data preview: ${snapshot.docs[0].data().toString().substring(0, min(100, snapshot.docs[0].data().toString().length))}...');
+    }
+    
+    // Process results
+    List<Map<String, dynamic>> businesses = [];
+    
+    for (var doc in snapshot.docs) {
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      data['id'] = doc.id;
+      
+      // *** THIS IS THE FIX: Check for null and correct data type ***
+      if (userPosition != null && 
+          data['latitude'] != null && data['latitude'] is num &&
+          data['longitude'] != null && data['longitude'] is num) {
+        double distanceInMeters = Geolocator.distanceBetween(
+          userPosition.latitude,
+          userPosition.longitude,
+          (data['latitude'] as num).toDouble(),
+          (data['longitude'] as num).toDouble()
         );
         
-        print('BusinessDataService: Can use cached data? $canUseCachedData');
-        
-        if (canUseCachedData) {
-          final cachedData = _appBox.get(BUSINESSES_KEY);
-          if (cachedData != null) {
-            List<Map<String, dynamic>> businesses = List<Map<String, dynamic>>.from(cachedData);
-            
-            print('BusinessDataService: Found ${businesses.length} businesses in cache');
-            
-            // Update distances if user position is provided
-            if (userPosition != null) {
-              _updateDistances(businesses, userPosition);
-              
-              // Only filter by distance if showAllBusinesses is false
-              if (!showAllBusinesses) {
-                businesses = _filterByDistance(businesses, maxDistance);
-                print('BusinessDataService: After distance filtering: ${businesses.length} businesses');
-              } else {
-                print('BusinessDataService: Showing all businesses without distance filtering');
-              }
-            }
-            
-            // Sort the data if requested
-            if (sortBy != null) {
-              _sortBusinesses(businesses, sortBy, ascending);
-            } else if (userPosition != null) {
-              // Default sort by distance when position is available
-              _sortBusinesses(businesses, 'distance', true);
-            }
-            
-            print('BusinessDataService: Returning ${businesses.length} businesses from cache');
-            return businesses;
-          }
-        }
-      } else {
-        print('BusinessDataService: Force refresh requested, skipping cache');
+        data['distance'] = distanceInMeters / 1000;
+        data['formattedDistance'] = _formatDistance(distanceInMeters / 1000);
       }
       
-      // If we reach here, we need to fetch from Firebase
-      print('BusinessDataService: Fetching businesses from Firebase');
-      QuerySnapshot snapshot;
-      Query query = _firestore.collection('businesses');
-      
-      // NOTE: We're querying ALL businesses to ensure we get data
-      print('BusinessDataService: Querying ALL businesses to get data');
-      
-      // Execute query
-      print('BusinessDataService: Executing Firebase query on collection "businesses"...');
-      try {
-        snapshot = await query.get();
-        print('BusinessDataService: Firebase returned ${snapshot.docs.length} documents');
-      } catch (e) {
-        print('BusinessDataService: ❌ ERROR executing Firebase query: $e');
-        rethrow;
-      }
-      
-      if (snapshot.docs.isEmpty) {
-        print('BusinessDataService: ⚠️ WARNING: No businesses found in Firebase!');
-        print('BusinessDataService: Check your Firebase collection path and security rules');
-      } else {
-        print('BusinessDataService: First document ID: ${snapshot.docs[0].id}');
-        print('BusinessDataService: First document data preview: ${snapshot.docs[0].data().toString().substring(0, min(100, snapshot.docs[0].data().toString().length))}...');
-      }
-      
-      // Process results
-      List<Map<String, dynamic>> businesses = [];
-      
-      for (var doc in snapshot.docs) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        
-        // Calculate distance if user position is provided
-        if (userPosition != null && 
-            data.containsKey('latitude') && 
-            data.containsKey('longitude')) {
-          double distanceInMeters = Geolocator.distanceBetween(
-            userPosition.latitude,
-            userPosition.longitude,
-            data['latitude'],
-            data['longitude']
-          );
-          
-          data['distance'] = distanceInMeters / 1000;
-          data['formattedDistance'] = _formatDistance(distanceInMeters / 1000);
-        }
-        
-        businesses.add(data);
-      }
-
-      // Filter by category if needed
-      if (category != null && category.isNotEmpty) {
-        businesses = _filterBusinessesByCategory(businesses, category);
-        print('BusinessDataService: After category filtering: ${businesses.length} businesses for category "$category"');
-      }
-      
-      // Filter by distance if needed (only if showAllBusinesses is false)
-      if (userPosition != null && !showAllBusinesses) {
-        int beforeCount = businesses.length;
-        businesses = _filterByDistance(businesses, maxDistance);
-        print('BusinessDataService: Distance filtering: $beforeCount → ${businesses.length} businesses (max ${maxDistance}km)');
-      } else if (showAllBusinesses) {
-        print('BusinessDataService: Showing all ${businesses.length} businesses without distance filtering');
-      }
-      
-      // Sort the data if requested
-      if (sortBy != null) {
-        _sortBusinesses(businesses, sortBy, ascending);
-      } else if (userPosition != null) {
-        // Default sort by distance when position is available
-        _sortBusinesses(businesses, 'distance', true);
-      }
-      
-      // Save to Hive for offline access - UPDATED TO USE SANITIZATION
-      List<Map<String, dynamic>> sanitizedBusinesses = businesses.map((b) => _sanitizeFirebaseData(b)).toList();
-      await _appBox.put(BUSINESSES_KEY, sanitizedBusinesses);
-      await _appBox.put(LAST_FETCHED_KEY, DateTime.now().toIso8601String());
-      await _appBox.put(CATEGORY_FILTER_KEY, category);
-      
-      print('BusinessDataService: Saved ${businesses.length} businesses to Hive');
-      print('BusinessDataService: Returning ${businesses.length} businesses from Firebase');
-      return businesses;
-    } catch (e) {
-      print('BusinessDataService: ❌ ERROR fetching businesses: $e');
-      print('BusinessDataService: Stack trace: ${e is Error ? e.stackTrace : "Not available"}');
-      
-      // Try to return cached data as fallback
-      final cachedData = _appBox.get(BUSINESSES_KEY);
-      if (cachedData != null) {
-        List<Map<String, dynamic>> businesses = List<Map<String, dynamic>>.from(cachedData);
-        
-        print('BusinessDataService: Falling back to ${businesses.length} businesses from cache due to error');
-        
-        if (userPosition != null && !showAllBusinesses) {
-          _updateDistances(businesses, userPosition);
-          businesses = _filterByDistance(businesses, maxDistance);
-        }
-        
-        return businesses;
-      }
-      
-      print('BusinessDataService: No cached data available as fallback');
-      return [];
+      businesses.add(data);
     }
+
+    // Filter by category if needed
+    if (category != null && category.isNotEmpty) {
+      businesses = _filterBusinessesByCategory(businesses, category);
+      print('BusinessDataService: After category filtering: ${businesses.length} businesses for category "$category"');
+    }
+    
+    // Filter by distance if needed (only if showAllBusinesses is false)
+    if (userPosition != null && !showAllBusinesses) {
+      int beforeCount = businesses.length;
+      businesses = _filterByDistance(businesses, maxDistance);
+      print('BusinessDataService: Distance filtering: $beforeCount → ${businesses.length} businesses (max ${maxDistance}km)');
+    } else if (showAllBusinesses) {
+      print('BusinessDataService: Showing all ${businesses.length} businesses without distance filtering');
+    }
+    
+    // Sort the data if requested
+    if (sortBy != null) {
+      _sortBusinesses(businesses, sortBy, ascending);
+    } else if (userPosition != null) {
+      // Default sort by distance when position is available
+      _sortBusinesses(businesses, 'distance', true);
+    }
+    
+    // Save to Hive for offline access - UPDATED TO USE SANITIZATION
+    List<Map<String, dynamic>> sanitizedBusinesses = businesses.map((b) => _sanitizeFirebaseData(b)).toList();
+    await _appBox.put(BUSINESSES_KEY, sanitizedBusinesses);
+    await _appBox.put(LAST_FETCHED_KEY, DateTime.now().toIso8601String());
+    await _appBox.put(CATEGORY_FILTER_KEY, category);
+    
+    print('BusinessDataService: Saved ${businesses.length} businesses to Hive');
+    print('BusinessDataService: Returning ${businesses.length} businesses from Firebase');
+    return businesses;
+  } catch (e) {
+    print('BusinessDataService: ❌ ERROR fetching businesses: $e');
+    print('BusinessDataService: Stack trace: ${e is Error ? e.stackTrace : "Not available"}');
+    
+    // Try to return cached data as fallback
+    final cachedData = _appBox.get(BUSINESSES_KEY);
+    if (cachedData != null) {
+      List<Map<String, dynamic>> businesses = List<Map<String, dynamic>>.from(cachedData);
+      
+      print('BusinessDataService: Falling back to ${businesses.length} businesses from cache due to error');
+      
+      if (userPosition != null && !showAllBusinesses) {
+        _updateDistances(businesses, userPosition);
+        businesses = _filterByDistance(businesses, maxDistance);
+      }
+      
+      return businesses;
+    }
+    
+    print('BusinessDataService: No cached data available as fallback');
+    return [];
   }
-  
+}
   /// Helper method to filter businesses by category - with improved matching
   static List<Map<String, dynamic>> _filterBusinessesByCategory(
     List<Map<String, dynamic>> businesses, 

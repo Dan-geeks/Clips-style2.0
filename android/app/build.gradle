@@ -49,7 +49,7 @@ android {
             storePassword keystoreProperties['storePassword']
             // Manually specify the ABSOLUTE path to your keystore file
             // Ensure this path and filename (my-release-key-v2.jks) are correct
-            storeFile file('C:/Users/Dan/Devs/Clips-style2.0/my-release-key.jks') // Absolute path
+            storeFile file('C:/Users/Dan/Devs/Clips-style2.0/new-upload-keystore.jks') // Absolute path
         }
     }
     // >>>>> End of signingConfigs block <<<<<
@@ -60,8 +60,8 @@ android {
         multiDexEnabled true
         minSdkVersion 23 // Keep your minSdkVersion
         targetSdk = flutter.targetSdkVersion // Use Flutter's targetSdkVersion
-        versionCode = 18// Keep your versionCode (or use local.properties logic if preferred)
-        versionName = "1.18"
+        versionCode = 25// Keep your versionCode (or use local.properties logic if preferred)
+        versionName = "1.25"
     }
 
     buildTypes {
