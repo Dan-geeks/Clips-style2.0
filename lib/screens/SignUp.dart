@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'customer/CustomerSignUpPage.dart';
+import '../customer/CustomerSignUpPage.dart';
+import '../customer/navigation.dart';
 import 'business/Businesssignup.dart';
 
 
@@ -48,10 +49,11 @@ class SignUpPage extends StatelessWidget {
                       title: 'A customer',
                       description: 'Unlock the door to beauty and self-care by signing up today! Join our community of beauty enthusiasts and gain access to exclusive offers, personalized recommendations, and insider tips.',
                       imagePath: 'assets/customer.png',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => CustomerSignUpPage()),
-                      ),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          CustomerNavigationPage.route(),
+                        );
+                      },
                     ),
                   ),
                   SizedBox(width: 16),
