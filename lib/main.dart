@@ -57,7 +57,7 @@ Future<void> main() async {
     log(st.toString());
   }
 
-  // Initialize Firebase if not already
+  
   try {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
@@ -72,7 +72,7 @@ Future<void> main() async {
     log(st.toString());
   }
 
-  // Open Hive box
+
   try {
     await Hive.openBox('appBox');
     log('Opened Hive box: appBox');
@@ -81,7 +81,7 @@ Future<void> main() async {
     log(st.toString());
   }
 
-  // Defer heavy work until after first frame
+
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     try {
       await NotificationHub.instance.initialize();
@@ -92,7 +92,7 @@ Future<void> main() async {
     }
   });
 
-  // Run the app and then remove splash
+  
   runApp(const MyApp());
   FlutterNativeSplash.remove();
 }

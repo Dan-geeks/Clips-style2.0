@@ -116,7 +116,7 @@ class _BusinessAccountCreationState extends State<BusinessAccountCreation> {
           'isInitialSetupComplete': false,
           'isLotusProfileComplete': false,
           'isWalletSetupComplete': false, // Initialize Lotus flag too
-          'subscription': 'free_tier', // Add the subscription parameter with a default value
+          'subscription': 'pro', // Add the subscription parameter with a default value
           'accountSetupStep': 2, // Mark this step as done
           'updatedAt': DateTime.now().toIso8601String(), // Use ISO string for Hive compatibility
         };

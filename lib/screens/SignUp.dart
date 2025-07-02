@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'customer/CustomerSignUpPage.dart';
 import 'business/Businesssignup.dart';
-
+import 'customer/clientnavigation.dart';
+import 'business/businessnavigation.dart';
 
 class SignUpPage extends StatelessWidget {
   const SignUpPage({super.key});
@@ -46,24 +47,28 @@ class SignUpPage extends StatelessWidget {
                     child: _buildOptionCard(
                       context: context,
                       title: 'A customer',
-                      description: 'Unlock the door to beauty and self-care by signing up today! Join our community of beauty enthusiasts and gain access to exclusive offers, personalized recommendations, and insider tips.',
+                      description:
+                          'Unlock the door to beauty and self-care by signing up today! Join our community of beauty enthusiasts and gain access to exclusive offers, personalized recommendations, and insider tips.',
                       imagePath: 'assets/customer.png',
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => CustomerSignUpPage()),
+                        MaterialPageRoute(
+                            builder: (context) => OnboardingScreen()),
                       ),
                     ),
                   ),
                   SizedBox(width: 16),
-                 Expanded(
+                  Expanded(
                     child: _buildOptionCard(
                       context: context,
                       title: 'A Business',
-                      description: 'Ready to take your beauty shop to the next level? Sign up now to unlock a world of possibilities for you and your business',
+                      description:
+                          'Ready to take your beauty shop to the next level? Sign up now to unlock a world of possibilities for you and your business',
                       imagePath: 'assets/business.png',
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => Businesssignup()),
+                        MaterialPageRoute(
+                            builder: (context) => BusinessOnboardingScreen()),
                       ),
                     ),
                   ),
@@ -84,11 +89,11 @@ class SignUpPage extends StatelessWidget {
     required VoidCallback onTap,
   }) {
     return Card(
-      elevation: 0, 
-      color: Colors.white, 
+      elevation: 0,
+      color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.black, width: 2), 
+        side: BorderSide(color: Colors.black, width: 2),
       ),
       child: InkWell(
         onTap: onTap,
@@ -119,6 +124,3 @@ class SignUpPage extends StatelessWidget {
     );
   }
 }
-
-
-

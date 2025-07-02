@@ -8,10 +8,7 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-// >>>>> Load keystore properties using an ABSOLUTE path <<<<<
-// Define the absolute path to your key.properties file
-// NOTE: Using absolute paths like this makes the project less portable.
-// Ensure this path is correct on your machine.
+
 def keystorePropertiesFile = file("C:/Users/Dan/Devs/Clips-style2.0/android/key.properties") // Absolute path
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
@@ -40,7 +37,7 @@ android {
         jvmTarget = JavaVersion.VERSION_1_8
     }
 
-    // >>>>> SigningConfigs block using ABSOLUTE path for storeFile <<<<<
+   
     signingConfigs {
         release {
             // Read alias and passwords from key.properties
@@ -60,8 +57,8 @@ android {
         multiDexEnabled true
         minSdkVersion 23 // Keep your minSdkVersion
         targetSdk = flutter.targetSdkVersion // Use Flutter's targetSdkVersion
-        versionCode = 25// Keep your versionCode (or use local.properties logic if preferred)
-        versionName = "1.25"
+        versionCode = 27// Keep your versionCode (or use local.properties logic if preferred)
+        versionName = "1.27"
     }
 
     buildTypes {
